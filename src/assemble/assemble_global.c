@@ -19,7 +19,7 @@
 // Newer Routines with Local Data
 /******************************************************************************************************/
 /*!
-* \fn void assemble_global_system(block_dCSRmat* A,dvector *b,dvector *curr_sol,void (*local_assembly_lhs)(FILL THIS IN),,block_fespace *FE,mesh_struct *mesh,INT nq1d,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+* \fn void assemble_global_system(block_dCSRmat* A,dvector *b,dvector *curr_sol,void (*local_assembly_lhs)(FILL THIS IN),,block_fespace *FE,scomplex *sc,INT nq1d,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 *
 * \brief Computes the global stiffness BLOCK matrix and rhs for any a(u,v) = <f,v>
 *        bilinear form using various mixed FEM types.  This assumes the user's
@@ -54,7 +54,7 @@
 * \return b                 Global RHS vector
 *
 */
-// void assemble_global_system(block_dCSRmat* A,dvector *b,dvector *curr_sol,void (*local_assembly_lhs)(fe_local_data*),block_fespace *FE,mesh_struct *mesh,INT nq1d,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+// void assemble_global_system(block_dCSRmat* A,dvector *b,dvector *curr_sol,void (*local_assembly_lhs)(fe_local_data*),block_fespace *FE,scomplex *sc,INT nq1d,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 // {
 //
 //   // Loop Indices and counters
@@ -125,15 +125,15 @@
 //
 //   // Local data on element
 //   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
-//   FE->loc_data->nlocal_vert =  mesh->v_per_elm;
+//   FE->loc_data->nlocal_vert =  (dim + 1);
 //   FE->loc_data->nlocal_dof = dof_per_elm;
 //   FE->loc_data->nlocal_dof_space = dof_per_elm_array;
-//   FE->loc_data->dim = mesh->dim;
-//   INT* v_on_elm = (INT *) calloc(mesh->v_per_elm,sizeof(INT));
+//   FE->loc_data->dim = sc->dim;
+//   INT* v_on_elm = (INT *) calloc((dim + 1),sizeof(INT));
 //   INT rowa,rowb,jcntr;
 //
 //   // Loop over elements
-//   for (i=0; i<mesh->nelm; i++) {
+//   for (i=0; i<fem->ns_leaf; i++) {
 //     // Zero out local matrices
 //     for (j=0; j<local_size; j++) {
 //       ALoc[j]=0;
@@ -158,7 +158,7 @@
 //     }
 //     FE->loc_data->local_dof = dof_on_elm;
 //
-//     get_incidence_row(i,mesh->el_v,v_on_elm);
+//     get_incidence_row(i,fem->el_v,v_on_elm);
 //     FE->loc_data->local_vert = v_on_elm;
 //
 //
@@ -185,9 +185,9 @@
 //
 //     // Compute Local Stiffness Matrix for given Element
 //     if(b!=NULL) {
-//       (*local_assembly)(ALoc,bLoc,old_sol,FE,mesh,i,rhs,time);
+//       (*local_assembly)(ALoc,bLoc,old_sol,FE,sc,i,rhs,time);
 //     } else {
-//       (*local_assembly)(ALoc,NULL,old_sol,FE,mesh,i,rhs,time);
+//       (*local_assembly)(ALoc,NULL,old_sol,FE,sc,i,rhs,time);
 //     }
 //
 //     // Loop over DOF and place in appropriate slot globally
@@ -206,7 +206,7 @@
 // Full Assembly Routines
 /******************************************************************************************************/
 /*!
-* \fn assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+* \fn assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 *
 * \brief Computes the global stiffness matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
 *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
@@ -236,11 +236,12 @@
 * \return b              Global RHS vector
 *
 */
-void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
-
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT i,j;
 
   // Allocate Row Array
@@ -292,12 +293,12 @@ void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace
     get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     // Find vertices for given Element
-    get_incidence_row(i,mesh->el_v,v_on_elm);
+    get_incidence_row(i,fem->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
-    (*local_assembly)(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,coeff,time);
+    (*local_assembly)(ALoc,FE,sc,cq,dof_on_elm,v_on_elm,i,coeff,time);
     if(rhs!=NULL)
-    FEM_RHS_Local(bLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
+    FEM_RHS_Local(bLoc,FE,sc,cq,dof_on_elm,v_on_elm,i,rhs,time);
 
     // Loop over DOF and place in appropriate slot globally
     LocaltoGlobal(dof_on_elm,FE,b,A,ALoc,bLoc);
@@ -314,7 +315,7 @@ void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace
 
 /******************************************************************************************************/
 /*!
-* \fn assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*bc)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+* \fn assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*bc)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 *
 * \brief Computes the global stiffness matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
 *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
@@ -346,10 +347,12 @@ void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace
 * \return b             Global RHS vector
 *
 */
-void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*bc)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*bc)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT i,j;
 
   // Allocate Row Array
@@ -381,7 +384,7 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
     if (FE->dirichlet[i]==1) { /* This is a boundary row.  Just make identity and fix right hand side */
       A->val[A->IA[i]] = 1.0;
       if(rhs!=NULL)
-      b->val[i] = FE_Evaluate_DOF(bc,FE,mesh,time,i);
+      b->val[i] = FE_Evaluate_DOF(bc,FE,sc,time,i);
     }
   }
 
@@ -410,12 +413,12 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
     get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     // Find vertices for given Element
-    get_incidence_row(i,mesh->el_v,v_on_elm);
+    get_incidence_row(i,fem->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
-    (*local_assembly)(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,coeff,time);
+    (*local_assembly)(ALoc,FE,sc,cq,dof_on_elm,v_on_elm,i,coeff,time);
     if(rhs!=NULL)
-    FEM_RHS_Local(bLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
+    FEM_RHS_Local(bLoc,FE,sc,cq,dof_on_elm,v_on_elm,i,rhs,time);
 
     // Loop over DOF and place in appropriate slot globally
     LocaltoGlobal_withBC(dof_on_elm,FE,b,A,ALoc,bLoc);
@@ -432,7 +435,7 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
 
 /******************************************************************************************************/
 /*!
-* \fn assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE1, fespace *FE2, mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+* \fn assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,fespace *,scomplex *,qcoordinates *,INT *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE1, fespace *FE2, scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 *
 * \brief Computes the global stiffness matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
 *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
@@ -465,11 +468,13 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
 *
 */
 
-void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE1, fespace *FE2, mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,fespace *,scomplex *,qcoordinates *,INT *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE1, fespace *FE2, scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT dof_per_elm1 = FE1->dof_per_elm;
   INT dof_per_elm2 = FE2->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT i,j;
 
   // Allocate Row Array
@@ -526,12 +531,12 @@ void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
     get_incidence_row(i,FE2->el_dof,dof_on_elm2);
 
     // Find vertices for given Element
-    get_incidence_row(i,mesh->el_v,v_on_elm);
+    get_incidence_row(i,fem->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
-    (*local_assembly)(ALoc,FE1,FE2,mesh,cq,dof_on_elm1,dof_on_elm2,v_on_elm,i,coeff,time);
+    (*local_assembly)(ALoc,FE1,FE2,sc,cq,dof_on_elm1,dof_on_elm2,v_on_elm,i,coeff,time);
     if(rhs!=NULL)
-    FEM_RHS_Local(bLoc,FE2,mesh,cq,dof_on_elm2,v_on_elm,i,rhs,time);
+    FEM_RHS_Local(bLoc,FE2,sc,cq,dof_on_elm2,v_on_elm,i,rhs,time);
 
     // Loop over DOF and place in appropriate slot globally
     LocaltoGlobal_FE1FE2(dof_on_elm1,FE1,dof_on_elm2,FE2,b,A,ALoc,bLoc);
@@ -549,7 +554,7 @@ void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
 
 /******************************************************************************************************/
 /*!
-* \fn assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+* \fn assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,block_fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,block_fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 *
 * \brief Computes the global stiffness BLOCK matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
 *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
@@ -579,10 +584,12 @@ void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
 * \return b                 Global RHS vector
 *
 */
-void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,block_fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,block_fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT dof_per_elm = 0;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT i,j,k,testdof,trialdof;
 
   // Get block data first
@@ -643,7 +650,7 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
   INT rowa,rowb,jcntr;
   // Loop over elements
-  for (i=0; i<mesh->nelm; i++) {
+  for (i=0; i<fem->ns_leaf; i++) {
     // Zero out local matrices
     for (j=0; j<local_size; j++) {
       ALoc[j]=0;
@@ -668,12 +675,12 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
     }
 
     // Find vertices for given Element
-    get_incidence_row(i,mesh->el_v,v_on_elm);
+    get_incidence_row(i,fem->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
-    (*local_assembly)(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,time);
+    (*local_assembly)(ALoc,FE,sc,cq,dof_on_elm,v_on_elm,i,time);
     if(rhs!=NULL)
-    (*local_rhs_assembly)(bLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
+    (*local_rhs_assembly)(bLoc,FE,sc,cq,dof_on_elm,v_on_elm,i,rhs,time);
 
     // Loop over DOF and place in appropriate slot globally
     block_LocaltoGlobal(dof_on_elm,FE,b,A,ALoc,bLoc);
@@ -690,7 +697,7 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
 
 /******************************************************************************************************/
 /*!
-* \fn void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void (*local_assembly)(REAL *,REAL *,dvector *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+* \fn void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void (*local_assembly)(REAL *,REAL *,dvector *,block_fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 *
 * \brief Computes the global stiffness BLOCK matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
 *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
@@ -724,10 +731,12 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
 * \return b                 Global RHS vector (Nonlinear residual)
 *
 */
-void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void (*local_assembly)(REAL *,REAL *,dvector *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void (*local_assembly)(REAL *,REAL *,dvector *,block_fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT dof_per_elm = 0;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT i,j,k,testdof,trialdof;
 
   // Get block data first
@@ -791,7 +800,7 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
   INT rowa,rowb,jcntr;
   // Loop over elements
-  for (i=0; i<mesh->nelm; i++) {
+  for (i=0; i<fem->ns_leaf; i++) {
     // Zero out local matrices
     for (j=0; j<local_size; j++) {
       ALoc[j]=0;
@@ -815,13 +824,13 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
       }
     }
 
-    get_incidence_row(i,mesh->el_v,v_on_elm);
+    get_incidence_row(i,fem->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
     if(b!=NULL) {
-      (*local_assembly)(ALoc,bLoc,old_sol,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
+      (*local_assembly)(ALoc,bLoc,old_sol,FE,sc,cq,dof_on_elm,v_on_elm,i,rhs,time);
     } else {
-      (*local_assembly)(ALoc,NULL,old_sol,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
+      (*local_assembly)(ALoc,NULL,old_sol,FE,sc,cq,dof_on_elm,v_on_elm,i,rhs,time);
     }
 
     // Loop over DOF and place in appropriate slot globally
@@ -840,7 +849,7 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
 // Assembles Global RHS vectors (if needed separately)
 /******************************************************************************************************/
 /*!
-* \fn assemble_global_RHS(dvector *b,fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+* \fn assemble_global_RHS(dvector *b,fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 *
 * \brief Computes the global rhs for any a(u,v) = <f,v> bilinear form using various element types
 *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -865,10 +874,12 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
 * \return b             Global RHS vector
 *
 */
-void assemble_global_RHS(dvector *b,fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+void assemble_global_RHS(dvector *b,fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT i,j,row;
 
   // Allocate Arrays
@@ -894,10 +905,10 @@ void assemble_global_RHS(dvector *b,fespace *FE,mesh_struct *mesh,qcoordinates *
     get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     // Find vertices for given Element
-    get_incidence_row(i,mesh->el_v,v_on_elm);
+    get_incidence_row(i,fem->el_v,v_on_elm);
 
     // Compute Local RHS for given Element
-    FEM_RHS_Local(bLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
+    FEM_RHS_Local(bLoc,FE,sc,cq,dof_on_elm,v_on_elm,i,rhs,time);
 
     // Loop over DOF and place in appropriate slot globally
     for (j=0; j<dof_per_elm; j++) {
@@ -916,7 +927,7 @@ void assemble_global_RHS(dvector *b,fespace *FE,mesh_struct *mesh,qcoordinates *
 
 /******************************************************************************************************/
 /*!
-* \fn void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+* \fn void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,block_fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 *
 * \brief Computes the global rhs for any a(u,v) = <f,v> bilinear form using various element types
 *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -943,10 +954,12 @@ void assemble_global_RHS(dvector *b,fespace *FE,mesh_struct *mesh,qcoordinates *
 * \return b                  Global RHS vector
 *
 */
-void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,block_fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT dof_per_elm = 0;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT i,j,k,row;
 
   // Get block data first
@@ -972,7 +985,7 @@ void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,bloc
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
   INT rowa,rowb,jcntr;
   // Loop over elements
-  for (i=0; i<mesh->nelm; i++) {
+  for (i=0; i<fem->ns_leaf; i++) {
     // Zero out local matrices
     for (j=0; j<dof_per_elm; j++) {
       bLoc[j]=0;
@@ -992,10 +1005,10 @@ void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,bloc
     }
 
     // Find vertices for given Element
-    get_incidence_row(i,mesh->el_v,v_on_elm);
+    get_incidence_row(i,fem->el_v,v_on_elm);
 
     // Compute Local RHS for given Element
-    (*local_rhs_assembly)(bLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
+    (*local_rhs_assembly)(bLoc,FE,sc,cq,dof_on_elm,v_on_elm,i,rhs,time);
 
     // Loop over DOF and place in appropriate slot globally
     jcntr = 0;
@@ -1020,7 +1033,7 @@ void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,bloc
 
 /******************************************************************************************************/
 /*!
-* \fn assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+* \fn assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 *
 * \brief Computes the global rhs for any a(u,v) = <f,v> bilinear form using various element types
 *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -1050,10 +1063,12 @@ void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,bloc
 * \return b                  Global RHS vector
 *
 */
-void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT dof_per_elm = 0;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT i,j,k,row;
 
   // Get block data first
@@ -1079,7 +1094,7 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
   INT rowa,rowb,jcntr;
   // Loop over elements
-  for (i=0; i<mesh->nelm; i++) {
+  for (i=0; i<fem->ns_leaf; i++) {
     // Zero out local matrices
     for (j=0; j<dof_per_elm; j++) {
       bLoc[j]=0;
@@ -1099,10 +1114,10 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
     }
 
     // Find vertices for given Element
-    get_incidence_row(i,mesh->el_v,v_on_elm);
+    get_incidence_row(i,fem->el_v,v_on_elm);
 
     // Compute Local RHS for given Element
-    (*local_rhs_assembly)(bLoc,old_sol,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
+    (*local_rhs_assembly)(bLoc,old_sol,FE,sc,cq,dof_on_elm,v_on_elm,i,rhs,time);
 
     // Loop over DOF and place in appropriate slot globally
     jcntr = 0;
@@ -1128,7 +1143,7 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
 // Assembly over Faces/Boundaries
 /******************************************************************************************************/
 /*!
-* \fn assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL,void *),void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
+* \fn assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,fespace *,scomplex *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,scomplex *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,scomplex *sc,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL,void *),void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
 *
 * \brief Computes the global stiffness matrix for any "boundary" bilinear form using various element types
 *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -1162,12 +1177,13 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
 * \return b                      Global RHS vector
 *
 */
-void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL,void *),void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
+void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,fespace *,scomplex *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,scomplex *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,scomplex *sc,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL,void *),void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT dof_per_face = 0;
-  INT dim = mesh->dim;
   if(FE->FEtype>=1 && FE->FEtype<10) { // PX Elements 2 -> 2 or 3   3 -> 3 or 6
     dof_per_face = dim + (FE->FEtype-1)*(2*dim -3);
   } else if(FE->FEtype==20) { // Nedelec Elements
@@ -1223,12 +1239,12 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
 
   // We will need the face to element map
   iCSRmat f_el;
-  icsr_trans(mesh->el_f,&f_el);
+  icsr_trans(fem->el_f,&f_el);
 
   // Loop over boundary faces
-  for (i=0; i<mesh->nface; i++) {
+  for (i=0; i<fem->nface; i++) {
     // Only grab the faces on the flagged boundary
-    if(mesh->f_flag[i]>=flag0 && mesh->f_flag[i]<=flag1) {
+    if(fem->f_flag[i]>=flag0 && fem->f_flag[i]<=flag1) {
       // Zero out local matrices
       for (j=0; j<local_size; j++) {
         ALoc[j]=0;
@@ -1251,12 +1267,12 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
       get_incidence_row(elm,FE->el_dof,dof_on_elm);
 
       // Find vertices for given Element
-      get_incidence_row(elm,mesh->el_v,v_on_elm);
+      get_incidence_row(elm,fem->el_v,v_on_elm);
 
       // Compute Local Stiffness Matrix for given Element
-      (*local_assembly_face)(ALoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,i,elm,coeff,time);
+      (*local_assembly_face)(ALoc,old_sol,FE,sc,cq,dof_on_f,dof_on_elm,v_on_elm,i,elm,coeff,time);
       if(rhs!=NULL)
-      (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,i,elm,rhs,time);
+      (*local_rhs_assembly_face)(bLoc,old_sol,FE,sc,cq,dof_on_f,dof_on_elm,v_on_elm,i,elm,rhs,time);
 
       // Loop over DOF and place in appropriate slot globally
       LocaltoGlobal_face(dof_on_f,dof_per_face,FE,b,A,ALoc,bLoc,flag0,flag1);
@@ -1276,7 +1292,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
 
 /******************************************************************************************************/
 /*!
-* \fn void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
+* \fn void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,scomplex *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
 *
 * \brief Computes the RHS for any "boundary" bilinear form using various element types
 *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -1309,12 +1325,13 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
 * \return b                      Global RHS vector
 *
 */
-void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
+void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,scomplex *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT dof_per_face = 0;
-  INT dim = mesh->dim;
   if(FE->FEtype>=1 && FE->FEtype<10) { // PX Elements 2 -> 2 or 3   3 -> 3 or 6
     dof_per_face = dim + (FE->FEtype-1)*(2*dim -3);
   } else if(FE->FEtype==20) { // Nedelec Elements
@@ -1351,12 +1368,12 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
 
   // We will need the face to element map
   iCSRmat f_el;
-  icsr_trans(mesh->el_f,&f_el);
+  icsr_trans(fem->el_f,&f_el);
 
   // Loop over boundary faces
-  for (i=0; i<mesh->nface; i++) {
+  for (i=0; i<fem->nface; i++) {
     // Only grab the faces on the flagged boundary
-    if(mesh->f_flag[i]>=flag0 && mesh->f_flag[i]<=flag1) {
+    if(fem->f_flag[i]>=flag0 && fem->f_flag[i]<=flag1) {
       // Zero out local matrices
       for (j=0; j<dof_per_face; j++) {
         bLoc[j]=0;
@@ -1374,10 +1391,10 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
       get_incidence_row(elm,FE->el_dof,dof_on_elm);
 
       // Find vertices for given Element
-      get_incidence_row(elm,mesh->el_v,v_on_elm);
+      get_incidence_row(elm,fem->el_v,v_on_elm);
 
       // Compute Local Stiffness Matrix for given Element
-      (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,rhs,time);
+      (*local_rhs_assembly_face)(bLoc,old_sol,FE,sc,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,rhs,time);
 
       // Loop over DOF and place in appropriate slot globally
       for (j=0; j<dof_per_face; j++) { /* Rows of Local Stiffness */
@@ -1398,7 +1415,7 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
 /******************************************************************************************************/
 
 /*!
-* \fn assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL,void *),void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
+* \fn assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,block_fespace *,scomplex *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,block_fespace *,scomplex *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,scomplex *sc,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL,void *),void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
 *
 * \brief Computes the global block stiffness matrix for any "boundary" bilinear form using various element types
 *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -1432,13 +1449,14 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
 * \return b                      Global RHS vector
 *
 */
-void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL,void *),void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
+void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,block_fespace *,scomplex *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,block_fespace *,scomplex *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,scomplex *sc,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL,void *),void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
 {
 
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT dof_per_elm = 0;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT i,j,k,testdof,trialdof,jcntr,rowb,elm;
-  INT dim = mesh->dim;
   INT nspaces = FE->nspaces;
 
   // Get block data first
@@ -1542,12 +1560,12 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
 
   // We will need the face to element map
   iCSRmat f_el;
-  icsr_trans(mesh->el_f,&f_el);
+  icsr_trans(fem->el_f,&f_el);
 
   // Loop over boundary faces
-  for (i=0; i<mesh->nface; i++) {
+  for (i=0; i<fem->nface; i++) {
     // Only grab the faces on the flagged boundary
-    if(mesh->f_flag[i]>=flag0 && mesh->f_flag[i]<=flag1) {
+    if(fem->f_flag[i]>=flag0 && fem->f_flag[i]<=flag1) {
       // Zero out local matrices
       for (j=0; j<local_size; j++) {
         ALoc[j]=0;
@@ -1588,11 +1606,11 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
       }
 
       // Find vertices for given Element
-      get_incidence_row(elm,mesh->el_v,v_on_elm);
+      get_incidence_row(elm,fem->el_v,v_on_elm);
 
       // Compute Local Stiffness Matrix for given Element
-      (*local_assembly_face)(ALoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,coeff,time);
-      if(b!=NULL) (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,rhs,time);
+      (*local_assembly_face)(ALoc,old_sol,FE,sc,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,coeff,time);
+      if(b!=NULL) (*local_rhs_assembly_face)(bLoc,old_sol,FE,sc,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,rhs,time);
 
       // Loop over DOF and place in appropriate slot globally
       block_LocaltoGlobal_face(dof_on_f,dof_per_face,dof_per_face_blk,FE,b,A,ALoc,bLoc,flag0,flag1);
@@ -1613,7 +1631,7 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
 
 /******************************************************************************************************/
 /*!
-* \fn void assemble_global_RHS_face_block(dvector *b,void (*local_rhs_assembly)(REAL *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+* \fn void assemble_global_RHS_face_block(dvector *b,void (*local_rhs_assembly)(REAL *,block_fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 *
 * \brief Computes the global stiffness matrix for any "boundary" bilinear form using various element types
 *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -1641,11 +1659,12 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
 * \return b             Global RHS vector
 *
 */
-void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_rhs_assembly_face)(REAL *, dvector *, block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *, INT *, INT, INT, INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time, INT flag0, INT flag1)
+void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_rhs_assembly_face)(REAL *, dvector *, block_fespace *,scomplex *,qcoordinates *,INT *,INT *, INT *, INT, INT, INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,scomplex *sc,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time, INT flag0, INT flag1)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT dof_per_elm = 0;
-  INT v_per_elm = mesh->v_per_elm;
-  INT dim = mesh->dim;
+  INT v_per_elm = (dim + 1);
   INT i,j,k,row;
 
   // Get block data first
@@ -1707,7 +1726,7 @@ void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_r
 
   // Need face to element map
   iCSRmat f_el;
-  icsr_trans(mesh->el_f,&f_el);
+  icsr_trans(fem->el_f,&f_el);
 
   INT jcntr,rowa,rowb;
   INT elm;
@@ -1715,9 +1734,9 @@ void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_r
   //INT dof_on_elm_shift;
 
   // Loop over boundary faces
-  for(i=0;i<mesh->nface;i++) {
+  for(i=0;i<fem->nface;i++) {
     // Only grab faces on the flagged boundary
-    if(mesh->f_flag[i]>=flag0 && mesh->f_flag[i]<=flag1) {
+    if(fem->f_flag[i]>=flag0 && fem->f_flag[i]<=flag1) {
       // Zero out local vector
       for(j=0;j<dof_per_face;j++) {
         bLoc[j] = 0;
@@ -1765,10 +1784,10 @@ void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_r
       //}
 
       // Find vertices for given element
-      get_incidence_row(elm,mesh->el_v,v_on_elm);
+      get_incidence_row(elm,fem->el_v,v_on_elm);
 
       // Compute Local RHS for given element
-      (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,rhs,time);
+      (*local_rhs_assembly_face)(bLoc,old_sol,FE,sc,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,rhs,time);
 
       // Put Local RHS in correct location
       jcntr = 0;
@@ -1797,7 +1816,7 @@ void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_r
 
 /******************************************************************************************************/
 /*!
-* \fn assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,mesh_struct *mesh,qcoordinates *cq,dvector* u)
+* \fn assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,scomplex *sc,qcoordinates *cq,dvector* u)
 *
 * \brief Computes the global rhs for any <u,grad v>, where u is a Nedelec FE function and v is in P1
 *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
@@ -1813,10 +1832,12 @@ void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_r
 * \return b                      Global RHS vector
 *
 */
-void assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,mesh_struct *mesh,qcoordinates *cq,dvector* u)
+void assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,scomplex *sc,qcoordinates *cq,dvector* u)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT ed_per_elm = FE_Ned->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT i,j,row;
 
   // Allocate Arrays
@@ -1838,10 +1859,10 @@ void assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,me
     get_incidence_row(i,FE_Ned->el_dof,ed_on_elm);
 
     // Find vertices for given Element
-    get_incidence_row(i,mesh->el_v,v_on_elm);
+    get_incidence_row(i,fem->el_v,v_on_elm);
 
     // Compute Local RHS for given Element
-    Ned_GradH1_RHS_local(bLoc,FE_H1,FE_Ned,mesh,cq,ed_on_elm,v_on_elm,i,u);
+    Ned_GradH1_RHS_local(bLoc,FE_H1,FE_Ned,sc,cq,ed_on_elm,v_on_elm,i,u);
 
     // Loop over DOF and place in appropriate slot globally
     for (j=0; j<v_per_elm; j++) {

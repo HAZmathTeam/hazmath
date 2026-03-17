@@ -847,7 +847,7 @@ void block_LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,INT* dof_per_face_blk,
 
 /******************************************************************************************************/
 /*!
-* \fn eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
+* \fn eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,dvector *b,dCSRmat *A,REAL time)
 *
 * \brief Eliminates the Dirichlet boundaries from the global matrix:
 *        For each row in A that corresponds to a Dirichlet boundary, make the diagonal 1 and
@@ -869,7 +869,7 @@ void block_LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,INT* dof_per_face_blk,
 * \return b            Global RHS vector with boundaries eliminated
 *
 */
-void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
+void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,dvector *b,dCSRmat *A,REAL time)
 {
   INT i,j,cola,colb;
   INT ndof = FE->ndof;
@@ -884,7 +884,7 @@ void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mes
   // Fix RHS First b_interior = (b - A(0;u_bdry)^T)_interior
   //               b_bdry = u_bdry
   if(b!=NULL)
-  eliminate_DirichletBC_RHS(bc,FE,mesh,b,A,time);
+  eliminate_DirichletBC_RHS(bc,FE,sc,b,A,time);
 
   // Now fix A
   // Loop over rows of A
@@ -915,7 +915,7 @@ void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mes
 
 /******************************************************************************************************/
 /*!
-* \fn eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
+* \fn eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,dvector *b,dCSRmat *A,REAL time)
 *
 * \brief Eliminates the Dirichlet boundaries from the global RHS vector:
 *        If it's a boundary DOF, set to the actual boundary value.
@@ -933,7 +933,7 @@ void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mes
 * \return b            Global RHS vector with boundaries eliminated
 *
 */
-void eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
+void eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,dvector *b,dCSRmat *A,REAL time)
 {
   SHORT status;
   INT i;
@@ -949,7 +949,7 @@ void eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE
   // Get solution vector that's 0 on interior and boundary value on boundary
   for(i=0; i<ndof; i++) {
     if(FE->dirichlet[i]==1) {
-      ub[i] = FE_Evaluate_DOF(bc,FE,mesh,time,i);
+      ub[i] = FE_Evaluate_DOF(bc,FE,sc,time,i);
     } else {
       ub[i] = 0.0;
     }
@@ -973,7 +973,7 @@ void eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE
 
 /******************************************************************************************************/
 /*!
-* \fn block_eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,
+* \fn block_eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,dvector *b,
 void *A,INT Atype,REAL time)
 *
 * \brief Eliminates the Dirichlet boundaries from the global matrix:
@@ -998,15 +998,15 @@ void *A,INT Atype,REAL time)
 * \return b            Global RHS vector with boundaries eliminated
 *
 */
-void block_eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,
+void block_eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,dvector *b,
 void *A,INT Atype,REAL time)
 {
   if(Atype==0) {
     dCSRmat *Atemp = (dCSRmat *) A;
-    eliminate_DirichletBC_blockFE(bc,FE,mesh,b,Atemp,time);
+    eliminate_DirichletBC_blockFE(bc,FE,sc,b,Atemp,time);
   } else if(Atype==1) {
     block_dCSRmat *Atemp = (block_dCSRmat *) A;
-    eliminate_DirichletBC_blockFE_blockA(bc,FE,mesh,b,Atemp,time);
+    eliminate_DirichletBC_blockFE_blockA(bc,FE,sc,b,Atemp,time);
   } else {
     printf("Wrong type of matrix.  Not eliminating anything...\n\n");
   }
@@ -1016,7 +1016,7 @@ void *A,INT Atype,REAL time)
 
 /******************************************************************************************************/
 /*!
-* \fn block_eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,
+* \fn block_eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,
 dvector *b,void *A,INT Atype,REAL time)
 *
 * \brief Eliminates the Dirichlet boundaries from the global RHS vector:
@@ -1037,15 +1037,15 @@ dvector *b,void *A,INT Atype,REAL time)
 * \return b            Global RHS vector with boundaries eliminated
 *
 */
-void block_eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,
+void block_eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,
 dvector *b,void *A,INT Atype,REAL time)
 {
   if(Atype==0) {
     dCSRmat *Atemp = (dCSRmat *) A;
-    eliminate_DirichletBC_RHS_blockFE(bc,FE,mesh,b,Atemp,time);
+    eliminate_DirichletBC_RHS_blockFE(bc,FE,sc,b,Atemp,time);
   } else if(Atype==1) {
     block_dCSRmat *Atemp = (block_dCSRmat *) A;
-    eliminate_DirichletBC_RHS_blockFE_blockA(bc,FE,mesh,b,Atemp,time);
+    eliminate_DirichletBC_RHS_blockFE_blockA(bc,FE,sc,b,Atemp,time);
   } else {
     printf("Wrong type of matrix.  Not eliminating anything...\n\n");
   }
@@ -1055,7 +1055,7 @@ dvector *b,void *A,INT Atype,REAL time)
 
 /******************************************************************************************************/
 /*!
-* \fn eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
+* \fn eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,dvector *b,dCSRmat *A,REAL time)
 *
 * \brief Eliminates the Dirichlet boundaries from the global matrix:
 *        For each row in A that corresponds to a Dirichlet boundary, make the diagonal 1 and
@@ -1077,7 +1077,7 @@ dvector *b,void *A,INT Atype,REAL time)
 * \return b            Global RHS vector with boundaries eliminated
 *
 */
-void eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
+void eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,dvector *b,dCSRmat *A,REAL time)
 {
   SHORT status;
   INT i,j,cola,colb;
@@ -1092,7 +1092,7 @@ void eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_f
   // Fix RHS First b_interior = (b - A(0;u_bdry)^T)_interior
   //               b_bdry = u_bdry
   if(b!=NULL)
-  eliminate_DirichletBC_RHS_blockFE(bc,FE,mesh,b,A,time);
+  eliminate_DirichletBC_RHS_blockFE(bc,FE,sc,b,A,time);
 
   // Now fix A
   // Loop over rows of A
@@ -1123,7 +1123,7 @@ void eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_f
 
 /******************************************************************************************************/
 /*!
-* \fn eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
+* \fn eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,dvector *b,dCSRmat *A,REAL time)
 *
 * \brief Eliminates the Dirichlet boundaries from the global RHS vector:
 *        If it's a boundary DOF, set to the actual boundary value.
@@ -1141,7 +1141,7 @@ void eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_f
 * \return b            Global RHS vector with boundaries eliminated
 *
 */
-void eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
+void eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,dvector *b,dCSRmat *A,REAL time)
 {
   SHORT status;
   INT i,j;
@@ -1160,7 +1160,7 @@ void eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),blo
     ndof_local = FE->var_spaces[j]->ndof;
     for(i=0; i<ndof_local; i++) {
       if(FE->dirichlet[entry+i]==1) {
-        ub[entry + i] = blockFE_Evaluate_DOF(bc,FE,mesh,time,j,i);
+        ub[entry + i] = blockFE_Evaluate_DOF(bc,FE,sc,time,j,i);
       } else {
         ub[entry + i] = 0.0;
       }
@@ -1186,7 +1186,7 @@ void eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),blo
 
 /******************************************************************************************************/
 /*!
-* \fn eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL,void *),void *FE,mesh_struct *mesh,dvector *b,
+* \fn eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL,void *),void *FE,scomplex *sc,dvector *b,
 block_dCSRmat *A,REAL time)   *
 * \brief Eliminates the Dirichlet boundaries from the global matrix:
 *        For each row in A that corresponds to a Dirichlet boundary, make the diagonal 1 and
@@ -1209,7 +1209,7 @@ block_dCSRmat *A,REAL time)   *
 * \return b            Global RHS vector with boundaries eliminated
 *
 */
-void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,
+void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL,void *),block_fespace *FE,scomplex *sc,dvector *b,
 block_dCSRmat *A,REAL time)
 {
   INT i,j,k,cola,colb;
@@ -1223,7 +1223,7 @@ block_dCSRmat *A,REAL time)
   // Fix RHS First b_interior = (b - A(0;u_bdry)^T)_interior
   //               b_bdry = u_bdry
   if(b!=NULL)
-  eliminate_DirichletBC_RHS_blockFE_blockA(bc,FE,mesh,b,A,time);
+  eliminate_DirichletBC_RHS_blockFE_blockA(bc,FE,sc,b,A,time);
 
   // Find dof shifts needed for each block
   INT *dofshift;
@@ -1287,7 +1287,7 @@ block_dCSRmat *A,REAL time)
 
 /******************************************************************************************************/
 /*!
-* \fn eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,block_dCSRmat *A,REAL time)
+* \fn eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,dvector *b,block_dCSRmat *A,REAL time)
 *
 * \brief Eliminates the Dirichlet boundaries from the global RHS vector:
 *        If it's a boundary DOF, set to the actual boundary value.
@@ -1306,7 +1306,7 @@ block_dCSRmat *A,REAL time)
 * \return b            Global RHS vector with boundaries eliminated
 *
 */
-void eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,block_dCSRmat *A,REAL time)
+void eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,dvector *b,block_dCSRmat *A,REAL time)
 {
   INT i,j;
   INT ndof = FE->ndof;
@@ -1318,7 +1318,7 @@ void eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL,void
     ndof_local = FE->var_spaces[j]->ndof;
     for(i=0; i<ndof_local; i++) {
       if(FE->dirichlet[entry+i]==1) {
-        ub[entry + i] = blockFE_Evaluate_DOF(bc,FE,mesh,time,j,i);
+        ub[entry + i] = blockFE_Evaluate_DOF(bc,FE,sc,time,j,i);
       } else {
         ub[entry + i] = 0.0;
       }

@@ -16,7 +16,7 @@
 
 /******************************************************************************************************/
 /*!
- * \fn void assemble_DuDv_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+ * \fn void assemble_DuDv_local(REAL* ALoc,fespace *FE,scomplex *sc,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the local stiffness matrix for coeff*<Du,Dv> = <f,v> bilinear form using various element types
  *        (eg. P1, P2 -> (grad u, grad v), Nedelec <curl u, curl v>, and Raviart-Thomas <div u, div v>).
@@ -43,9 +43,10 @@
  * \note Assumes 2D or 3D only for Nedelec and Raviart-Thomas Elements
  *
  */
-void assemble_DuDv_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+void assemble_DuDv_local(REAL* ALoc,fespace *FE,scomplex *sc,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
-  INT dim = mesh->dim;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
 
   // Loop Indices
   INT quad,test,trial,idim;
@@ -72,13 +73,13 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoordinates *
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
       if(coeff!=NULL) {
-        (*coeff)(&coeff_val,qx,time,&(mesh->el_flag[elm]));
+        (*coeff)(&coeff_val,qx,time,&(fem->el_flag[elm]));
       } else {
         coeff_val = 1.0;
       }
 
       // Basis Functions and its derivatives if necessary
-      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,sc,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -102,13 +103,13 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoordinates *
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
       if(coeff!=NULL) {
-        (*coeff)(&coeff_val,qx,time,&(mesh->el_flag[elm]));
+        (*coeff)(&coeff_val,qx,time,&(fem->el_flag[elm]));
       } else {
         coeff_val = 1.0;
       }
 
       // Basis Functions and its derivatives if necessary
-      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,sc,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -125,7 +126,7 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoordinates *
 }
 
 /*!
- * \fn void assemble_mass_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+ * \fn void assemble_mass_local(REAL* MLoc,fespace *FE,scomplex *sc,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the local mass matrix for coeff*<u,v> = <f,v> bilinear form using various element types
  *        (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
@@ -152,9 +153,10 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoordinates *
  * \note Assumes 2D or 3D only for Nedelec and Raviart-Thomas Elements
  *
  */
-void assemble_mass_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+void assemble_mass_local(REAL* MLoc,fespace *FE,scomplex *sc,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
-  INT dim = mesh->dim;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
 
   // Loop Indices
   INT quad,test,trial,idim;
@@ -181,13 +183,13 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordinates *
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
       if(coeff!=NULL) {
-        (*coeff)(&coeff_val,qx,time,&(mesh->el_flag[elm]));
+        (*coeff)(&coeff_val,qx,time,&(fem->el_flag[elm]));
       } else {
         coeff_val = 1.0;
       }
 
       // Basis Functions and its derivatives if necessary
-      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,sc,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -211,13 +213,13 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordinates *
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
       if(coeff!=NULL) {
-        (*coeff)(&coeff_val,qx,time,&(mesh->el_flag[elm]));
+        (*coeff)(&coeff_val,qx,time,&(fem->el_flag[elm]));
       } else {
         coeff_val = 1.0;
       }
 
       // Basis Functions and its derivatives if necessary
-      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,sc,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -234,7 +236,7 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordinates *
 }
 
 /*!
- * \fn void assemble_P1masslump_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+ * \fn void assemble_P1masslump_local(REAL* MLoc,fespace *FE,scomplex *sc,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the local mass-lumped matrix for coeff*<u,v> bilinear form using various element types
  *
@@ -254,9 +256,10 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordinates *
  * \return MLoc         Local Mass Matrix (Full Matrix)
  *
  */
-void assemble_P1masslump_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+void assemble_P1masslump_local(REAL* MLoc,fespace *FE,scomplex *sc,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
-  INT dim = mesh->dim;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
 
   // Loop Indices
   INT quad,test,trial,idim;
@@ -283,13 +286,13 @@ void assemble_P1masslump_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordin
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
       if(coeff!=NULL) {
-        (*coeff)(&coeff_val,qx,time,&(mesh->el_flag[elm]));
+        (*coeff)(&coeff_val,qx,time,&(fem->el_flag[elm]));
       } else {
         coeff_val = 1.0;
       }
 
       // Basis Functions and its derivatives if necessary
-      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,sc,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -313,13 +316,13 @@ void assemble_P1masslump_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordin
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
       if(coeff!=NULL) {
-        (*coeff)(&coeff_val,qx,time,&(mesh->el_flag[elm]));
+        (*coeff)(&coeff_val,qx,time,&(fem->el_flag[elm]));
       } else {
         coeff_val = 1.0;
       }
 
       // Basis Functions and its derivatives if necessary
-      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,sc,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -336,7 +339,7 @@ void assemble_P1masslump_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordin
 }
 
 /*!
- * \fn void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+ * \fn void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,scomplex *sc,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the local stiffness matrix for coeff1*<Du,Dv> + coeff2*<u,v> = <f,v> bilinear form
  *        using various element types
@@ -365,9 +368,10 @@ void assemble_P1masslump_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordin
  * \note Assumes 2D or 3D only for Nedelec and Raviart-Thomas Elements
  *
  */
-void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,scomplex *sc,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
-  INT dim = mesh->dim;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
 
   // Error Check
   SHORT status=0;
@@ -396,14 +400,14 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoord
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
       if(coeff!=NULL) {
-        (*coeff)(coeff_val,qx,time,&(mesh->el_flag[elm]));
+        (*coeff)(coeff_val,qx,time,&(fem->el_flag[elm]));
       } else {
         coeff_val[0] = 1.0;
         coeff_val[1] = 1.0;
       }
 
       // Basis Functions and its derivatives if necessary
-      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,sc,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -427,14 +431,14 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoord
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
       if(coeff!=NULL) {
-        (*coeff)(coeff_val,qx,time,&(mesh->el_flag[elm]));
+        (*coeff)(coeff_val,qx,time,&(fem->el_flag[elm]));
       } else {
         coeff_val[0] = 1.0;
         coeff_val[1] = 1.0;
       }
 
       // Basis Functions and its derivatives if necessary
-      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,sc,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -465,14 +469,14 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoord
       if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
       if(coeff!=NULL) {
-        (*coeff)(coeff_val,qx,time,&(mesh->el_flag[elm]));
+        (*coeff)(coeff_val,qx,time,&(fem->el_flag[elm]));
       } else {
         coeff_val[0] = 1.0;
         coeff_val[1] = 1.0;
       }
 
       // Basis Functions and its derivatives if necessary
-      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,sc,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -496,7 +500,7 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoord
 
 /******************************************************************************************************/
 /*!
-* \fn void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
+* \fn void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, scomplex *sc, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
 *
 * \brief Computes the local stiffness matrix for a symmetric gradient.
 *        For this problem we compute LHS of:
@@ -525,14 +529,14 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoord
 *       <2 eps(u), eps(v)> = <grad u, grad v>
 *
 */
-void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
+void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, scomplex *sc, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
 {
 
   // Loop indices
   INT i,quad,test,trial;
 
   // Mesh and FE data
-  INT dim = mesh->dim;
+  INT dim = sc->dim;
 
   // Space indices
   INT iu1 = 0;
@@ -566,13 +570,13 @@ void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, mesh_struct *me
   for (quad=0;quad<cq->nq_per_elm;quad++) {
     qx[0] = cq->x[elm*cq->nq_per_elm+quad];
     qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-    if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+    if(sc->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
     w = cq->w[elm*cq->nq_per_elm+quad];
 
     //  Get the Basis Functions at each quadrature node
     local_dof_on_elm = dof_on_elm;
     for(i=0;i<dim;i++){
-      get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[i]);
+      get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,qx,v_on_elm,local_dof_on_elm,sc,FE->var_spaces[i]);
       // Shift local dof to next finite element space
       local_dof_on_elm += FE->var_spaces[i]->dof_per_elm;
     }
@@ -717,7 +721,7 @@ void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, mesh_struct *me
 /****** Boundary Assemblies *******************/
 /******************************************************************************************************/
 /*!
- * \fn void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,mesh_struct *mesh,qcoordinates *cq, \
+ * \fn void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,scomplex *sc,qcoordinates *cq, \
                        INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the local weak formulation of the mass matrix on a boundary face (3D -> 2D surface; 2D -> 1D curve)
@@ -742,11 +746,12 @@ void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, mesh_struct *me
  * \note                Assuming 2D and 3D only
  *
  */
-void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,mesh_struct *mesh,qcoordinates *cq, \
+void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,scomplex *sc,qcoordinates *cq, \
                          INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
   // Mesh and FE data
-  INT dim = mesh->dim;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT dof_per_f = 0;
 
   // flag for errors
@@ -787,13 +792,13 @@ void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,mesh_struct *me
       w = cq->w[face*cq->nq_per_elm+quad];
 
       if(coeff!=NULL) {
-        (*coeff)(&coeff_val,qx,time,&(mesh->f_flag[face]));
+        (*coeff)(&coeff_val,qx,time,&(fem->f_flag[face]));
       } else {
         coeff_val = 1.0;
       }
 
       //  Get the Basis Functions at each quadrature node
-      PX_H1_basis(FE->phi,FE->dphi,qx,dof_on_elm,FE->FEtype,mesh);
+      PX_H1_basis(FE->phi,FE->dphi,qx,dof_on_elm,FE->FEtype,sc);
 
       // Loop over Test Functions (Rows - vertices)
       for (test=0; test<dof_per_f;test++) {
@@ -833,13 +838,13 @@ void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,mesh_struct *me
       w = cq->w[face*cq->nq_per_elm+quad];
 
       if(coeff!=NULL) {
-        (*coeff)(&coeff_val,qx,time,&(mesh->f_flag[face]));
+        (*coeff)(&coeff_val,qx,time,&(fem->f_flag[face]));
       } else {
         coeff_val = 1.0;
       }
 
       //  Get the Basis Functions at each quadrature node
-      ned_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh);
+      ned_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,sc);
 
       // Loop over Test Functions (Rows - edges)
       for (test=0; test<dof_per_f;test++) {
@@ -879,13 +884,13 @@ void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,mesh_struct *me
       w = cq->w[face*cq->nq_per_elm+quad];
 
       if(coeff!=NULL) {
-        (*coeff)(&coeff_val,qx,time,&(mesh->f_flag[face]));
+        (*coeff)(&coeff_val,qx,time,&(fem->f_flag[face]));
       } else {
         coeff_val = 1.0;
       }
 
       //  Get the Basis Functions at each quadrature node
-      rt_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh);
+      rt_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,sc);
 
       /// Loop over Test Functions (Rows - edges)
       for (test=0; test<dof_per_f;test++) {
@@ -919,7 +924,7 @@ void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,mesh_struct *me
 
 /******************************************************************************************************/
 /*!
- * \fn void FEM_RHS_Local(REAL* bLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+ * \fn void FEM_RHS_Local(REAL* bLoc,fespace *FE,scomplex *sc,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the local Right hand side vector for Galerkin Finite Elements
  *        b_i  = <f,phi_i>
@@ -938,10 +943,11 @@ void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,mesh_struct *me
  * \note Assumes 2D or 3D only for Nedelec and Raviart-Thomas Elements
  *
  */
-void FEM_RHS_Local(REAL* bLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+void FEM_RHS_Local(REAL* bLoc,fespace *FE,scomplex *sc,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
   // Mesh and FE data
-  INT dim = mesh->dim;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
 
   // Loop Indices
   INT quad,test,idim;
@@ -965,10 +971,10 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT
       if(dim==3)
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
-      (*rhs)(&rhs_val_scalar,qx,time,&(mesh->el_flag[elm]));
+      (*rhs)(&rhs_val_scalar,qx,time,&(fem->el_flag[elm]));
 
       //  Get the Basis Functions at each quadrature node
-      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,sc,FE);
 
       // Loop over test functions and integrate rhs
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -983,10 +989,10 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT
       qx[1] = cq->y[elm*cq->nq_per_elm+quad];
       if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
-      (*rhs)(rhs_val_vector,qx,time,&(mesh->el_flag[elm]));
+      (*rhs)(rhs_val_vector,qx,time,&(fem->el_flag[elm]));
 
       //  Get the Basis Functions at each quadrature node
-      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,sc,FE);
 
       // Loop over test functions and integrate rhs
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -1003,7 +1009,7 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT
 
 /******************************************************************************************************/
 /*!
- * \fn void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+ * \fn void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,scomplex *sc,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the local Right hand side vector for a block FEM system
  *        b_i  = <f,phi_i>
@@ -1021,13 +1027,14 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT
  *
  *
  */
-void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,scomplex *sc,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
   // Loop Indices
   INT i,quad,test;
 
   // Mesh and FE data
-  INT dim = mesh->dim;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT nun=0;
 
   for(i=0;i<FE->nspaces;i++) {
@@ -1053,9 +1060,9 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoordin
   for (quad=0;quad<cq->nq_per_elm;quad++) {
     qx[0] = cq->x[elm*cq->nq_per_elm+quad];
     qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-    if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+    if(sc->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
     w = cq->w[elm*cq->nq_per_elm+quad];
-    (*rhs)(rhs_val,qx,time,&(mesh->el_flag[elm]));
+    (*rhs)(rhs_val,qx,time,&(fem->el_flag[elm]));
 
     local_row_index=0;
     unknown_index=0;
@@ -1063,7 +1070,7 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoordin
     for(i=0;i<FE->nspaces;i++) {
 
       // Basis Functions and its derivatives if necessary
-      get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[i]);
+      get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,qx,v_on_elm,local_dof_on_elm,sc,FE->var_spaces[i]);
 
       // Loop over test functions and integrate rhs
       if(FE->var_spaces[i]->scal_or_vec==0) { // Scalar Element
@@ -1104,7 +1111,7 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoordin
 
 /******************************************************************************************************/
 /*!
- * \fn void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,mesh_struct *mesh,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)
+ * \fn void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,scomplex *sc,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)
  *
  * \brief Computes the local weak formulation of <E,grad(q)> where E is a given
  *         Nedelec approximation and q in H_0^1 (linears)
@@ -1123,10 +1130,10 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoordin
  * \note                Assuming 2D and 3D only
  *
  */
-void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,mesh_struct *mesh,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)
+void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,scomplex *sc,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)
 {
   // Mesh and FE data
-  INT dim = mesh->dim;
+  INT dim = sc->dim;
 
   // Loop Indices
   INT quad,test;
@@ -1147,10 +1154,10 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,mesh_struct 
     w = cq->w[elm*cq->nq_per_elm+quad];
 
     // Get FEM function at quadrature nodes
-    FE_Interpolation(ucoeff,u->val,qx,ed_on_elm,v_on_elm,FE_Ned,mesh);
+    FE_Interpolation(ucoeff,u->val,qx,ed_on_elm,v_on_elm,FE_Ned,sc);
 
     //  Get the Basis Functions at each quadrature node
-    PX_H1_basis(FE_H1->phi,FE_H1->dphi,qx,v_on_elm,FE_H1->FEtype,mesh);
+    PX_H1_basis(FE_H1->phi,FE_H1->dphi,qx,v_on_elm,FE_H1->FEtype,sc);
 
     // Loop over test functions and integrate rhs
     for (test=0; test<FE_H1->dof_per_elm;test++) {
@@ -1166,7 +1173,7 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,mesh_struct 
 /****** Boundary Assemblies *********************/
 /******************************************************************************************************/
 /*!
-* \fn void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT dof_per_face,INT face,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+* \fn void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,scomplex *sc,qcoordinates *cq,INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT dof_per_face,INT face,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 *
 * \brief Computes the local assembly of a RHS for any "boundary" bilinear form using various element types
 *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -1207,17 +1214,18 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,mesh_struct 
 * \return bLoc                   Local RHS vector
 *
 */
-void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT dof_per_face,INT face,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,scomplex *sc,qcoordinates *cq,INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT dof_per_face,INT face,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
   // Mesh and FE data
-  INT dim = mesh->dim;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
 
   // Loop Indices
   INT j,quad,test,doft;
 
   // Quadrature Weights and Nodes
   qcoordinates *cq_face = allocateqcoords_bdry(cq->nq1d,1,dim,2);
-  quad_face(cq_face,mesh,cq->nq1d,face);
+  quad_face(cq_face,sc,cq->nq1d,face);
   INT maxdim=4;
   REAL qx[maxdim];
   REAL w;
@@ -1225,9 +1233,9 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,mesh_struct *mes
   // Get normal vector components on face if needed
   REAL nx=0.0,ny=0.0,nz=0.0;
   if(FE->FEtype>=20) {
-    nx = mesh->f_norm[face*dim];
-    ny = mesh->f_norm[face*dim+1];
-    if(dim==3) nz = mesh->f_norm[face*dim+2];
+    nx = fem->f_norm[face*dim];
+    ny = fem->f_norm[face*dim+1];
+    if(dim==3) nz = fem->f_norm[face*dim+2];
   }
 
   // Stiffness Matrix Entry
@@ -1245,10 +1253,10 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,mesh_struct *mes
       if(dim==3)
         qx[2] = cq_face->z[quad];
       w = cq_face->w[quad];
-      (*rhs)(&rhs_val,qx,time,&(mesh->f_flag[face]));
+      (*rhs)(&rhs_val,qx,time,&(fem->f_flag[face]));
 
       //  Get the Basis Functions at each quadrature node
-      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,sc,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<dof_per_face;test++) {
@@ -1267,18 +1275,18 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,mesh_struct *mes
     //  Sum over quadrature points
     for (quad=0;quad<cq_face->n;quad++) {
     //for (quad=0;quad<1;quad++) {
-    //  qx[0] = mesh->f_mid[face*dim];
-    //  qx[1] = mesh->f_mid[face*dim+1];
+    //  qx[0] = fem->f_mid[face*dim];
+    //  qx[1] = fem->f_mid[face*dim+1];
       qx[0] = cq_face->x[quad];
       qx[1] = cq_face->y[quad];
       if(dim==3)
         qx[2] = cq_face->z[quad];
-//        qx[2] = mesh->f_mid[face*dim+2];
+//        qx[2] = fem->f_mid[face*dim+2];
       w = cq_face->w[quad];
-      (*rhs)(&rhs_val,qx,time,&(mesh->f_flag[face]));
+      (*rhs)(&rhs_val,qx,time,&(fem->f_flag[face]));
 
       //  Get the Basis Functions at each quadrature node
-      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,sc,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<dof_per_face;test++) {

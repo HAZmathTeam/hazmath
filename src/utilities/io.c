@@ -1096,26 +1096,27 @@ FILE* HAZ_fopen(char *fname, char *mode )
 
 /******************************************************************************/
 /*!
- * \fn void dump_sol_onV_vtk(char *namevtk,mesh_struct *mesh,REAL *sol,INT ncomp)
+ * \fn void dump_sol_onV_vtk(char *namevtk,scomplex *sc,REAL *sol,INT ncomp)
  *
  * \brief Dumps solution data to vtk format only on vertices
  *
  * \param namevtk  Filename
- * \param mesh     Mesh struct to dump
+ * \param sc       Simplicial complex
  * \param sol      solution vector to dump
  * \param ncomp:   Number of components to the solution
  *
  */
 void dump_sol_onV_vtk(char *namevtk,
-                      mesh_struct *mesh,
+                      scomplex *sc,
                       REAL *sol,
                       INT ncomp)
 {
   // Basic Quantities
-  INT nv = mesh->nv;
-  INT nelm = mesh->nelm;
-  INT dim = mesh->dim;
-  INT v_per_elm = mesh->v_per_elm;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+  INT nv = sc->nv;
+  INT nelm = fem->ns_leaf;
+  INT v_per_elm = (dim + 1);
 
   // VTK needed Quantities
   INT tcell=-10;
@@ -1185,16 +1186,16 @@ void dump_sol_onV_vtk(char *namevtk,
   // Dump coordinates
   if(dim == 1) {
     for(k=0;k<nv;k++) {
-      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],0e0,0e0);
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",sc->x[k*dim],0e0,0e0);
     }
   } else if(dim == 2) {
     for(k=0;k<nv;k++) {
-      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k],0e0);
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",sc->x[k*dim],sc->x[k*dim+1],0e0);
     }
   } else {
     for(k=0;k<nv;k++) {
-      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k], \
-  	      mesh->cv->z[k]);
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",sc->x[k*dim],sc->x[k*dim+1], \
+  	      sc->x[k*dim+2]);
     }
   }
   fprintf(fvtk,"</DataArray>\n");
@@ -1213,12 +1214,12 @@ void dump_sol_onV_vtk(char *namevtk,
   // Dump el_v map
   fprintf(fvtk,"<Cells>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
-  for(k=1;k<=nelm;k++) fprintf(fvtk," %lld ",(long long )mesh->el_v->IA[k]);
+  for(k=1;k<=nelm;k++) fprintf(fvtk," %lld ",(long long )fem->el_v->IA[k]);
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
   for(k=0;k<nelm;k++){
     kndl=k*v_per_elm;
-    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %lld ",(long long )mesh->el_v->JA[kndl + j]);
+    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %lld ",(long long )fem->el_v->JA[kndl + j]);
   }
   fprintf(fvtk,"</DataArray>\n");
 
@@ -1245,25 +1246,26 @@ void dump_sol_onV_vtk(char *namevtk,
 
 /******************************************************************************/
 /*!
- * \fn void dump_sol_vtk(char *namevtk,char *varname,mesh_struct *mesh,fespace *FE,REAL *sol)
+ * \fn void dump_sol_vtk(char *namevtk,char *varname,scomplex *sc,fespace *FE,REAL *sol)
  *
  * \brief Dumps solution data to vtk format.  Tries to do best interpolation for given FE space.
  *
  * \param namevtk  Filename
  * \param varname  String for variable name
- * \param mesh     Mesh struct to dump
+ * \param sc       Simplicial complex
  * \param FE       FE space of solution
  * \param sol      solution vector to dump
  *
  */
-void dump_sol_vtk(char *namevtk,char *varname,mesh_struct *mesh,fespace *FE,REAL *sol)
+void dump_sol_vtk(char *namevtk,char *varname,scomplex *sc,fespace *FE,REAL *sol)
 {
   // Basic Quantities
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT i;
-  INT nv = mesh->nv;
-  INT nelm = mesh->nelm;
-  INT dim = mesh->dim;
-  INT v_per_elm = mesh->v_per_elm;
+  INT nv = sc->nv;
+  INT nelm = fem->ns_leaf;
+  INT v_per_elm = (dim + 1);
 
   // VTK needed Quantities
   INT tcell=-10;
@@ -1329,16 +1331,16 @@ void dump_sol_vtk(char *namevtk,char *varname,mesh_struct *mesh,fespace *FE,REAL
   // Dump vertex coordinates and solution
   if(dim == 1) {
     for(k=0;k<nv;k++) {
-      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],0e0,0e0);
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",sc->x[k*dim],0e0,0e0);
     }
   } else if(dim == 2) {
     for(k=0;k<nv;k++) {
-      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k],0e0);
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",sc->x[k*dim],sc->x[k*dim+1],0e0);
     }
   } else {
     for(k=0;k<nv;k++) {
-      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k], \
-              mesh->cv->z[k]);
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",sc->x[k*dim],sc->x[k*dim+1], \
+              sc->x[k*dim+2]);
     }
   }
   fprintf(fvtk,"</DataArray>\n");
@@ -1361,8 +1363,8 @@ void dump_sol_vtk(char *namevtk,char *varname,mesh_struct *mesh,fespace *FE,REAL
     fprintf(fvtk,"</DataArray>\n");
     fprintf(fvtk,"</PointData>\n");
   } else { // Vector Elements
-    sol_on_V = (REAL *) calloc(dim*mesh->nv,sizeof(REAL));
-    Project_to_Vertices(sol_on_V,sol,FE,mesh);
+    sol_on_V = (REAL *) calloc(dim*nv,sizeof(REAL));
+    Project_to_Vertices(sol_on_V,sol,FE,sc);
     fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
     for(i=0;i<dim;i++) {
       fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component - %s%lld\" Format=\"ascii\">",tfloat,varname,(long long )i);
@@ -1375,12 +1377,12 @@ void dump_sol_vtk(char *namevtk,char *varname,mesh_struct *mesh,fespace *FE,REAL
   // Dump el_v map
   fprintf(fvtk,"<Cells>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
-  for(k=1;k<=nelm;k++) fprintf(fvtk," %lld ",(long long )mesh->el_v->IA[k]);
+  for(k=1;k<=nelm;k++) fprintf(fvtk," %lld ",(long long )fem->el_v->IA[k]);
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
   for(k=0;k<nelm;k++){
     kndl=k*v_per_elm;
-    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %lld ",(long long )mesh->el_v->JA[kndl + j]);
+    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %lld ",(long long )fem->el_v->JA[kndl + j]);
   }
   fprintf(fvtk,"</DataArray>\n");
 
@@ -1405,25 +1407,26 @@ void dump_sol_vtk(char *namevtk,char *varname,mesh_struct *mesh,fespace *FE,REAL
 
 /******************************************************************************/
 /*!
- * \fn void dump_blocksol_vtk(char *namevtk,char *varname,mesh_struct *mesh,block_fespace *FE,REAL *sol)
+ * \fn void dump_blocksol_vtk(char *namevtk,char *varname,scomplex *sc,block_fespace *FE,REAL *sol)
  *
  * \brief Dumps solution data to vtk format.  Tries to do best interpolation for given FE space.
  *
  * \param namevtk  Filename
  * \param varname  String for variable names
- * \param mesh     Mesh struct to dump
+ * \param sc       Simplicial complex
  * \param FE       Block FE space of solution
  * \param sol      solution vector to dump
  *
  */
-void dump_blocksol_vtk(char *namevtk,char **varname,mesh_struct *mesh,block_fespace *FE,REAL *sol)
+void dump_blocksol_vtk(char *namevtk,char **varname,scomplex *sc,block_fespace *FE,REAL *sol)
 {
   // Basic Quantities
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT i,nsp;
-  INT nv = mesh->nv;
-  INT nelm = mesh->nelm;
-  INT dim = mesh->dim;
-  INT v_per_elm = mesh->v_per_elm;
+  INT nv = sc->nv;
+  INT nelm = fem->ns_leaf;
+  INT v_per_elm = (dim + 1);
 
   // VTK needed Quantities
   INT tcell=-10;
@@ -1489,16 +1492,16 @@ void dump_blocksol_vtk(char *namevtk,char **varname,mesh_struct *mesh,block_fesp
   // Dump vertex coordinates and solution
   if(dim == 1) {
     for(k=0;k<nv;k++) {
-      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],0e0,0e0);
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",sc->x[k*dim],0e0,0e0);
     }
   } else if(dim == 2) {
     for(k=0;k<nv;k++) {
-      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k],0e0);
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",sc->x[k*dim],sc->x[k*dim+1],0e0);
     }
   } else {
     for(k=0;k<nv;k++) {
-      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k], \
-              mesh->cv->z[k]);
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",sc->x[k*dim],sc->x[k*dim+1], \
+              sc->x[k*dim+2]);
     }
   }
   fprintf(fvtk,"</DataArray>\n");
@@ -1527,9 +1530,9 @@ void dump_blocksol_vtk(char *namevtk,char **varname,mesh_struct *mesh,block_fesp
       for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol[spcntr]);
       fprintf(fvtk,"</DataArray>\n");
     } else { // Vector Elements
-      sol_on_V = (REAL *) calloc(dim*mesh->nv,sizeof(REAL));
+      sol_on_V = (REAL *) calloc(dim*nv,sizeof(REAL));
       solptr = sol+spcntr;
-      Project_to_Vertices(sol_on_V,solptr,FE->var_spaces[nsp],mesh);
+      Project_to_Vertices(sol_on_V,solptr,FE->var_spaces[nsp],sc);
       for(i=0;i<dim;i++) {
         fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %lld - %s%lld\" Format=\"ascii\">",tfloat,(long long )nsp,varname[nsp],(long long )i);
         for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol_on_V[i*nv+k]);
@@ -1560,12 +1563,12 @@ void dump_blocksol_vtk(char *namevtk,char **varname,mesh_struct *mesh,block_fesp
   // Dump el_v map
   fprintf(fvtk,"<Cells>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
-  for(k=1;k<=nelm;k++) fprintf(fvtk," %lld ",(long long )mesh->el_v->IA[k]);
+  for(k=1;k<=nelm;k++) fprintf(fvtk," %lld ",(long long )fem->el_v->IA[k]);
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
   for(k=0;k<nelm;k++){
     kndl=k*v_per_elm;
-    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %lld ",(long long )mesh->el_v->JA[kndl + j]);
+    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %lld ",(long long )fem->el_v->JA[kndl + j]);
   }
   fprintf(fvtk,"</DataArray>\n");
 

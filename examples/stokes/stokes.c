@@ -60,16 +60,16 @@ int main(int argc, char* argv[]) {
   clock_t clk_mesh_start = clock();
 
   // Use HAZMATH built in functions for a uniform mesh in 2D or 3D
-  mesh_struct mesh;
+  scomplex *sc;
   INT dim = inparam.spatial_dim;                 // dimension of computational domain
   INT mesh_ref_levels = inparam.refinement_levels; // refinement levels
   INT mesh_ref_type = inparam.refinement_type;     // refinement type (>10 uniform or <10 other)
   INT set_bndry_codes = inparam.boundary_codes;    // set flags for the boundary DoF (1-16 are Dirichlet)
-  mesh = make_uniform_mesh(dim, mesh_ref_levels, mesh_ref_type, set_bndry_codes);
+  sc = make_uniform_mesh(dim, mesh_ref_levels, mesh_ref_type, set_bndry_codes);
 
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; /* Quadrature points per dimension */
-  qcoordinates* cq = get_quadrature(&mesh, nq1d);
+  qcoordinates* cq = get_quadrature(sc, nq1d);
 
   // Get info for and create FEM spaces
   // Order of elements: 0 - P0; 1 - P1; 2 - P2; 20 - Nedlec; 30 - Raviart-Thomas
@@ -78,23 +78,23 @@ int main(int argc, char* argv[]) {
 
   // Need Spaces for each component of the velocity plus pressure
   fespace FE_ux; // Velocity in x direction
-  create_fespace(&FE_ux, &mesh, order_u);
+  create_fespace(&FE_ux, sc, order_u);
   fespace FE_uy; // Velocity in y direction
-  create_fespace(&FE_uy, &mesh, order_u);
+  create_fespace(&FE_uy, sc, order_u);
   fespace FE_uz; // Velocity in z direction
-  if (dim == 3) create_fespace(&FE_uz, &mesh, order_u);
+  if (dim == 3) create_fespace(&FE_uz, sc, order_u);
   fespace FE_p; // Pressure
-  create_fespace(&FE_p, &mesh, order_p);
+  create_fespace(&FE_p, sc, order_p);
 
   // Set Dirichlet Boundaries
   // u = g on all boundaries
   // p is Neumann on all boundaries
   // The mesh is set up so that flag values 1-16 are Dirichlet and 17-32 are Neumann
   // For now mesh marks all physical boundaries as set_bndry_codes value
-  set_dirichlet_bdry(&FE_ux, &mesh, 1, 16);
-  set_dirichlet_bdry(&FE_uy, &mesh, 1, 16);
-  if (dim == 3) set_dirichlet_bdry(&FE_uz, &mesh, 1, 16);
-  set_dirichlet_bdry(&FE_p, &mesh, -1, -1); // No DoF for p should be Dirichlet
+  set_dirichlet_bdry(&FE_ux, sc, 1, 16);
+  set_dirichlet_bdry(&FE_uy, sc, 1, 16);
+  if (dim == 3) set_dirichlet_bdry(&FE_uz, sc, 1, 16);
+  set_dirichlet_bdry(&FE_p, sc, -1, -1); // No DoF for p should be Dirichlet
 
   // Create Block System with ordering (u,p)
   INT udof = FE_ux.ndof + FE_uy.ndof; // Total DoF for u
@@ -105,14 +105,14 @@ int main(int argc, char* argv[]) {
   INT nun = dim + 1; // Number of unkonwns (scalar quantities)
   // Get Global FE Space
   block_fespace FE;
-  initialize_fesystem(&FE, nspaces, nun, ndof, mesh.nelm);
+  initialize_fesystem(&FE, nspaces, nun, ndof, sc->fem->ns_leaf);
   FE.var_spaces[0] = &FE_ux;
   FE.var_spaces[1] = &FE_uy;
   if (dim == 3) FE.var_spaces[2] = &FE_uz;
   FE.var_spaces[dim] = &FE_p;
 
   // Set Dirichlet Boundaries and DoF flags
-  set_dirichlet_bdry_block(&FE, &mesh);
+  set_dirichlet_bdry_block(&FE, sc);
 
   clock_t clk_mesh_end = clock(); // End of timing for mesh and FE setup
   printf(" --> elapsed CPU time for mesh and FEM space construction = %f seconds.\n\n",
@@ -122,14 +122,14 @@ int main(int argc, char* argv[]) {
   // Summarize Setup
   printf("***********************************************************************************\n");
   printf("\t--- %lld-dimensional grid ---\n", (long long)dim);
-  printf("Number of Elements = %lld\tOrder of Quadrature = %lld\n", (long long)mesh.nelm, 2 * (long long)nq1d - 1);
+  printf("Number of Elements = %lld\tOrder of Quadrature = %lld\n", (long long)sc->fem->ns_leaf, 2 * (long long)nq1d - 1);
   printf("\n\t--- Element Type ---\n");
   printf("Velocity Element Type = %lld\tPressure Element Type = %lld\n", (long long)order_u, (long long)order_p);
   printf("\n\t--- Degrees of Freedom ---\n");
-  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld", (long long)mesh.nv, (long long)mesh.nedge, (long long)mesh.nface);
+  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld", (long long)sc->nv, (long long)sc->fem->nedge, (long long)sc->fem->nface);
   printf("\t--> DOF: %lld\n", (long long)FE.ndof);
   printf("\n\t--- Boundaries ---\n");
-  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld\n", (long long)mesh.nbv, (long long)mesh.nbedge, (long long)mesh.nbface);
+  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld\n", (long long)sc->fem->nbv, (long long)sc->fem->nbedge, (long long)sc->fem->nbface);
   printf("***********************************************************************************\n\n");
 
   /*** Assemble the matrix and right hand side *******************************/
@@ -150,18 +150,18 @@ int main(int argc, char* argv[]) {
   bdcsr_alloc(nspaces, nspaces, &A);
 
   // Assemble the matricies without BC first
-  if (dim == 2) assemble_global_block(&A, &b, local_assembly_Stokes, FEM_Block_RHS_Local, &FE, &mesh, cq, source2D, 0.0);
-  if (dim == 3) assemble_global_block(&A, &b, local_assembly_Stokes, FEM_Block_RHS_Local, &FE, &mesh, cq, source3D, 0.0);
+  if (dim == 2) assemble_global_block(&A, &b, local_assembly_Stokes, FEM_Block_RHS_Local, &FE, sc, cq, source2D, 0.0);
+  if (dim == 3) assemble_global_block(&A, &b, local_assembly_Stokes, FEM_Block_RHS_Local, &FE, sc, cq, source3D, 0.0);
 
   // Eliminate boundary conditions in matrix and rhs
-  if (dim == 2) eliminate_DirichletBC_blockFE_blockA(bc2D, &FE, &mesh, &b, &A, 0.0);
-  if (dim == 3) eliminate_DirichletBC_blockFE_blockA(bc3D, &FE, &mesh, &b, &A, 0.0);
+  if (dim == 2) eliminate_DirichletBC_blockFE_blockA(bc2D, &FE, sc, &b, &A, 0.0);
+  if (dim == 3) eliminate_DirichletBC_blockFE_blockA(bc3D, &FE, sc, &b, &A, 0.0);
 
   // Deal with pressure singularity
   // Add constraint that int p = int p_true (0 if mean zero constraint)
   // Do this by adding a row and column to the p-p block that computes this integral
   // Note that this increases the DoF by 1 and the rhs by 1.
-  meanzero_pressure(&A, &b, &mesh, &FE_p, cq);
+  meanzero_pressure(&A, &b, sc, &FE_p, cq);
 
   clock_t clk_assembly_end = clock();
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n", (REAL)
@@ -200,7 +200,7 @@ int main(int argc, char* argv[]) {
   }
   // For pressure, we use the mass matrix
   dCSRmat Mp;
-  assemble_global(&Mp, NULL, assemble_mass_local, &FE_p, &mesh, cq, NULL, one_coeff_scal, 0.0);
+  assemble_global(&Mp, NULL, assemble_mass_local, &FE_p, sc, cq, NULL, one_coeff_scal, 0.0);
   dcsr_alloc(Mp.row, Mp.col, Mp.nnz, &A_diag[dim]);
   dcsr_cp(&Mp, &A_diag[dim]);
 
@@ -249,11 +249,11 @@ int main(int argc, char* argv[]) {
   REAL* solerrL2 = (REAL*)calloc(nspaces, sizeof(REAL));
   REAL* solerrH1 = (REAL*)calloc(nspaces, sizeof(REAL)); // Note: No H1 error for P0 elements
   if (dim == 2) {
-    L2error_block(solerrL2, sol.val, exact_sol2D, &FE, &mesh, cq, 0.0);
-    HDerror_block(solerrH1, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, 0.0);
+    L2error_block(solerrL2, sol.val, exact_sol2D, &FE, sc, cq, 0.0);
+    HDerror_block(solerrH1, sol.val, exact_sol2D, Dexact_sol2D, &FE, sc, cq, 0.0);
   } else if (dim == 3) {
-    L2error_block(solerrL2, sol.val, exact_sol3D, &FE, &mesh, cq, 0.0);
-    HDerror_block(solerrH1, sol.val, exact_sol3D, Dexact_sol3D, &FE, &mesh, cq, 0.0);
+    L2error_block(solerrL2, sol.val, exact_sol3D, &FE, sc, cq, 0.0);
+    HDerror_block(solerrH1, sol.val, exact_sol3D, Dexact_sol3D, &FE, sc, cq, 0.0);
   }
 
   REAL uerrL2 = 0;
@@ -300,7 +300,7 @@ int main(int argc, char* argv[]) {
     varname[1] = "uy";
     if (dim == 3) varname[2] = "uz";
     varname[dim] = "p ";
-    dump_blocksol_vtk(soldump, varname, &mesh, &FE, sol.val);
+    dump_blocksol_vtk(soldump, varname, sc, &FE, sol.val);
 
     // Print in Matlab format to show vector field in nice way.
     if (dim == 3) print_matlab_vector_field(&v_ux, &v_uy, &v_uz, &FE_ux);
@@ -338,7 +338,7 @@ int main(int argc, char* argv[]) {
   }
 
   // Mesh
-  free_mesh(&mesh);
+  haz_scomplex_free(sc);
 
   // Strings
   if (varname) free(varname);

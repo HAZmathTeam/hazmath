@@ -815,33 +815,25 @@ static void draw_grids(const SHORT todraw, scomplex* sc, dvector* sol) {
   /**/
   INT idsc;
   vtu_data vdata;
+  SHORT did_vtu = 0;
   switch (sc->dim) {
   case 5:
     fprintf(stdout, "\n%%%% **** NO PLOT: Dimension=%lld is too large for plotting\n\n", (long long)sc->dim);
     break;
   case 4:
     fprintf(stdout, "\n%%%% **** NO PLOT: Dimension=%lld is too large for plotting\n\n", (long long)sc->dim);
-    /* if(dsc) { */
-    /*   idsc = proj_lower_dim(dsc); */
-    /*   vtkw("output/4d_to_3d.vtu",dsc,0,1.); */
-    /* } else { */
-    /*   fprintf(stdout,"\nNO PLOT: no booundary data"); */
-    /* } */
     break;
   case 3:
     vtu_data_init(sc, &vdata);
     vtkw("output/3d.vtu", &vdata);
-    /* if(dsc) */
-    /*   vtkw("output/3d_to_2d.vtu",dsc,0,1.); */
+    did_vtu = 1;
     break;
   default:
     vtu_data_init(sc, &vdata);
     vtkw("output/2d.vtu", &vdata);
-    /* if(dsc) */
-    /*   vtkw("output/2d_to_1d.vtu",dsc,0,1.); */
+    did_vtu = 1;
   }
-  /*  haz_scomplex_free(dsc);*/
-  vtu_data_free(&vdata);
+  if (did_vtu) vtu_data_free(&vdata);
   return;
 }
 /* /\******************************************************************\/ */

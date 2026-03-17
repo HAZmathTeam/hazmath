@@ -53,22 +53,22 @@ int main(int argc, char* argv[]) {
   clock_t clk_mesh_start = clock();
 
   // Use HAZMATH built in functions for a uniform mesh in 2D or 3D
-  mesh_struct mesh;
+  scomplex *sc;
   INT dim = inparam.spatial_dim;                 // dimension of computational domain
   INT mesh_ref_levels = inparam.refinement_levels; // refinement levels
   INT mesh_ref_type = inparam.refinement_type;     // refinement type (>10 uniform or <10 other)
   INT set_bndry_codes = inparam.boundary_codes;    // set flags for the boundary DoF (1-16 are Dirichlet)
-  mesh = make_uniform_mesh(dim, mesh_ref_levels, mesh_ref_type, set_bndry_codes);
+  sc = make_uniform_mesh(dim, mesh_ref_levels, mesh_ref_type, set_bndry_codes);
 
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; // Quadrature points per dimension
-  qcoordinates* cq = get_quadrature(&mesh, nq1d);
+  qcoordinates* cq = get_quadrature(sc, nq1d);
 
   // Get info for and create FEM spaces
   // Order of Elements: 0 - P0; 1 - P1; 2 - P2
   INT order = inparam.FE_type;
   fespace FE;
-  create_fespace(&FE, &mesh, order);
+  create_fespace(&FE, sc, order);
   // Strings for printing
   char elmtype[8];
   sprintf(elmtype, "P%lld", (long long)order);
@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
   // Set Dirichlet Boundaries
   // Assume physical boundaries are Dirichlet
   // The mesh is set up so that flag values 1-16 are Dirichlet and 17-32 are Neumann
-  set_dirichlet_bdry(&FE, &mesh, 1, 1);
+  set_dirichlet_bdry(&FE, sc, 1, 1);
 
   // Dump some of the data
   if (inparam.print_level > 5 && inparam.output_dir != NULL) {
@@ -88,8 +88,10 @@ int main(int argc, char* argv[]) {
     dump_fespace(&FE, varu, dir);
 
     // Mesh
-    char* namevtk = "output/mesh.vtu";
-    dump_mesh_vtk(namevtk, &mesh);
+    vtu_data vdata;
+    vtu_data_init(sc, &vdata);
+    vtkw("output/mesh.vtu", &vdata);
+    vtu_data_free(&vdata);
   }
 
   clock_t clk_mesh_end = clock(); // End of timing for mesh and FE setup
@@ -99,12 +101,12 @@ int main(int argc, char* argv[]) {
 
   printf("***********************************************************************************\n");
   printf("\t--- %lld-dimensional grid ---\n", (long long)dim);
-  printf("Number of Elements = %lld\tElement Type = %s\tOrder of Quadrature = %lld\n", (long long)mesh.nelm, elmtype, 2 * (long long)nq1d - 1);
+  printf("Number of Elements = %lld\tElement Type = %s\tOrder of Quadrature = %lld\n", (long long)sc->fem->ns_leaf, elmtype, 2 * (long long)nq1d - 1);
   printf("\n\t--- Degrees of Freedom ---\n");
-  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld", (long long)mesh.nv, (long long)mesh.nedge, (long long)mesh.nface);
+  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld", (long long)sc->nv, (long long)sc->fem->nedge, (long long)sc->fem->nface);
   printf("\t--> DOF: %lld\n", (long long)FE.ndof);
   printf("\n\t--- Boundaries ---\n");
-  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld", (long long)mesh.nbv, (long long)mesh.nbedge, (long long)mesh.nbface);
+  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld", (long long)sc->fem->nbv, (long long)sc->fem->nbedge, (long long)sc->fem->nbface);
   printf("\t--> Boundary DOF: %lld\n", (long long)FE.nbdof);
   printf("***********************************************************************************\n\n");
 
@@ -119,11 +121,11 @@ int main(int argc, char* argv[]) {
 
   // Assemble the matrix without BC
   // Diffusion block
-  assemble_global(&A, &b, assemble_DuDv_local, &FE, &mesh, cq, myrhs,
+  assemble_global(&A, &b, assemble_DuDv_local, &FE, sc, cq, myrhs,
                   diffusion_coeff, 0.0);
 
   // Time-Derivative block
-  assemble_global(&M, NULL, assemble_mass_local, &FE, &mesh, cq, NULL,
+  assemble_global(&M, NULL, assemble_mass_local, &FE, sc, cq, NULL,
                   one_coeff_scal, 0.0);
 
   // Create Time Operator (one with BC and one without)
@@ -155,8 +157,8 @@ int main(int argc, char* argv[]) {
   dvector sol = dvec_create(FE.ndof);
   dvector exact_sol = dvec_create(FE.ndof);
   REAL current_time = 0.0;
-  if (dim == 2) FE_Evaluate(exact_sol.val, exactsol2D, &FE, &mesh, current_time);
-  if (dim == 3) FE_Evaluate(exact_sol.val, exactsol3D, &FE, &mesh, current_time);
+  if (dim == 2) FE_Evaluate(exact_sol.val, exactsol2D, &FE, sc, current_time);
+  if (dim == 3) FE_Evaluate(exact_sol.val, exactsol3D, &FE, sc, current_time);
 
   // Set parameters for linear iterative methods
   linear_itsolver_param linear_itparam;
@@ -174,8 +176,8 @@ int main(int argc, char* argv[]) {
   param_amg_print(&amgparam);
 
   // Get Initial Conditions
-  if (dim == 2) FE_Evaluate(sol.val, initial_conditions2D, &FE, &mesh, current_time);
-  if (dim == 3) FE_Evaluate(sol.val, initial_conditions3D, &FE, &mesh, current_time);
+  if (dim == 2) FE_Evaluate(sol.val, initial_conditions2D, &FE, sc, current_time);
+  if (dim == 3) FE_Evaluate(sol.val, initial_conditions3D, &FE, sc, current_time);
   time_stepper.sol = &sol;
 
   // Dump Solution
@@ -183,7 +185,7 @@ int main(int argc, char* argv[]) {
   char exactout[40];
   if (inparam.output_dir != NULL) {
     sprintf(solout, "output/solution_ts000.vtu");
-    dump_sol_vtk(solout, "u", &mesh, &FE, time_stepper.sol->val);
+    dump_sol_vtk(solout, "u", sc, &FE, time_stepper.sol->val);
   }
 
   // Store current RHS
@@ -191,12 +193,12 @@ int main(int argc, char* argv[]) {
 
   // Compute initial errors and norms
   REAL* uerr = (REAL*)calloc(time_stepper.tsteps + 1, sizeof(REAL));
-  if (dim == 2) uerr[0] = L2error(time_stepper.sol->val, exactsol2D, &FE, &mesh, cq, time_stepper.time);
-  if (dim == 3) uerr[0] = L2error(time_stepper.sol->val, exactsol3D, &FE, &mesh, cq, time_stepper.time);
+  if (dim == 2) uerr[0] = L2error(time_stepper.sol->val, exactsol2D, &FE, sc, cq, time_stepper.time);
+  if (dim == 3) uerr[0] = L2error(time_stepper.sol->val, exactsol3D, &FE, sc, cq, time_stepper.time);
   REAL* unorm = (REAL*)calloc(time_stepper.tsteps + 1, sizeof(REAL));
-  unorm[0] = L2norm(time_stepper.sol->val, &FE, &mesh, cq);
+  unorm[0] = L2norm(time_stepper.sol->val, &FE, sc, cq);
   REAL* utnorm = (REAL*)calloc(time_stepper.tsteps + 1, sizeof(REAL));
-  utnorm[0] = L2norm(exact_sol.val, &FE, &mesh, cq);
+  utnorm[0] = L2norm(exact_sol.val, &FE, sc, cq);
 
   printf("Performing %lld Time Steps with step size dt = %1.3f\n", (long long)time_stepper.tsteps, time_stepper.dt);
   printf("--------------------------------------------------------------\n\n");
@@ -224,7 +226,7 @@ int main(int argc, char* argv[]) {
 
     // Recompute RHS if it's time-dependent
     if (time_stepper.rhs_timedep) {
-      assemble_global_RHS(time_stepper.rhs, &FE, &mesh, cq, myrhs, time_stepper.time);
+      assemble_global_RHS(time_stepper.rhs, &FE, sc, cq, myrhs, time_stepper.time);
     }
 
     // Update RHS
@@ -232,7 +234,7 @@ int main(int argc, char* argv[]) {
 
     // For first time step eliminate boundary conditions in matrix and rhs
     if (j == 0) {
-      eliminate_DirichletBC(bc, &FE, &mesh, time_stepper.rhs_time, time_stepper.At, time_stepper.time);
+      eliminate_DirichletBC(bc, &FE, sc, time_stepper.rhs_time, time_stepper.At, time_stepper.time);
       // If Direct Solver used only factorize once
       if (linear_itparam.linear_itsolver_type == 0) { // Direct Solver
 #if WITH_SUITESPARSE
@@ -245,7 +247,7 @@ int main(int argc, char* argv[]) {
         Numeric = factorize_HAZ(time_stepper.At, linear_itparam.linear_print_level);
       }
     } else {
-      eliminate_DirichletBC_RHS(bc, &FE, &mesh, time_stepper.rhs_time, time_stepper.At_noBC, time_stepper.time);
+      eliminate_DirichletBC_RHS(bc, &FE, sc, time_stepper.rhs_time, time_stepper.At_noBC, time_stepper.time);
     }
 
     // Solve
@@ -291,12 +293,12 @@ int main(int argc, char* argv[]) {
     /**************** Compute Errors if you have exact solution *******/
     clock_t clk_error_start = clock();
 
-    if (dim == 2) uerr[j + 1] = L2error(time_stepper.sol->val, exactsol2D, &FE, &mesh, cq, time_stepper.time);
-    if (dim == 3) uerr[j + 1] = L2error(time_stepper.sol->val, exactsol3D, &FE, &mesh, cq, time_stepper.time);
-    unorm[j + 1] = L2norm(time_stepper.sol->val, &FE, &mesh, cq);
-    if (dim == 2) FE_Evaluate(exact_sol.val, exactsol2D, &FE, &mesh, time_stepper.time);
-    if (dim == 3) FE_Evaluate(exact_sol.val, exactsol3D, &FE, &mesh, time_stepper.time);
-    utnorm[j + 1] = L2norm(exact_sol.val, &FE, &mesh, cq);
+    if (dim == 2) uerr[j + 1] = L2error(time_stepper.sol->val, exactsol2D, &FE, sc, cq, time_stepper.time);
+    if (dim == 3) uerr[j + 1] = L2error(time_stepper.sol->val, exactsol3D, &FE, sc, cq, time_stepper.time);
+    unorm[j + 1] = L2norm(time_stepper.sol->val, &FE, sc, cq);
+    if (dim == 2) FE_Evaluate(exact_sol.val, exactsol2D, &FE, sc, time_stepper.time);
+    if (dim == 3) FE_Evaluate(exact_sol.val, exactsol3D, &FE, sc, time_stepper.time);
+    utnorm[j + 1] = L2norm(exact_sol.val, &FE, sc, cq);
     clock_t clk_error_end = clock();
     printf("Elapsed CPU time for getting errors = %lf seconds.\n\n", (REAL)
            (clk_error_end - clk_error_start) / CLOCKS_PER_SEC);
@@ -309,9 +311,9 @@ int main(int argc, char* argv[]) {
 
     if (inparam.output_dir != NULL) {
       sprintf(solout, "output/solution_ts%03lld.vtu", (long long)time_stepper.current_step);
-      dump_sol_vtk(solout, "u", &mesh, &FE, time_stepper.sol->val);
+      dump_sol_vtk(solout, "u", sc, &FE, time_stepper.sol->val);
       sprintf(exactout, "output/exact_solution_ts%03lld.vtu", (long long)time_stepper.current_step);
-      dump_sol_vtk(exactout, "ut", &mesh, &FE, exact_sol.val);
+      dump_sol_vtk(exactout, "ut", sc, &FE, exact_sol.val);
     }
     printf("\n");
   } // End Timestepping Loop
@@ -345,7 +347,7 @@ int main(int argc, char* argv[]) {
     free(cq);
     cq = NULL;
   }
-  free_mesh(&mesh);
+  haz_scomplex_free(sc);
   //#if WITH_SUITESPARSE
   if (Numeric) hazmath_free_numeric(&Numeric);
   //#endif

@@ -29,6 +29,27 @@
 /* defaults to unit cube in 3d and criss-cross grid 3x4x5 . */
 //INT max_chars_input_grid_file=((1<<15) - 1); //maxcount=(1<<15-1);
 /*******************************************************************/
+typedef struct /* FEM-derived data for a simplicial complex */
+{
+  INT ns_leaf;          /* number of leaf elements */
+  INT *leaf2global;     /* [ns_leaf] maps leaf index -> global simplex index */
+  iCSRmat *el_v;        /* leaf-element to vertex (CSR) */
+  iCSRmat *el_ed;       /* leaf-element to edge */
+  iCSRmat *el_f;        /* leaf-element to face */
+  iCSRmat *ed_v;        /* edge to vertex */
+  iCSRmat *f_v;         /* face to vertex */
+  iCSRmat *f_ed;        /* face to edge */
+  INT nedge, nface;
+  INT nbv, nbedge, nbface;
+  REAL *el_vol, *el_mid;
+  REAL *ed_len, *ed_tau, *ed_mid;
+  REAL *f_area, *f_norm, *f_mid;
+  INT *el_flag;         /* leaf-element flags (extracted from flags[]) */
+  INT *ed_flag, *f_flag;
+  REAL *dwork;
+  INT *iwork;
+} sc_fem;
+/*================================================================*/
 typedef struct /* n-homogenous simplicial complex */
 {
   SHORT print_level;   /**< print level */
@@ -83,6 +104,7 @@ typedef struct /* n-homogenous simplicial complex */
   INT ref_type; /* refinement type */
   INT cc; /*num connected components */
   INT bndry_cc; /*num connected components on the boundary */
+  sc_fem *fem; /* FEM-derived data (populated by sc_build_fem_data, NULL until then) */
 } scomplex;
 /* /\*================================================================*\/ */
 /* typedef struct /\* a macroelement (isomrphic to the hypercube */

@@ -835,7 +835,7 @@ REAL integrate_face_vector_normal_local(void (*expr)(REAL *,REAL *,INT,REAL,void
 /******************************************************************************/
 
 /*!
-* \fn REAL integrate_domain_local(void (*expr)(REAL *,REAL *,INT,REAL,void *),INT nun,INT comp,INT nq1d,quadrature *cq,simplex_local_data *elm_data,mesh_struct *mesh,REAL time)
+* \fn REAL integrate_domain_local(void (*expr)(REAL *,REAL *,INT,REAL,void *),INT nun,INT comp,INT nq1d,quadrature *cq,simplex_local_data *elm_data,scomplex *sc,REAL time)
 *
 * \brief Integrate a given scalar function over the entire mesh
 *
@@ -853,16 +853,17 @@ REAL integrate_face_vector_normal_local(void (*expr)(REAL *,REAL *,INT,REAL,void
 * \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
 *       Otherwise, we will allocate a new set of quadrature based on nq1d
 */
-REAL integrate_domain_local(void (*expr)(REAL *,REAL *,INT,REAL,void *),INT nun,INT comp,INT nq1d,quadrature *cq,simplex_local_data *elm_data,mesh_struct *mesh,REAL time)
+REAL integrate_domain_local(void (*expr)(REAL *,REAL *,INT,REAL,void *),INT nun,INT comp,INT nq1d,quadrature *cq,simplex_local_data *elm_data,scomplex *sc,REAL time)
 {
+  sc_fem *fem = sc->fem;
   // Loop indices
   INT elm;
 
   // Integral to return
   REAL integral = 0.0;
   // Loop over all elements and call integrate_elm
-  for(elm=0;elm<mesh->nelm;elm++) {
-    get_elmlocaldata(elm_data,mesh,elm);
+  for(elm=0;elm<fem->ns_leaf;elm++) {
+    get_elmlocaldata(elm_data,sc,elm);
     integral += integrate_elm_local(expr,nun,comp,cq,elm_data,time);
   }
 
@@ -2524,7 +2525,7 @@ void free_qcoords(qcoordinates* A)
 /******************************************************************************/
 
 /*!
- * \fn qcoordinates* get_quadrature(mesh_struct *mesh,INT nq1d)
+ * \fn qcoordinates* get_quadrature(scomplex *sc,INT nq1d)
  *
  * \brief Computes quadrature weights and nodes for entire domain using nq1d^(dim)
  *        quadrature nodes per element
@@ -2537,18 +2538,19 @@ void free_qcoords(qcoordinates* A)
  * \note TODO: This will be deprecated soon
  *
  */
-qcoordinates* get_quadrature(mesh_struct *mesh,INT nq1d)
+qcoordinates* get_quadrature(scomplex *sc,INT nq1d)
 {
+  sc_fem *fem = sc->fem;
   INT i,j;
 
-  INT dim = mesh->dim;
-  INT nelm = mesh->nelm;
+  INT dim = sc->dim;
+  INT nelm = fem->ns_leaf;
   INT nq = (INT) pow(nq1d,dim);
   qcoordinates *cq_all = allocateqcoords(nq1d,nelm,dim);
   qcoordinates *cqelm = allocateqcoords(nq1d,1,dim);
 
   for (i=0; i<nelm; i++) {
-    quad_elm(cqelm,mesh,nq1d,i);
+    quad_elm(cqelm,sc,nq1d,i);
     for (j=0; j<nq; j++) {
       cq_all->x[i*nq+j] = cqelm->x[j];
       cq_all->w[i*nq+j] = cqelm->w[j];
@@ -2568,7 +2570,7 @@ qcoordinates* get_quadrature(mesh_struct *mesh,INT nq1d)
 /******************************************************************************/
 
 /*!
- * \fn void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
+ * \fn void quad_elm(qcoordinates *cqelm,scomplex *sc,INT nq1d,INT elm)
  *
  * \brief Computes quadrature weights and nodes for SINGLE element using nq1d^(dim)
  *        quadrature nodes on simplex
@@ -2582,8 +2584,10 @@ qcoordinates* get_quadrature(mesh_struct *mesh,INT nq1d)
  * \note TODO Will be deprecated soon
  *
  */
-void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
+void quad_elm(qcoordinates *cqelm,scomplex *sc,INT nq1d,INT elm)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   // Flag for errors
   SHORT status;
 
@@ -2591,13 +2595,12 @@ void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
   INT q,j;
 
   /* Dimension */
-  INT dim = mesh->dim;
 
   /* Total Number of Quadrature Nodes */
   INT nq = pow(nq1d,dim);
 
   /* Coordinates of vertices of element */
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   coordinates *cvelm = allocatecoords(v_per_elm,dim);
 
   /* Gaussian points for reference element */
@@ -2608,18 +2611,18 @@ void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
   /* Points on Reference Triangle */
   REAL r,s,t;
 
-  REAL e_vol = mesh->el_vol[elm]; /* Area/Volume of Element */
+  REAL e_vol = fem->el_vol[elm]; /* Area/Volume of Element */
   REAL voldim=0.0;
 
   // Get vertices of element
   INT* thiselm_v = (INT *) calloc(v_per_elm,sizeof(INT));
-  iCSRmat* el_v = mesh->el_v;
+  iCSRmat* el_v = fem->el_v;
   get_incidence_row(elm,el_v,thiselm_v);
 
   // Get coordinates of vertices for given element
   if(dim==1) {
     for (j=0; j<v_per_elm; j++) {
-      cvelm->x[j] = mesh->cv->x[thiselm_v[j]];
+      cvelm->x[j] = sc->x[thiselm_v[j]*dim];
     }
     voldim = 0.5*e_vol;
 
@@ -2636,8 +2639,8 @@ void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
     }
   } else if(dim==2) {
     for (j=0; j<v_per_elm; j++) {
-      cvelm->x[j] = mesh->cv->x[thiselm_v[j]];
-      cvelm->y[j] = mesh->cv->y[thiselm_v[j]];
+      cvelm->x[j] = sc->x[thiselm_v[j]*dim];
+      cvelm->y[j] = sc->x[thiselm_v[j]*dim+1];
     }
     voldim = 2.0*e_vol;
 
@@ -2657,9 +2660,9 @@ void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
     }
   } else if(dim==3) {
     for (j=0; j<v_per_elm; j++) {
-      cvelm->x[j] = mesh->cv->x[thiselm_v[j]];
-      cvelm->y[j] = mesh->cv->y[thiselm_v[j]];
-      cvelm->z[j] = mesh->cv->z[thiselm_v[j]];
+      cvelm->x[j] = sc->x[thiselm_v[j]*dim];
+      cvelm->y[j] = sc->x[thiselm_v[j]*dim+1];
+      cvelm->z[j] = sc->x[thiselm_v[j]*dim+2];
     }
     voldim = 6.0*e_vol;
 
@@ -2699,7 +2702,7 @@ void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
 /******************************************************************************/
 
 /*!
- * \fn qcoordinates* get_quadrature_boundary(mesh_struct *mesh,INT nq1d,INT ed_or_f)
+ * \fn qcoordinates* get_quadrature_boundary(scomplex *sc,INT nq1d,INT ed_or_f)
  *
  * \brief Computes quadrature weights and nodes for all faces (surface integral)
  *        or edges (line integral) in entire domain using nq1d quadrature nodes
@@ -2713,13 +2716,14 @@ void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
  *
  * \note This will be deprecated
  */
-qcoordinates* get_quadrature_boundary(mesh_struct *mesh,INT nq1d,INT ed_or_f)
+qcoordinates* get_quadrature_boundary(scomplex *sc,INT nq1d,INT ed_or_f)
 {
+  sc_fem *fem = sc->fem;
   INT i,j;
 
-  INT dim = mesh->dim;
-  INT nedge = mesh->nedge;
-  INT nface = mesh->nface;
+  INT dim = sc->dim;
+  INT nedge = fem->nedge;
+  INT nface = fem->nface;
   INT ndof=0;
   INT nq=0;
 
@@ -2741,7 +2745,7 @@ qcoordinates* get_quadrature_boundary(mesh_struct *mesh,INT nq1d,INT ed_or_f)
 
   if(ed_or_f==1) { // Edges
     for (i=0; i<ndof; i++) {
-      quad_edge(cq_surf,mesh,nq1d,i);
+      quad_edge(cq_surf,sc,nq1d,i);
       for (j=0; j<nq; j++) {
         cq_all->x[i*nq+j] = cq_surf->x[j];
         cq_all->y[i*nq+j] = cq_surf->y[j];
@@ -2753,7 +2757,7 @@ qcoordinates* get_quadrature_boundary(mesh_struct *mesh,INT nq1d,INT ed_or_f)
     }
   } else { // Faces
     for (i=0; i<ndof; i++) {
-      quad_face(cq_surf,mesh,nq1d,i);
+      quad_face(cq_surf,sc,nq1d,i);
       for (j=0; j<nq; j++) {
         cq_all->x[i*nq+j] = cq_surf->x[j];
         cq_all->y[i*nq+j] = cq_surf->y[j];
@@ -2776,7 +2780,7 @@ qcoordinates* get_quadrature_boundary(mesh_struct *mesh,INT nq1d,INT ed_or_f)
 /******************************************************************************/
 
 /*!
-* \fn void quad_edge(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
+* \fn void quad_edge(qcoordinates *cqbdry,scomplex *sc,INT nq1d,INT dof)
 *
 * \brief Computes quadrature weights and nodes for SINGLE Edge using nq1d
 *          quadrature nodes on a line/surface.  Can be used to compute integrals on
@@ -2793,13 +2797,14 @@ qcoordinates* get_quadrature_boundary(mesh_struct *mesh,INT nq1d,INT ed_or_f)
 * \note This will be deprecated soon
 *
 */
-void quad_edge(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
+void quad_edge(qcoordinates *cqbdry,scomplex *sc,INT nq1d,INT dof)
 {
+  sc_fem *fem = sc->fem;
   // Flag for errors
   SHORT status;
 
   INT q,j; /* Loop indices */
-  INT dim = mesh->dim;
+  INT dim = sc->dim;
 
   // Test for Simpson's Rule
   INT nqdum=1;
@@ -2825,23 +2830,23 @@ void quad_edge(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
 
   REAL r;      	/* Points on Reference Edge */
 
-  REAL w = 0.5*mesh->ed_len[dof]; /* Jacobian = 1/2 |e| */
+  REAL w = 0.5*fem->ed_len[dof]; /* Jacobian = 1/2 |e| */
 
   // Get coordinates of vertices for given edge
   INT* thisdof_v = (INT *) calloc(2,sizeof(INT));
   iCSRmat* dof_v = NULL;
-  dof_v = mesh->ed_v;
+  dof_v = fem->ed_v;
   get_incidence_row(dof,dof_v,thisdof_v);
   if(dim==2) {
     for (j=0; j<2; j++) {
-      cvdof->x[j] = mesh->cv->x[thisdof_v[j]];
-      cvdof->y[j] = mesh->cv->y[thisdof_v[j]];
+      cvdof->x[j] = sc->x[thisdof_v[j]*dim];
+      cvdof->y[j] = sc->x[thisdof_v[j]*dim+1];
     }
   } else if(dim==3) {
     for (j=0; j<2; j++) {
-      cvdof->x[j] = mesh->cv->x[thisdof_v[j]];
-      cvdof->y[j] = mesh->cv->y[thisdof_v[j]];
-      cvdof->z[j] = mesh->cv->z[thisdof_v[j]];
+      cvdof->x[j] = sc->x[thisdof_v[j]*dim];
+      cvdof->y[j] = sc->x[thisdof_v[j]*dim+1];
+      cvdof->z[j] = sc->x[thisdof_v[j]*dim+2];
     }
   } else {
     status = ERROR_DIM;
@@ -2899,7 +2904,7 @@ void quad_edge(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
 /******************************************************************************/
 
 /*!
-* \fn void quad_face(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
+* \fn void quad_face(qcoordinates *cqbdry,scomplex *sc,INT nq1d,INT dof)
 *
 * \brief Computes quadrature weights and nodes for SINGLE Face using nq1d^(dim-1)
 *          quadrature nodes on a line/surface.  Can be used to compute integrals on
@@ -2916,13 +2921,14 @@ void quad_edge(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
 * \note This will be deprecated soon.
 *
 */
-void quad_face(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
+void quad_face(qcoordinates *cqbdry,scomplex *sc,INT nq1d,INT dof)
 {
+  sc_fem *fem = sc->fem;
   // Flag for errors
   SHORT status;
 
   INT q,j; /* Loop indices */
-  INT dim = mesh->dim;
+  INT dim = sc->dim;
   INT nq = 0;
 
   if(dim==2) { // face is edge in 2D
@@ -2947,9 +2953,9 @@ void quad_face(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
 
   REAL w = 0.0;
   if(dim==2) { // Faces are Edges in 2D
-    w = 0.5*mesh->f_area[dof]; /* Jacobian = 1/2 |e| */
+    w = 0.5*fem->f_area[dof]; /* Jacobian = 1/2 |e| */
   } else if(dim==3) {
-    w = 2*mesh->f_area[dof]; /* Jacobian = 2*|f| */
+    w = 2*fem->f_area[dof]; /* Jacobian = 2*|f| */
   } else {
     status = ERROR_DIM;
     check_error(status, __FUNCTION__);
@@ -2958,18 +2964,18 @@ void quad_face(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
   // Get coordinates of vertices for given edge/face
   INT* thisdof_v = (INT *) calloc(dim,sizeof(INT));
   iCSRmat* dof_v = NULL;
-  dof_v = mesh->f_v;
+  dof_v = fem->f_v;
   get_incidence_row(dof,dof_v,thisdof_v);
   if(dim==2) {
     for (j=0; j<dim; j++) {
-      cvdof->x[j] = mesh->cv->x[thisdof_v[j]];
-      cvdof->y[j] = mesh->cv->y[thisdof_v[j]];
+      cvdof->x[j] = sc->x[thisdof_v[j]*dim];
+      cvdof->y[j] = sc->x[thisdof_v[j]*dim+1];
     }
   } else if(dim==3){
     for (j=0; j<dim; j++) {
-      cvdof->x[j] = mesh->cv->x[thisdof_v[j]];
-      cvdof->y[j] = mesh->cv->y[thisdof_v[j]];
-      cvdof->z[j] = mesh->cv->z[thisdof_v[j]];
+      cvdof->x[j] = sc->x[thisdof_v[j]*dim];
+      cvdof->y[j] = sc->x[thisdof_v[j]*dim+1];
+      cvdof->z[j] = sc->x[thisdof_v[j]*dim+2];
     }
   } else {
     status = ERROR_DIM;
@@ -3067,7 +3073,7 @@ void dump_qcoords(qcoordinates *q)
 /******************************************************************************/
 
 /*!
-* \fn REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,mesh_struct *mesh,REAL time,INT elm)
+* \fn REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,scomplex *sc,REAL time,INT elm)
 *
 * \brief Integrate a given scalar function over an element
 *
@@ -3085,8 +3091,10 @@ void dump_qcoords(qcoordinates *q)
 * \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
 *       Otherwise, we will allocate a new set of quadrature based on nq1d
 */
-REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,mesh_struct *mesh,REAL time,INT elm)
+REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,scomplex *sc,REAL time,INT elm)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
 
   // Loop indices
   INT quad;
@@ -3099,27 +3107,27 @@ REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT 
 
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(mesh->dim,sizeof(REAL));
+  REAL* qx = (REAL *) calloc(sc->dim,sizeof(REAL));
 
   // Quadrature on elm
   if(cq) { // assuming quadrature is given
     for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      if(mesh->dim>1) qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      if(sc->dim>1) qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(sc->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
-      (*expr)(uval,qx,time,&(mesh->el_flag[elm]));
+      (*expr)(uval,qx,time,&(fem->el_flag[elm]));
       integral += w*uval[comp];
     }
   } else { // assemble quadrature again
-    qcoordinates *cqelm = allocateqcoords(nq1d,1,mesh->dim);
-    quad_elm(cqelm,mesh,nq1d,elm);
+    qcoordinates *cqelm = allocateqcoords(nq1d,1,sc->dim);
+    quad_elm(cqelm,sc,nq1d,elm);
     for (quad=0;quad<cqelm->nq_per_elm;quad++) {
       qx[0] = cqelm->x[quad];
       qx[1] = cqelm->y[quad];
-      if(mesh->dim==3) qx[2] = cqelm->z[quad];
+      if(sc->dim==3) qx[2] = cqelm->z[quad];
       w = cqelm->w[quad];
-      (*expr)(uval,qx,time,&(mesh->el_flag[elm]));
+      (*expr)(uval,qx,time,&(fem->el_flag[elm]));
       integral += w*uval[comp];
     }
     free_qcoords(cqelm);
@@ -3134,7 +3142,7 @@ REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT 
 /******************************************************************************/
 
 /*!
-* \fn REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,mesh_struct *mesh,REAL time)
+* \fn REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,scomplex *sc,REAL time)
 *
 * \brief Integrate a given scalar function over the entire mesh
 *
@@ -3151,16 +3159,17 @@ REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT 
 * \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
 *       Otherwise, we will allocate a new set of quadrature based on nq1d
 */
-REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,mesh_struct *mesh,REAL time)
+REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,scomplex *sc,REAL time)
 {
+  sc_fem *fem = sc->fem;
   // Loop indices
   INT elm;
 
   // Integral to return
   REAL integral = 0.0;
   // Loop over all elements and call integrate_elm
-  for(elm=0;elm<mesh->nelm;elm++) {
-    integral += integrate_elm(expr,nun,comp,nq1d,cq,mesh,time,elm);
+  for(elm=0;elm<fem->ns_leaf;elm++) {
+    integral += integrate_elm(expr,nun,comp,nq1d,cq,sc,time,elm);
   }
 
   return integral;
@@ -3168,7 +3177,7 @@ REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,I
 /******************************************************************************/
 
 /*!
-* \fn REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,mesh_struct *mesh,REAL time,INT face)
+* \fn REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,scomplex *sc,REAL time,INT face)
 *
 * \brief Integrate a given scalar function over a face
 *
@@ -3189,8 +3198,10 @@ REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,I
 * \note In 3D, this is an area (2D) integral.  In 2D, this is a line (1D) integral.
 *
 */
-REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,mesh_struct *mesh,REAL time,INT face)
+REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,scomplex *sc,REAL time,INT face)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   // Loop indices
   INT quad;
 
@@ -3202,27 +3213,27 @@ REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT
 
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(mesh->dim,sizeof(REAL));
+  REAL* qx = (REAL *) calloc(sc->dim,sizeof(REAL));
 
   // Quadrature on elm
   if(cq) { // assuming quadrature is given
     for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[face*cq->nq_per_elm+quad];
       qx[1] = cq->y[face*cq->nq_per_elm+quad];
-      if(mesh->dim==3) qx[2] = cq->z[face*cq->nq_per_elm+quad];
+      if(sc->dim==3) qx[2] = cq->z[face*cq->nq_per_elm+quad];
       w = cq->w[face*cq->nq_per_elm+quad];
-      (*expr)(uval,qx,time,&(mesh->f_flag[face]));
+      (*expr)(uval,qx,time,&(fem->f_flag[face]));
       integral += w*uval[comp];
     }
   } else { // assemble quadrature again
-    qcoordinates *cqface = allocateqcoords_bdry(nq1d,1,mesh->dim,2);
-    quad_face(cqface,mesh,nq1d,face);
+    qcoordinates *cqface = allocateqcoords_bdry(nq1d,1,sc->dim,2);
+    quad_face(cqface,sc,nq1d,face);
     for (quad=0;quad<cqface->nq_per_elm;quad++) {
       qx[0] = cqface->x[quad];
       qx[1] = cqface->y[quad];
-      if(mesh->dim==3) qx[2] = cqface->z[quad];
+      if(sc->dim==3) qx[2] = cqface->z[quad];
       w = cqface->w[quad];
-      (*expr)(uval,qx,time,&(mesh->f_flag[face]));
+      (*expr)(uval,qx,time,&(fem->f_flag[face]));
       integral += w*uval[comp];
     }
     free_qcoords(cqface);
@@ -3237,7 +3248,7 @@ REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT
 /******************************************************************************/
 
 /*!
-* \fn REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,mesh_struct *mesh,REAL time,INT edge)
+* \fn REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,scomplex *sc,REAL time,INT edge)
 *
 * \brief Integrate a given scalar function over an edge
 *
@@ -3258,8 +3269,10 @@ REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT
 * \note This is a line integral in any dimension
 *
 */
-REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,mesh_struct *mesh,REAL time,INT edge)
+REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,scomplex *sc,REAL time,INT edge)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   // Loop indices
   INT quad;
 
@@ -3271,27 +3284,27 @@ REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT
 
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(mesh->dim,sizeof(REAL));
+  REAL* qx = (REAL *) calloc(sc->dim,sizeof(REAL));
 
   // Quadrature on elm
   if(cq) { // assuming quadrature is given
     for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[edge*cq->nq_per_elm+quad];
       qx[1] = cq->y[edge*cq->nq_per_elm+quad];
-      if(mesh->dim==3) qx[2] = cq->z[edge*cq->nq_per_elm+quad];
+      if(sc->dim==3) qx[2] = cq->z[edge*cq->nq_per_elm+quad];
       w = cq->w[edge*cq->nq_per_elm+quad];
-      (*expr)(uval,qx,time,&(mesh->ed_flag[edge]));
+      (*expr)(uval,qx,time,&(fem->ed_flag[edge]));
       integral += w*uval[comp];
     }
   } else { // assemble quadrature again
-    qcoordinates *cqedge = allocateqcoords_bdry(nq1d,1,mesh->dim,1);
-    quad_edge(cqedge,mesh,nq1d,edge);
+    qcoordinates *cqedge = allocateqcoords_bdry(nq1d,1,sc->dim,1);
+    quad_edge(cqedge,sc,nq1d,edge);
     for (quad=0;quad<cqedge->nq_per_elm;quad++) {
       qx[0] = cqedge->x[quad];
       qx[1] = cqedge->y[quad];
-      if(mesh->dim==3) qx[2] = cqedge->z[quad];
+      if(sc->dim==3) qx[2] = cqedge->z[quad];
       w = cqedge->w[quad];
-      (*expr)(uval,qx,time,&(mesh->ed_flag[edge]));
+      (*expr)(uval,qx,time,&(fem->ed_flag[edge]));
       integral += w*uval[comp];
     }
     free_qcoords(cqedge);
@@ -3306,7 +3319,7 @@ REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT
 /******************************************************************************/
 
 /*!
-* \fn REAL integrate_edge_vector_tangent(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,mesh_struct *mesh,REAL time,INT edge)
+* \fn REAL integrate_edge_vector_tangent(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,scomplex *sc,REAL time,INT edge)
 *
 * \brief Integrate the tangential component of a given vector function along an edge
 *
@@ -3327,12 +3340,13 @@ REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT
 * \note This is a tangential line integral in any dimension
 *
 */
-REAL integrate_edge_vector_tangent(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,mesh_struct *mesh,REAL time,INT edge)
+REAL integrate_edge_vector_tangent(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,scomplex *sc,REAL time,INT edge)
 {
+  sc_fem *fem = sc->fem;
   // Loop indices
   INT quad;
   INT j;
-  INT dim = mesh->dim;
+  INT dim = sc->dim;
 
   // Function at quadrature node
   REAL* uval= (REAL *) calloc(nun,sizeof(REAL));
@@ -3351,19 +3365,19 @@ REAL integrate_edge_vector_tangent(void (*expr)(REAL *,REAL *,REAL,void *),INT n
       qx[1] = cq->y[edge*cq->nq_per_elm+quad];
       if(dim==3) qx[2] = cq->z[edge*cq->nq_per_elm+quad];
       w = cq->w[edge*cq->nq_per_elm+quad];
-      (*expr)(uval,qx,time,&(mesh->ed_flag[edge]));
-      for(j=0; j<dim; j++) integral += w*uval[comp+j]*mesh->ed_tau[edge*dim+j];
+      (*expr)(uval,qx,time,&(fem->ed_flag[edge]));
+      for(j=0; j<dim; j++) integral += w*uval[comp+j]*fem->ed_tau[edge*dim+j];
     }
   } else { // assemble quadrature again
     qcoordinates *cqedge = allocateqcoords_bdry(nq1d,1,dim,1);
-    quad_edge(cqedge,mesh,nq1d,edge);
+    quad_edge(cqedge,sc,nq1d,edge);
     for (quad=0;quad<cqedge->nq_per_elm;quad++) {
       qx[0] = cqedge->x[quad];
       qx[1] = cqedge->y[quad];
       if(dim==3) qx[2] = cqedge->z[quad];
       w = cqedge->w[quad];
-      (*expr)(uval,qx,time,&(mesh->ed_flag[edge]));
-      for(j=0; j<dim; j++) integral += w*uval[comp+j]*mesh->ed_tau[edge*dim+j];
+      (*expr)(uval,qx,time,&(fem->ed_flag[edge]));
+      for(j=0; j<dim; j++) integral += w*uval[comp+j]*fem->ed_tau[edge*dim+j];
     }
     free_qcoords(cqedge);
     free(cqedge);
@@ -3377,7 +3391,7 @@ REAL integrate_edge_vector_tangent(void (*expr)(REAL *,REAL *,REAL,void *),INT n
 /******************************************************************************/
 
 /*!
-* \fn REAL integrate_face_vector_normal(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,mesh_struct *mesh,REAL time,INT face)
+* \fn REAL integrate_face_vector_normal(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,scomplex *sc,REAL time,INT face)
 *
 * \brief Integrate the normal component of a given vector function across a face
 *
@@ -3396,12 +3410,13 @@ REAL integrate_edge_vector_tangent(void (*expr)(REAL *,REAL *,REAL,void *),INT n
 *       Otherwise, we will allocate a new set of quadrature based on nq1d
 *
 */
-REAL integrate_face_vector_normal(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,mesh_struct *mesh,REAL time,INT face)
+REAL integrate_face_vector_normal(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,scomplex *sc,REAL time,INT face)
 {
+  sc_fem *fem = sc->fem;
   // Loop indices
   INT quad;
   INT j;
-  INT dim = mesh->dim;
+  INT dim = sc->dim;
 
   // Function at quadrature node
   REAL* uval= (REAL *) calloc(nun,sizeof(REAL));
@@ -3420,19 +3435,19 @@ REAL integrate_face_vector_normal(void (*expr)(REAL *,REAL *,REAL,void *),INT nu
       qx[1] = cq->y[face*cq->nq_per_elm+quad];
       if(dim==3) qx[2] = cq->z[face*cq->nq_per_elm+quad];
       w = cq->w[face*cq->nq_per_elm+quad];
-      (*expr)(uval,qx,time,&(mesh->f_flag[face]));
-      for(j=0; j<dim; j++) integral += w*uval[comp+j]*mesh->f_norm[face*dim+j];
+      (*expr)(uval,qx,time,&(fem->f_flag[face]));
+      for(j=0; j<dim; j++) integral += w*uval[comp+j]*fem->f_norm[face*dim+j];
     }
   } else { // assemble quadrature again
     qcoordinates *cqface = allocateqcoords_bdry(nq1d,1,dim,2);
-    quad_face(cqface,mesh,nq1d,face);
+    quad_face(cqface,sc,nq1d,face);
     for (quad=0;quad<cqface->nq_per_elm;quad++) {
       qx[0] = cqface->x[quad];
       qx[1] = cqface->y[quad];
       if(dim==3) qx[2] = cqface->z[quad];
       w = cqface->w[quad];
-      (*expr)(uval,qx,time,&(mesh->f_flag[face]));
-      for(j=0; j<dim; j++) integral += w*uval[comp+j]*mesh->f_norm[face*dim+j];
+      (*expr)(uval,qx,time,&(fem->f_flag[face]));
+      for(j=0; j<dim; j++) integral += w*uval[comp+j]*fem->f_norm[face*dim+j];
     }
     free_qcoords(cqface);
     free(cqface);

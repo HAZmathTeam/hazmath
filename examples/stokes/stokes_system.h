@@ -10,7 +10,7 @@
  */
 
 /*!
- * \fn void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
+ * \fn void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, scomplex *sc, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
  *
  * \brief Computes the local stiffness matrix for the Stokes system.
  *        For this problem we compute LHS of:
@@ -21,7 +21,7 @@
  *        where eps(u) = (grad u + (grad u)^T)/2 is the symmetric gradient.
  *
  * \param FE            Block FE Space
- * \param mesh          Mesh Data
+ * \param sc            Simplicial complex
  * \param cq            Quadrature Nodes
  * \param dof_on_elm    Specific DOF on element
  * \param v_on_elm      Specific vertices on element
@@ -43,13 +43,13 @@
  * \note For this example we assume viscosity is 1.
  *
  */
-void local_assembly_Stokes(REAL* ALoc, block_fespace* FE, mesh_struct* mesh, qcoordinates* cq, INT* dof_on_elm, INT* v_on_elm, INT elm, REAL time) {
+void local_assembly_Stokes(REAL* ALoc, block_fespace* FE, scomplex* sc, qcoordinates* cq, INT* dof_on_elm, INT* v_on_elm, INT elm, REAL time) {
 
   // Loop indices
   INT i, j, idim, quad, test, trial;
 
   // Mesh and FE data
-  INT dim = mesh->dim;
+  INT dim = sc->dim;
   INT nspaces = FE->nspaces;
 
   // Space indices
@@ -88,14 +88,14 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace* FE, mesh_struct* mesh, qco
   for (quad = 0; quad < cq->nq_per_elm; quad++) {
     qx[0] = cq->x[elm * cq->nq_per_elm + quad];
     qx[1] = cq->y[elm * cq->nq_per_elm + quad];
-    if (mesh->dim == 3) qx[2] = cq->z[elm * cq->nq_per_elm + quad];
+    if (sc->dim == 3) qx[2] = cq->z[elm * cq->nq_per_elm + quad];
     w = cq->w[elm * cq->nq_per_elm + quad];
 
     //  Get the Basis Functions at each quadrature node
     // u = (u1,u2,u3,p) and v = (v1,v2,v3,q)
     local_dof_on_elm = dof_on_elm;
     for (i = 0; i < FE->nspaces; i++) {
-      get_FEM_basis(FE->var_spaces[i]->phi, FE->var_spaces[i]->dphi, qx, v_on_elm, local_dof_on_elm, mesh, FE->var_spaces[i]);
+      get_FEM_basis(FE->var_spaces[i]->phi, FE->var_spaces[i]->dphi, qx, v_on_elm, local_dof_on_elm, sc, FE->var_spaces[i]);
       local_dof_on_elm += FE->var_spaces[i]->dof_per_elm;
     }
 
@@ -298,7 +298,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace* FE, mesh_struct* mesh, qco
 }
 
 /*!
- * \fn void meanzero_pressure(block_dCSR* A, dvector* b, mesh_struct* mesh, fespace* FEp, qcoordinates* cq)
+ * \fn void meanzero_pressure(block_dCSR* A, dvector* b, scomplex* sc, fespace* FEp, qcoordinates* cq)
  *
  * \brief Deals with pressure singularity by adding constraint that
  *         int p = int p_true (0 if mean zero constraint)
@@ -307,14 +307,14 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace* FE, mesh_struct* mesh, qco
  *
  * \param A            Stokes system matrix
  * \param b            System RHS
- * \param mesh         Mesh Information
+ * \param sc           Simplicial complex
  * \param FEp          FE space for pressure
  * \param cq           Quadrature needed for anything but P0
  *
  * \return A, b        Modified system
  *
  */
-void meanzero_pressure(block_dCSRmat* A, dvector* b, mesh_struct* mesh, fespace* FEp, qcoordinates* cq) {
+void meanzero_pressure(block_dCSRmat* A, dvector* b, scomplex* sc, fespace* FEp, qcoordinates* cq) {
 
   INT ndof = FEp->ndof;
   INT i, newrows;
@@ -338,17 +338,17 @@ void meanzero_pressure(block_dCSRmat* A, dvector* b, mesh_struct* mesh, fespace*
   // Reallocate matrix
   // In P0 -> Add el_vol for each entry
   if (FEp->FEtype == 0) {
-    bdcsr_extend(A, mesh->el_vol, mesh->el_vol, mesh->dim, 1.0, 1.0);
+    bdcsr_extend(A, sc->fem->el_vol, sc->fem->el_vol, sc->dim, 1.0, 1.0);
   } else {
     // In P1 or higher, the extra row is Mp*1, where Mp is the mass matrix for
     // the pressure space and 1 is the vector of ones.
     dCSRmat Mp;
-    assemble_global(&Mp, NULL, assemble_mass_local, FEp, mesh, cq, NULL, one_coeff_scal, 0.0);
+    assemble_global(&Mp, NULL, assemble_mass_local, FEp, sc, cq, NULL, one_coeff_scal, 0.0);
     dvector* ones = dvec_create_p(ndof);
     dvec_set(ndof, ones, 1.0);
     REAL* constraint = (REAL*)calloc(ndof, sizeof(REAL));
     dcsr_mxv(&Mp, ones->val, constraint);
-    bdcsr_extend(A, constraint, constraint, mesh->dim, 1.0, 1.0);
+    bdcsr_extend(A, constraint, constraint, sc->dim, 1.0, 1.0);
 
     dcsr_free(&Mp);
     if (ones) free(ones);

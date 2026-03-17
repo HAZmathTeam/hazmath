@@ -292,27 +292,27 @@ void get_residual_norm(newton *n_it)
 
 /******************************************************************************************************/
 /*!
- * \fn void get_update_norm(newton *n_it,fespace* FE,mesh_struct* mesh, qcoordinates* cq)
+ * \fn void get_update_norm(newton *n_it,fespace* FE,scomplex* sc, qcoordinates* cq)
  *
  * \brief Computes the L2 norm of the update.
  *
  * \param n_it     Newton struct
  * \param FE       FE space
- * \param mesh     Mesh struct
+ * \param sc       Simplicial complex
  * \param cq       Quadrature for computing norms
  *
  * \note Assumes non-block form
  */
-void get_update_norm(newton *n_it,fespace* FE,mesh_struct* mesh, qcoordinates* cq)
+void get_update_norm(newton *n_it,fespace* FE,scomplex* sc, qcoordinates* cq)
 {
-  n_it->update_norm = L2norm(n_it->update->val,FE,mesh,cq);
+  n_it->update_norm = L2norm(n_it->update->val,FE,sc,cq);
   return;
 }
 /******************************************************************************************************/
 // OUTDATED
 /******************************************************************************************************/
 // /*!
-//  * \fn void get_blockresidual_norm(newton *n_it,block_fespace* FE,mesh_struct* mesh, qcoordinates* cq)
+//  * \fn void get_blockresidual_norm(newton *n_it,block_fespace* FE,scomplex* sc, qcoordinates* cq)
 //  *
 //  * \brief Computes the norms of the nonlinear residual (rhs) and the update.
 //  *
@@ -323,10 +323,10 @@ void get_update_norm(newton *n_it,fespace* FE,mesh_struct* mesh, qcoordinates* c
 //  *
 //  * \note Assumes block form (and we store the total (combined) norm)
 //  */
-// void get_blockresidual_norm(newton *n_it,block_fespace* FE,mesh_struct* mesh, qcoordinates* cq)
+// void get_blockresidual_norm(newton *n_it,block_fespace* FE,scomplex* sc, qcoordinates* cq)
 // {
 //   REAL* res_norm = (REAL *) calloc(FE->nspaces,sizeof(REAL));
-//   L2norm_block(res_norm,n_it->rhs->val,FE,mesh,cq);
+//   L2norm_block(res_norm,n_it->rhs->val,FE,sc,cq);
 //
 //   REAL total_res_norm = 0;
 //   INT i;
@@ -342,21 +342,21 @@ void get_update_norm(newton *n_it,fespace* FE,mesh_struct* mesh, qcoordinates* c
 
 /******************************************************************************************************/
 /*!
- * \fn void get_blockupdate_norm(newton *n_it,block_fespace* FE,mesh_struct* mesh, qcoordinates* cq)
+ * \fn void get_blockupdate_norm(newton *n_it,block_fespace* FE,scomplex* sc, qcoordinates* cq)
  *
  * \brief Computes the L2 norm the update.
  *
  * \param n_it     Newton struct
  * \param FE       Block FE space
- * \param mesh     Mesh struct
+ * \param sc       Simplicial complex
  * \param cq       Quadrature for computing norms
  *
  * \note Assumes block form (and we store the total (combined) norm)
  */
-void get_blockupdate_norm(newton *n_it,block_fespace* FE,mesh_struct* mesh, qcoordinates* cq)
+void get_blockupdate_norm(newton *n_it,block_fespace* FE,scomplex* sc, qcoordinates* cq)
 {
   REAL* update_norm = (REAL *) calloc(FE->nspaces,sizeof(REAL));
-  L2norm_block(update_norm,n_it->update->val,FE,mesh,cq);
+  L2norm_block(update_norm,n_it->update->val,FE,sc,cq);
 
   REAL total_update_norm = 0;
   INT i;

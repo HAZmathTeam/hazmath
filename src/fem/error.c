@@ -15,7 +15,7 @@
 
 /***************************************************************************/
 /*!
- * \fn REAL L2norm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+ * \fn REAL L2norm(REAL *u,fespace *FE,scomplex *sc,qcoordinates *cq)
  *
  * \brief Computes the L2 Norm of a FE approximation using the mass matrix
  *        assembly for any type of element.
@@ -28,14 +28,16 @@
  * \return norm   L2 Norm
  *
  */
-REAL L2norm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+REAL L2norm(REAL *u,fespace *FE,scomplex *sc,qcoordinates *cq)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
 
   INT i,j,k;
   REAL sum = 0.0;
 
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT local_size = dof_per_elm*dof_per_elm;
   REAL* MLoc = calloc(local_size,sizeof(REAL));
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
@@ -51,10 +53,10 @@ REAL L2norm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
     get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     //Find Nodes for given Element if not H1 elements
-    get_incidence_row(i,mesh->el_v,v_on_elm);
+    get_incidence_row(i,fem->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
-    assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
+    assemble_mass_local(MLoc,FE,sc,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
@@ -73,7 +75,7 @@ REAL L2norm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
 
 /***************************************************************************/
 /*!
- * \fn void L2norm_block(REAL *norm,REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+ * \fn void L2norm_block(REAL *norm,REAL *u,block_fespace *FE,scomplex *sc,qcoordinates *cq)
  *
  * \brief Computes the L2 Norm of a block FE approximation using the mass matrix
  *        assembly for any type of element.
@@ -86,13 +88,13 @@ REAL L2norm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
  * \return norm   L2 Norm
  *
  */
-void L2norm_block(REAL *norm,REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+void L2norm_block(REAL *norm,REAL *u,block_fespace *FE,scomplex *sc,qcoordinates *cq)
 {
   INT i;
   REAL* udof = u;
 
   for(i=0;i<FE->nspaces;i++) {
-    norm[i] = L2norm(udof,FE->var_spaces[i],mesh,cq);
+    norm[i] = L2norm(udof,FE->var_spaces[i],sc,cq);
     udof += FE->var_spaces[i]->ndof;
   }
 
@@ -102,7 +104,7 @@ void L2norm_block(REAL *norm,REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordi
 
 /***************************************************************************/
 /*!
- * \fn REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+ * \fn REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,scomplex *sc,qcoordinates *cq)
  *
  * \brief Computes the L2 inner product of two FE approximations using the mass matrix
  *        assembly for any type of element.
@@ -116,13 +118,15 @@ void L2norm_block(REAL *norm,REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordi
  * \return product  L2 Inner Product of u and v, <u,v>
  *
  */
-REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,scomplex *sc,qcoordinates *cq)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT i,j,k;
   REAL sum = 0.0;
 
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT local_size = dof_per_elm*dof_per_elm;
   REAL* MLoc = calloc(local_size,sizeof(REAL));
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
@@ -138,10 +142,10 @@ REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,mesh_struct *mesh,qcoordinates 
     get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     //Find Nodes for given Element if not H1 elements
-    get_incidence_row(i,mesh->el_v,v_on_elm);
+    get_incidence_row(i,fem->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
-    assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
+    assemble_mass_local(MLoc,FE,sc,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
@@ -160,7 +164,7 @@ REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,mesh_struct *mesh,qcoordinates 
 
 /***************************************************************************/
 /*!
- * \fn void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+ * \fn void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,scomplex *sc,qcoordinates *cq)
  *
  * \brief Computes the L2 inner product of two block FE approximations using the mass matrix
  *        assembly for any type of element.
@@ -174,14 +178,14 @@ REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,mesh_struct *mesh,qcoordinates 
  * \return product  L2 Inner Product of u and v, <u,v> (for each component of block FE space)
  *
  */
-void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,scomplex *sc,qcoordinates *cq)
 {
   INT i;
   REAL* udof = u;
   REAL* vdof = v;
 
   for(i=0;i<FE->nspaces;i++) {
-    prod[i] = L2_InnerProduct(udof,vdof,FE->var_spaces[i],mesh,cq);
+    prod[i] = L2_InnerProduct(udof,vdof,FE->var_spaces[i],sc,cq);
     udof += FE->var_spaces[i]->ndof;
     vdof += FE->var_spaces[i]->ndof;
   }
@@ -192,7 +196,7 @@ void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,mesh_str
 
 /***************************************************************************/
 /*!
- * \fn REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+ * \fn REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
  *
  * \brief Computes the L2 Norm of the error of a FE approximation and a true
  *        solution given by a function using quadrature for any type of element.
@@ -207,13 +211,14 @@ void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,mesh_str
  * \return error        L2 Error
  *
  */
-REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
-  INT dim = mesh->dim;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
 
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(mesh->dim,sizeof(REAL));
+  REAL* qx = (REAL *) calloc(sc->dim,sizeof(REAL));
 
   // FE Stuff
   //INT FEtype = FE->FEtype;
@@ -221,7 +226,7 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh
   INT elm,quad,j;
   REAL sum = 0.0;
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
 
@@ -242,22 +247,22 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh
     get_incidence_row(elm,FE->el_dof,dof_on_elm);
 
     // Find Vertices for given Element if not H1 elements
-    get_incidence_row(elm,mesh->el_v,v_on_elm);
+    get_incidence_row(elm,fem->el_v,v_on_elm);
 
     // Loop over quadrature nodes on element
     for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==2 || mesh->dim==3)
+      if(sc->dim==2 || sc->dim==3)
         qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==3)
+      if(sc->dim==3)
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
 
       // Get True Solution at Quadrature Nodes
-      (*truesol)(val_true,qx,time,&(mesh->el_flag[elm]));
+      (*truesol)(val_true,qx,time,&(fem->el_flag[elm]));
 
       // Interpolate FE solution to quadrature point
-      FE_Interpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh);
+      FE_Interpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,sc);
 
       // Compute Error on Element
       for(j=0;j<ncomp;j++) {
@@ -279,7 +284,7 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh
 
 /***************************************************************************/
 /*!
- * \fn void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+ * \fn void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
  *
  * \brief Computes the L2 Norm of the error of a block FE approximation and a true
  *        solution given by a function using quadrature for any type of element.
@@ -294,14 +299,15 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh
  * \return err          L2 Error
  *
  */
-void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   // Loop Indices
   INT i,elm,quad,j,rowa,rowb,jcntr;
 
   // Mesh Stuff
-  INT dim = mesh->dim;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
 
   // Quadrature Weights and Nodes
@@ -327,7 +333,7 @@ void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),
   REAL* val_sol = (REAL *) calloc(nun,sizeof(REAL));
 
   /* Loop over all Elements */
-  for (elm=0; elm<mesh->nelm; elm++) {
+  for (elm=0; elm<fem->ns_leaf; elm++) {
 
     // Find DOF for given Element
     // Note this is "local" ordering for the given FE space of the block
@@ -342,22 +348,22 @@ void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),
       }
     }
     // Find vertices for given Element
-    get_incidence_row(elm,mesh->el_v,v_on_elm);
+    get_incidence_row(elm,fem->el_v,v_on_elm);
 
     // Loop over quadrature nodes on element
     for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==2 || mesh->dim==3)
+      if(sc->dim==2 || sc->dim==3)
         qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==3)
+      if(sc->dim==3)
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
 
       // Get True Solution at Quadrature Nodes
-      (*truesol)(val_true,qx,time,&(mesh->el_flag[elm]));
+      (*truesol)(val_true,qx,time,&(fem->el_flag[elm]));
 
       // Interpolate FE solution to quadrature point
-      blockFE_Interpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh);
+      blockFE_Interpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,sc);
 
       // Compute Square of Error on Element for each component of FE space
       jcntr=0;
@@ -387,7 +393,7 @@ void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),
 
 /***************************************************************************/
 /*!
-   * \fn L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+   * \fn L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
    *
    * \brief Computes the L2 Norm of the error of a FE approximation and a true
    *        solution given by a function using mass matrix assembly for any type of element.
@@ -402,14 +408,16 @@ void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),
    * \return error        L2 Error
    *
    */
-REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT i,j,k;
   REAL sum = 0.0;
   REAL utk,utj,erk,erj;
 
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT local_size = dof_per_elm*dof_per_elm;
   REAL* MLoc = calloc(local_size,sizeof(REAL));
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
@@ -425,15 +433,15 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE
     get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     //Find Nodes for given Element if not H1 elements
-    get_incidence_row(i,mesh->el_v,v_on_elm);
+    get_incidence_row(i,fem->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
-    assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
+    assemble_mass_local(MLoc,FE,sc,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-        utj = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[j]);
-        utk = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[k]);
+        utj = FE_Evaluate_DOF(truesol,FE,sc,time,dof_on_elm[j]);
+        utk = FE_Evaluate_DOF(truesol,FE,sc,time,dof_on_elm[k]);
         erj = (utj - u[dof_on_elm[j]]);
         erk = (utk - u[dof_on_elm[k]]);
         sum+=erj*MLoc[j*dof_per_elm+k]*erk;
@@ -451,7 +459,7 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE
 
 /***************************************************************************/
 /*!
- * \fn void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+ * \fn void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
  *
  * \brief Computes the L2 Norm of the error of a block FE approximation and a true
  *        solution given by a function using mass matrix assembly for any type of element.
@@ -466,12 +474,14 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE
  * \return err          L2 Error
  *
  */
-void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT i,j,k,elm;
   REAL utk,utj,erk,erj;
 
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
 
   INT local_size=0;
@@ -483,10 +493,10 @@ void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,vo
   }
 
   /* Loop over all Elements */
-  for (elm=0; elm<mesh->nelm; elm++) {
+  for (elm=0; elm<fem->ns_leaf; elm++) {
 
     // Find vertices for given Element
-    get_incidence_row(elm,mesh->el_v,v_on_elm);
+    get_incidence_row(elm,fem->el_v,v_on_elm);
 
     // Get DOF and error on DOF for given element for each FE space
     u_dof=0;
@@ -499,12 +509,12 @@ void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,vo
       for (j=0; j<local_size*local_size; j++) MLoc[j] = 0.0;
 
       // Compute Local Stiffness Matrix for given Element
-      assemble_mass_local(MLoc,FE->var_spaces[i],mesh,cq,dof_on_elm,v_on_elm,elm,constant_coeff_scal,1.0);
+      assemble_mass_local(MLoc,FE->var_spaces[i],sc,cq,dof_on_elm,v_on_elm,elm,constant_coeff_scal,1.0);
 
       for(j=0;j<local_size;j++) {
         for(k=0;k<local_size;k++) {
-          utj = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[j]);
-          utk = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[k]);
+          utj = blockFE_Evaluate_DOF(truesol,FE,sc,time,i,dof_on_elm[j]);
+          utk = blockFE_Evaluate_DOF(truesol,FE,sc,time,i,dof_on_elm[k]);
           erj = (utj - u[u_dof + dof_on_elm[j]]);
           erk = (utk - u[u_dof + dof_on_elm[k]]);
           err[i]+=erj*MLoc[j*local_size+k]*erk;
@@ -528,7 +538,7 @@ void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,vo
 
 /***************************************************************************/
 /*!
- * \fn REAL HDseminorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+ * \fn REAL HDseminorm(REAL *u,fespace *FE,scomplex *sc,qcoordinates *cq)
  *
  * \brief Computes the H(D) semi-Norm of a FE approximation using the
  *        <Du,Dv> matrix assembly for any type of element.
@@ -546,12 +556,14 @@ void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,vo
  * \note Return 0.0 if P0 elements are used.
  *
  */
-REAL HDseminorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+REAL HDseminorm(REAL *u,fespace *FE,scomplex *sc,qcoordinates *cq)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT i,j,k;
   REAL sum = 0.0;
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT local_size = dof_per_elm*dof_per_elm;
   REAL* ALoc = calloc(local_size,sizeof(REAL));
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
@@ -570,10 +582,10 @@ REAL HDseminorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
       get_incidence_row(i,FE->el_dof,dof_on_elm);
 
       //Find Nodes for given Element if not H1 elements
-      get_incidence_row(i,mesh->el_v,v_on_elm);
+      get_incidence_row(i,fem->el_v,v_on_elm);
 
       // Compute Local Stiffness Matrix for given Element
-      assemble_DuDv_local(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
+      assemble_DuDv_local(ALoc,FE,sc,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
       for(j=0;j<dof_per_elm;j++) {
         for(k=0;k<dof_per_elm;k++) {
@@ -599,7 +611,7 @@ REAL HDseminorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
 
 /***************************************************************************/
 /*!
- * \fn void HDseminorm_block(REAL *norm, REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+ * \fn void HDseminorm_block(REAL *norm, REAL *u,block_fespace *FE,scomplex *sc,qcoordinates *cq)
  *
  * \brief Computes the H(D) semi-Norm of a block FE approximation using the
  *        <Du,Dv> matrix assembly for any type of element.
@@ -617,13 +629,13 @@ REAL HDseminorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
  * \note Return 0.0 if P0 elements are used for that block.
  *
  */
-void HDseminorm_block(REAL *norm,REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+void HDseminorm_block(REAL *norm,REAL *u,block_fespace *FE,scomplex *sc,qcoordinates *cq)
 {
   INT i;
   REAL* udof = u;
 
   for(i=0;i<FE->nspaces;i++) {
-    norm[i] = HDseminorm(udof,FE->var_spaces[i],mesh,cq);
+    norm[i] = HDseminorm(udof,FE->var_spaces[i],sc,cq);
     udof += FE->var_spaces[i]->ndof;
   }
 
@@ -633,7 +645,7 @@ void HDseminorm_block(REAL *norm,REAL *u,block_fespace *FE,mesh_struct *mesh,qco
 
 /***************************************************************************/
 /*!
- * \fn REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+ * \fn REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
  *
  * \brief Computes the H(D) semi-norm of the error of a FE approximation and a true
  *        solution given by a function using quadrature for any type of element.
@@ -650,13 +662,14 @@ void HDseminorm_block(REAL *norm,REAL *u,block_fespace *FE,mesh_struct *mesh,qco
  * \return error        Semi-Norm Error
  *
  */
-REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
-  INT dim = mesh->dim;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
 
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(mesh->dim,sizeof(REAL));
+  REAL* qx = (REAL *) calloc(sc->dim,sizeof(REAL));
 
   // FE Stuff
   INT FEtype = FE->FEtype;
@@ -664,7 +677,7 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *F
   INT elm,quad,j;
   REAL sum = 0.0;
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
 
@@ -693,23 +706,23 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *F
     get_incidence_row(elm,FE->el_dof,dof_on_elm);
 
     //Find Vertices for given Element if not H1 elements
-    get_incidence_row(elm,mesh->el_v,v_on_elm);
+    get_incidence_row(elm,fem->el_v,v_on_elm);
 
     // Loop over quadrature nodes on element
 
     for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==2 || mesh->dim==3)
+      if(sc->dim==2 || sc->dim==3)
         qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==3)
+      if(sc->dim==3)
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
 
       // Get True Solution at Quadrature Nodes
-      (*D_truesol)(val_true,qx,time,&(mesh->el_flag[elm]));
+      (*D_truesol)(val_true,qx,time,&(fem->el_flag[elm]));
 
       // Interpolate FE solution to quadrature point
-      FE_DerivativeInterpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh);
+      FE_DerivativeInterpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,sc);
 
       // Compute Error on Element
       for(j=0;j<ncomp;j++) {
@@ -731,7 +744,7 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *F
 
 /***************************************************************************/
 /*!
- * \fn void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+ * \fn void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
  *
  * \brief Computes the H(D) semi-norm of the error of a block FE approximation and a true
  *        solution given by a function using quadrature for any type of element.
@@ -748,14 +761,15 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *F
  * \return err          Semi-Norm Error
  *
  */
-void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   // Loop Indices
   INT i,elm,quad,j,rowa,rowb,jcntr;
 
   // Mesh Stuff
-  INT dim = mesh->dim;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
 
   // Quadrature Weights and Nodes
@@ -790,7 +804,7 @@ void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,vo
   REAL* val_sol = (REAL *) calloc(nun,sizeof(REAL));
 
   /* Loop over all Elements */
-  for (elm=0; elm<mesh->nelm; elm++) {
+  for (elm=0; elm<fem->ns_leaf; elm++) {
 
     // Find DOF for given Element
     // Note this is "local" ordering for the given FE space of the block
@@ -805,22 +819,22 @@ void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,vo
       }
     }
     // Find vertices for given Element
-    get_incidence_row(elm,mesh->el_v,v_on_elm);
+    get_incidence_row(elm,fem->el_v,v_on_elm);
 
     // Loop over quadrature nodes on element
     for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==2 || mesh->dim==3)
+      if(sc->dim==2 || sc->dim==3)
         qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==3)
+      if(sc->dim==3)
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
 
       // Get True Solution at Quadrature Nodes
-      (*D_truesol)(val_true,qx,time,&(mesh->el_flag[elm]));
+      (*D_truesol)(val_true,qx,time,&(fem->el_flag[elm]));
 
       // Interpolate FE solution to quadrature point
-      blockFE_DerivativeInterpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh);
+      blockFE_DerivativeInterpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,sc);
 
       // Compute Square of Error on Element for each component of FE space
       jcntr=0;
@@ -854,7 +868,7 @@ void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,vo
 
 /***************************************************************************/
 /*!
- * \fn REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+ * \fn REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
  *
  * \brief Computes the H(D) semi-norm of the error of a FE approximation and a true
  *        solution given by a function using the <Du,Dv> matrix assembly for any type of element.
@@ -871,14 +885,16 @@ void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,vo
  * \return error        Semi-Norm Error
  *
  */
-REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT i,j,k;
   REAL sum = 0.0;
   REAL utk,utj,erk,erj;
 
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT local_size = dof_per_elm*dof_per_elm;
   REAL* ALoc = calloc(local_size,sizeof(REAL));
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
@@ -894,15 +910,15 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespac
     get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     //Find Nodes for given Element if not H1 elements
-    get_incidence_row(i,mesh->el_v,v_on_elm);
+    get_incidence_row(i,fem->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
-    assemble_DuDv_local(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
+    assemble_DuDv_local(ALoc,FE,sc,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-        utj = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[j]);
-        utk = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[k]);
+        utj = FE_Evaluate_DOF(truesol,FE,sc,time,dof_on_elm[j]);
+        utk = FE_Evaluate_DOF(truesol,FE,sc,time,dof_on_elm[k]);
         erj = (utj - u[dof_on_elm[j]]);
         erk = (utk - u[dof_on_elm[k]]);
         sum+=erj*ALoc[j*dof_per_elm+k]*erk;
@@ -920,7 +936,7 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespac
 
 /***************************************************************************/
 /*!
- * \fn void HDsemierror_block_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+ * \fn void HDsemierror_block_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
  *
  * \brief Computes the H(D) semi-norm of the error of a block FE approximation and a true
  *        solution given by a function using the <Du,Dv> matrix assembly for any type of element.
@@ -937,12 +953,14 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespac
  * \return err          Semi-Norm Error
  *
  */
-void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
   INT i,j,k,elm;
   REAL utk,utj,erk,erj;
 
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
 
   INT local_size=0;
@@ -954,10 +972,10 @@ void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,RE
   }
 
   /* Loop over all Elements */
-  for (elm=0; elm<mesh->nelm; elm++) {
+  for (elm=0; elm<fem->ns_leaf; elm++) {
 
     // Find vertices for given Element
-    get_incidence_row(elm,mesh->el_v,v_on_elm);
+    get_incidence_row(elm,fem->el_v,v_on_elm);
 
     // Get DOF and error on DOF for given element for each FE space
     u_dof=0;
@@ -970,12 +988,12 @@ void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,RE
       for (j=0; j<local_size*local_size; j++) ALoc[j] = 0.0;
 
       // Compute Local Stiffness Matrix for given Element
-      assemble_DuDv_local(ALoc,FE->var_spaces[i],mesh,cq,dof_on_elm,v_on_elm,elm,constant_coeff_scal,1.0);
+      assemble_DuDv_local(ALoc,FE->var_spaces[i],sc,cq,dof_on_elm,v_on_elm,elm,constant_coeff_scal,1.0);
 
       for(j=0;j<local_size;j++) {
         for(k=0;k<local_size;k++) {
-          utj = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[j]);
-          utk = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[k]);
+          utj = blockFE_Evaluate_DOF(truesol,FE,sc,time,i,dof_on_elm[j]);
+          utk = blockFE_Evaluate_DOF(truesol,FE,sc,time,i,dof_on_elm[k]);
           erj = (utj - u[u_dof + dof_on_elm[j]]);
           erk = (utk - u[u_dof + dof_on_elm[k]]);
           err[i]+=erj*ALoc[j*local_size+k]*erk;
@@ -999,7 +1017,7 @@ void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,RE
 
 /***************************************************************************/
 /*!
- * \fn REAL HDnorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+ * \fn REAL HDnorm(REAL *u,fespace *FE,scomplex *sc,qcoordinates *cq)
  *
  * \brief Computes the H(D) norm of a FE approximation using the
  *        <Du,Dv> matrix assembly for any type of element.
@@ -1017,10 +1035,10 @@ void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,RE
  * \note Return just L2 norm if P0 elements are used.
  *
  */
-REAL HDnorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+REAL HDnorm(REAL *u,fespace *FE,scomplex *sc,qcoordinates *cq)
 {
-  REAL sumL2 = L2norm(u,FE,mesh,cq);
-  REAL sumSemi = HDseminorm(u,FE,mesh,cq);
+  REAL sumL2 = L2norm(u,FE,sc,cq);
+  REAL sumSemi = HDseminorm(u,FE,sc,cq);
 
   return sqrt(sumL2*sumL2 + sumSemi*sumSemi);
 
@@ -1029,7 +1047,7 @@ REAL HDnorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
 
 /***************************************************************************/
 /*!
- * \fn void HDnorm(REAL *norm, REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+ * \fn void HDnorm(REAL *norm, REAL *u,block_fespace *FE,scomplex *sc,qcoordinates *cq)
  *
  * \brief Computes the H(D) norm of a block FE approximation using the
  *        <Du,Dv> matrix assembly for any type of element.
@@ -1047,14 +1065,14 @@ REAL HDnorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
  * \note Return just L2 norm if P0 elements are used for that block.
  *
  */
-void HDnorm_block(REAL *norm,REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+void HDnorm_block(REAL *norm,REAL *u,block_fespace *FE,scomplex *sc,qcoordinates *cq)
 {
   INT i;
   REAL* sumL2 = (REAL *) calloc(FE->nspaces,sizeof(REAL));
   REAL* sumSemi = (REAL *) calloc(FE->nspaces,sizeof(REAL));
 
-  L2norm_block(sumL2,u,FE,mesh,cq);
-  HDseminorm_block(sumSemi,u,FE,mesh,cq);
+  L2norm_block(sumL2,u,FE,sc,cq);
+  HDseminorm_block(sumSemi,u,FE,sc,cq);
 
   for(i=0;i<FE->nspaces;i++)
     norm[i] = sqrt(sumL2[i]*sumL2[i] + sumSemi[i]*sumSemi[i]);
@@ -1068,7 +1086,7 @@ void HDnorm_block(REAL *norm,REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordi
 
 /***************************************************************************/
 /*!
- * \fn REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+ * \fn REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
  *
  * \brief Computes the H(D) norm of the error of a FE approximation
  *        and a true solution given by a function using the
@@ -1088,10 +1106,10 @@ void HDnorm_block(REAL *norm,REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordi
  * \return norm         HD Norm of Error
  *
  */
-REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
-  REAL sumL2 = L2error(u,truesol,FE,mesh,cq,time);
-  REAL sumSemi = HDsemierror(u,D_truesol,FE,mesh,cq,time);
+  REAL sumL2 = L2error(u,truesol,FE,sc,cq,time);
+  REAL sumSemi = HDsemierror(u,D_truesol,FE,sc,cq,time);
 
   return sqrt(sumL2*sumL2 + sumSemi*sumSemi);
 
@@ -1100,7 +1118,7 @@ REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),void (*D_truesol
 
 /***************************************************************************/
 /*!
- * \fn void HDerror_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),void (*D_truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+ * \fn void HDerror_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),void (*D_truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
  *
  * \brief Computes the H(D) norm of the error of a block FE approximation
  *        and a true solution given by a function using the
@@ -1120,14 +1138,14 @@ REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),void (*D_truesol
  * \return norm         HD Norm of Error
  *
  */
-void HDerror_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),void (*D_truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
+void HDerror_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),void (*D_truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
   INT i;
   REAL* sumL2 = (REAL *) calloc(FE->nspaces,sizeof(REAL));
   REAL* sumSemi = (REAL *) calloc(FE->nspaces,sizeof(REAL));
 
-  L2error_block(sumL2,u,truesol,FE,mesh,cq,time);
-  HDsemierror_block(sumSemi,u,D_truesol,FE,mesh,cq,time);
+  L2error_block(sumL2,u,truesol,FE,sc,cq,time);
+  HDsemierror_block(sumSemi,u,D_truesol,FE,sc,cq,time);
   for(i=0;i<FE->nspaces;i++)  {
     err[i] = sqrt(sumL2[i]*sumL2[i] + sumSemi[i]*sumSemi[i]);
   }
@@ -1139,7 +1157,7 @@ void HDerror_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),
 /*******************************************************************************************************************************************************/
 /***************************************************************************/
 /*!
- * \fn REAL energynorm_discrete(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq, void (*coeff)(REAL *,REAL *,REAL,void *),void (*local_assembly_routine)(REAL *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL), REAL param)
+ * \fn REAL energynorm_discrete(REAL *u,fespace *FE,scomplex *sc,qcoordinates *cq, void (*coeff)(REAL *,REAL *,REAL,void *),void (*local_assembly_routine)(REAL *,fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL), REAL param)
  *
  * \brief Computes the matrix energy norm of a FE approximation using the local matrix
  *        assembly for any type of element.
@@ -1155,14 +1173,16 @@ void HDerror_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),
  * \return norm   				energy norm
  *
  */
-REAL energynorm_discrete(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq, void (*coeff)(REAL *,REAL *,REAL,void *),void (*local_assembly_routine)(REAL *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL), REAL param)
+REAL energynorm_discrete(REAL *u,fespace *FE,scomplex *sc,qcoordinates *cq, void (*coeff)(REAL *,REAL *,REAL,void *),void (*local_assembly_routine)(REAL *,fespace *,scomplex *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL), REAL param)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
 
   INT i,j,k;
   REAL sum = 0.0;
 
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = (dim + 1);
   INT local_size = dof_per_elm*dof_per_elm;
   REAL* ALoc = calloc(local_size,sizeof(REAL));
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
@@ -1178,10 +1198,10 @@ REAL energynorm_discrete(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq,
     get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     // Find Nodes for given Element if not H1 elements
-    get_incidence_row(i,mesh->el_v,v_on_elm);
+    get_incidence_row(i,fem->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix(operator associated with energy norm) for given Element
-    (*local_assembly_routine)(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,coeff,param);
+    (*local_assembly_routine)(ALoc,FE,sc,cq,dof_on_elm,v_on_elm,i,coeff,param);
 
 	// Loop over DOF
     for(j=0;j<dof_per_elm;j++) {

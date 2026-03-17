@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
   clock_t clk_mesh_start = clock();
 
   // Initialize some mesh parameters
-  mesh_struct mesh;
+  scomplex *sc;
   // Note the following are overwritten by a mesh file if provided and read in
   INT dim = inparam.spatial_dim;                 // dimension of computational domain
   INT mesh_ref_levels = inparam.refinement_levels; // refinement levels
@@ -84,28 +84,28 @@ int main(int argc, char* argv[]) {
     // File types possible are 0 - HAZ format; 1 - VTK format (not implemented)
     INT mesh_type = 0;
     printf(" --> loading grid from file: %s\n", inparam.gridfile);
-    creategrid_fread(gfid, mesh_type, &mesh);
+    sc = creategrid_fread(gfid, mesh_type);
     fclose(gfid);
   } else {
     // Use HAZMATH built in functions for a uniform mesh in 2D or 3D
-    mesh = make_uniform_mesh(dim, mesh_ref_levels, mesh_ref_type, set_bndry_codes);
+    sc = make_uniform_mesh(dim, mesh_ref_levels, mesh_ref_type, set_bndry_codes);
   }
 
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; // Quadrature points per dimension
-  qcoordinates* cq = get_quadrature(&mesh, nq1d);
+  qcoordinates* cq = get_quadrature(sc, nq1d);
 
   // Get info for and create FEM spaces
   // Order of Elements:
   //    0 - P0; 1 - P1; 2 - P2; 20 - Nedelec; 30 - Raviart-Thomas
   INT order = inparam.FE_type;
   fespace FE;
-  create_fespace(&FE, &mesh, order);
+  create_fespace(&FE, sc, order);
 
   // Set Dirichlet Boundaries
   // Assume physical boundaries are Dirichlet
   // The mesh is set up so that flag values 1-16 are Dirichlet and 17-32 are Neumann
-  set_dirichlet_bdry(&FE, &mesh, 1, 16);
+  set_dirichlet_bdry(&FE, sc, 1, 16);
 
   // Strings for printing
   char elmtype[8];
@@ -133,12 +133,11 @@ int main(int argc, char* argv[]) {
     dump_fespace(&FE, varu, dir);
 
     // Mesh
-    char* namevtk = strdup("output/mesh.vtu");
-    dump_mesh_vtk(namevtk, &mesh);
-    char* namemesh = strdup("output/mesh.haz");
-    dump_mesh_haz(namemesh, &mesh);
-    free(namemesh);
-    free(namevtk);
+    vtu_data vdata;
+    vtu_data_init(sc, &vdata);
+    vtkw("output/mesh.vtu", &vdata);
+    vtu_data_free(&vdata);
+    hazw("output/mesh.haz", sc, 0);
   }
 
   clock_t clk_mesh_end = clock(); // End of timing for mesh and FE setup
@@ -148,12 +147,12 @@ int main(int argc, char* argv[]) {
 
   printf("***********************************************************************************\n");
   printf("\t--- %lld-dimensional grid ---\n", (long long)dim);
-  printf("Number of Elements = %lld\tElement Type = %s\tOrder of Quadrature = %lld\n", (long long)mesh.nelm, elmtype, 2 * (long long)nq1d - 1);
+  printf("Number of Elements = %lld\tElement Type = %s\tOrder of Quadrature = %lld\n", (long long)sc->fem->ns_leaf, elmtype, 2 * (long long)nq1d - 1);
   printf("\n\t--- Degrees of Freedom ---\n");
-  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld", (long long)mesh.nv, (long long)mesh.nedge, (long long)mesh.nface);
+  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld", (long long)sc->nv, (long long)sc->fem->nedge, (long long)sc->fem->nface);
   printf("\t--> DOF: %lld\n", (long long)FE.ndof);
   printf("\n\t--- Boundaries ---\n");
-  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld", (long long)mesh.nbv, (long long)mesh.nbedge, (long long)mesh.nbface);
+  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld", (long long)sc->fem->nbv, (long long)sc->fem->nbedge, (long long)sc->fem->nbface);
   printf("\t--> Boundary DOF: %lld\n", (long long)FE.nbdof);
   printf("***********************************************************************************\n\n");
 
@@ -173,7 +172,7 @@ int main(int argc, char* argv[]) {
   // Diffusion block
   if (dim == 1) {
     if (FE.FEtype > 0 && FE.FEtype < 10) { // PX
-      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, &mesh, cq,
+      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, sc, cq,
                       rhs_1D_PX, diffusion_coeff, 0.0);
     } else {
       status = ERROR_FE_TYPE;
@@ -181,13 +180,13 @@ int main(int argc, char* argv[]) {
     }
   } else if (dim == 2) {
     if (FE.FEtype > 0 && FE.FEtype < 10) { // PX
-      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, &mesh, cq,
+      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, sc, cq,
                       rhs_2D_PX, diffusion_coeff, 0.0);
     } else if (FE.FEtype == 20) { // Nedelec
-      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, &mesh, cq,
+      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, sc, cq,
                       rhs_2D_Ned, diffusion_coeff, 0.0);
     } else if (FE.FEtype == 30) { // RT
-      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, &mesh, cq,
+      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, sc, cq,
                       rhs_2D_RT, diffusion_coeff, 0.0);
     } else {
       status = ERROR_FE_TYPE;
@@ -195,13 +194,13 @@ int main(int argc, char* argv[]) {
     }
   } else if (dim == 3) {
     if (FE.FEtype > 0 && FE.FEtype < 10) { // PX
-      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, &mesh, cq,
+      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, sc, cq,
                       rhs_3D_PX, diffusion_coeff, 0.0);
     } else if (FE.FEtype == 20) { // Nedelec
-      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, &mesh, cq,
+      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, sc, cq,
                       rhs_3D_Ned, diffusion_coeff, 0.0);
     } else if (FE.FEtype == 30) { // RT
-      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, &mesh, cq,
+      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, sc, cq,
                       rhs_3D_RT, diffusion_coeff, 0.0);
     } else {
       status = ERROR_FE_TYPE;
@@ -213,7 +212,7 @@ int main(int argc, char* argv[]) {
   }
 
   // Reaction block
-  assemble_global(&Mass, NULL, assemble_mass_local, &FE, &mesh, cq, NULL,
+  assemble_global(&Mass, NULL, assemble_mass_local, &FE, sc, cq, NULL,
                   reaction_coeff, 0.0);
 
   // Add M + D
@@ -225,29 +224,29 @@ int main(int argc, char* argv[]) {
   // Different cases for dimension and FE of test problem
   if (dim == 1) {
     if (FE.FEtype > 0 && FE.FEtype < 10) { // PX
-      eliminate_DirichletBC(bc_1D_PX, &FE, &mesh, &b, &A, 0.0);
+      eliminate_DirichletBC(bc_1D_PX, &FE, sc, &b, &A, 0.0);
     } else {
       status = ERROR_FE_TYPE;
       check_error(status, __FUNCTION__);
     }
   } else if (dim == 2) {
     if (FE.FEtype > 0 && FE.FEtype < 10) { // PX
-      eliminate_DirichletBC(bc_2D_PX, &FE, &mesh, &b, &A, 0.0);
+      eliminate_DirichletBC(bc_2D_PX, &FE, sc, &b, &A, 0.0);
     } else if (FE.FEtype == 20) { // Nedelec
-      eliminate_DirichletBC(bc_2D_Ned, &FE, &mesh, &b, &A, 0.0);
+      eliminate_DirichletBC(bc_2D_Ned, &FE, sc, &b, &A, 0.0);
     } else if (FE.FEtype == 30) { // RT
-      eliminate_DirichletBC(bc_2D_RT, &FE, &mesh, &b, &A, 0.0);
+      eliminate_DirichletBC(bc_2D_RT, &FE, sc, &b, &A, 0.0);
     } else {
       status = ERROR_FE_TYPE;
       check_error(status, __FUNCTION__);
     }
   } else if (dim == 3) {
     if (FE.FEtype > 0 && FE.FEtype < 10) { // PX
-      eliminate_DirichletBC(bc_3D_PX, &FE, &mesh, &b, &A, 0.0);
+      eliminate_DirichletBC(bc_3D_PX, &FE, sc, &b, &A, 0.0);
     } else if (FE.FEtype == 20) { // Nedelec
-      eliminate_DirichletBC(bc_3D_Ned, &FE, &mesh, &b, &A, 0.0);
+      eliminate_DirichletBC(bc_3D_Ned, &FE, sc, &b, &A, 0.0);
     } else if (FE.FEtype == 30) { // RT
-      eliminate_DirichletBC(bc_3D_RT, &FE, &mesh, &b, &A, 0.0);
+      eliminate_DirichletBC(bc_3D_RT, &FE, sc, &b, &A, 0.0);
     } else {
       status = ERROR_FE_TYPE;
       check_error(status, __FUNCTION__);
@@ -344,8 +343,8 @@ int main(int argc, char* argv[]) {
         dCSRmat Grad;
 
         // get P_curl and Grad
-        get_Pigrad_H1toNed(&P_curl, &mesh);
-        get_grad_H1toNed(&Grad, &mesh);
+        get_Pigrad_H1toNed(&P_curl, sc);
+        get_grad_H1toNed(&Grad, sc);
 
         solver_flag = linear_solver_dcsr_krylov_hx_curl(&A, &b, &u, &linear_itparam, &amgparam, &P_curl, &Grad);
 
@@ -363,9 +362,9 @@ int main(int argc, char* argv[]) {
         dCSRmat P_div;
 
         // get P_curl and Grad
-        get_Pigrad_H1toNed(&P_curl, &mesh);
-        get_curl_NedtoRT(&Curl, &mesh); // needs to have a 2D version for this--XH
-        get_Pigrad_H1toRT(&P_div, &P_curl, &Curl, &mesh);
+        get_Pigrad_H1toNed(&P_curl, sc);
+        get_curl_NedtoRT(&Curl, sc); // needs to have a 2D version for this--XH
+        get_Pigrad_H1toRT(&P_div, &P_curl, &Curl, sc);
 
         solver_flag = linear_solver_dcsr_krylov_hx_div(&A, &b, &u, &linear_itparam, &amgparam, &P_curl, &P_div, &Curl);
 
@@ -399,36 +398,36 @@ int main(int argc, char* argv[]) {
   REAL graduerr = 0.0;
   if (dim == 1) {
     if (FE.FEtype > 0 && FE.FEtype < 10) { // PX
-      uerr = L2error(u.val, exactsol_1D_PX, &FE, &mesh, cq, 0.0);
-      graduerr = HDsemierror(u.val, D_exactsol_1D_PX, &FE, &mesh, cq, 0.0);
+      uerr = L2error(u.val, exactsol_1D_PX, &FE, sc, cq, 0.0);
+      graduerr = HDsemierror(u.val, D_exactsol_1D_PX, &FE, sc, cq, 0.0);
     } else {
       status = ERROR_FE_TYPE;
       check_error(status, __FUNCTION__);
     }
   } else if (dim == 2) {
     if (FE.FEtype > 0 && FE.FEtype < 10) { // PX
-      uerr = L2error(u.val, exactsol_2D_PX, &FE, &mesh, cq, 0.0);
-      graduerr = HDsemierror(u.val, D_exactsol_2D_PX, &FE, &mesh, cq, 0.0);
+      uerr = L2error(u.val, exactsol_2D_PX, &FE, sc, cq, 0.0);
+      graduerr = HDsemierror(u.val, D_exactsol_2D_PX, &FE, sc, cq, 0.0);
     } else if (FE.FEtype == 20) { // Nedelec
-      uerr = L2error(u.val, exactsol_2D_Ned, &FE, &mesh, cq, 0.0);
-      graduerr = HDsemierror(u.val, D_exactsol_2D_Ned, &FE, &mesh, cq, 0.0);
+      uerr = L2error(u.val, exactsol_2D_Ned, &FE, sc, cq, 0.0);
+      graduerr = HDsemierror(u.val, D_exactsol_2D_Ned, &FE, sc, cq, 0.0);
     } else if (FE.FEtype == 30) { // RT
-      uerr = L2error(u.val, exactsol_2D_RT, &FE, &mesh, cq, 0.0);
-      graduerr = HDsemierror(u.val, D_exactsol_2D_RT, &FE, &mesh, cq, 0.0);
+      uerr = L2error(u.val, exactsol_2D_RT, &FE, sc, cq, 0.0);
+      graduerr = HDsemierror(u.val, D_exactsol_2D_RT, &FE, sc, cq, 0.0);
     } else {
       status = ERROR_FE_TYPE;
       check_error(status, __FUNCTION__);
     }
   } else if (dim == 3) {
     if (FE.FEtype > 0 && FE.FEtype < 10) { // PX
-      uerr = L2error(u.val, exactsol_3D_PX, &FE, &mesh, cq, 0.0);
-      graduerr = HDsemierror(u.val, D_exactsol_3D_PX, &FE, &mesh, cq, 0.0);
+      uerr = L2error(u.val, exactsol_3D_PX, &FE, sc, cq, 0.0);
+      graduerr = HDsemierror(u.val, D_exactsol_3D_PX, &FE, sc, cq, 0.0);
     } else if (FE.FEtype == 20) { // Nedelec
-      uerr = L2error(u.val, exactsol_3D_Ned, &FE, &mesh, cq, 0.0);
-      graduerr = HDsemierror(u.val, D_exactsol_3D_Ned, &FE, &mesh, cq, 0.0);
+      uerr = L2error(u.val, exactsol_3D_Ned, &FE, sc, cq, 0.0);
+      graduerr = HDsemierror(u.val, D_exactsol_3D_Ned, &FE, sc, cq, 0.0);
     } else if (FE.FEtype == 30) { // RT
-      uerr = L2error(u.val, exactsol_3D_RT, &FE, &mesh, cq, 0.0);
-      graduerr = HDsemierror(u.val, D_exactsol_3D_RT, &FE, &mesh, cq, 0.0);
+      uerr = L2error(u.val, exactsol_3D_RT, &FE, sc, cq, 0.0);
+      graduerr = HDsemierror(u.val, D_exactsol_3D_RT, &FE, sc, cq, 0.0);
     } else {
       status = ERROR_FE_TYPE;
       check_error(status, __FUNCTION__);
@@ -454,34 +453,34 @@ int main(int argc, char* argv[]) {
   strncpy(solout, inparam.output_dir, 128);
   strcat(solout, "sol.vtu");
 
-  dump_sol_vtk(solout, "u", &mesh, &FE, u.val);
+  dump_sol_vtk(solout, "u", sc, &FE, u.val);
 
   dvector exact_sol = dvec_create(FE.ndof);
   if (dim == 1) {
     if (FE.FEtype >= 0 && FE.FEtype < 10) { // PX
-      FE_Evaluate(exact_sol.val, exactsol_1D_PX, &FE, &mesh, 0.0);
+      FE_Evaluate(exact_sol.val, exactsol_1D_PX, &FE, sc, 0.0);
     } else {
       status = ERROR_FE_TYPE;
       check_error(status, __FUNCTION__);
     }
   } else if (dim == 2) {
     if (FE.FEtype >= 0 && FE.FEtype < 10) { // PX
-      FE_Evaluate(exact_sol.val, exactsol_2D_PX, &FE, &mesh, 0.0);
+      FE_Evaluate(exact_sol.val, exactsol_2D_PX, &FE, sc, 0.0);
     } else if (FE.FEtype == 20) { // Nedelec
-      FE_Evaluate(exact_sol.val, exactsol_2D_Ned, &FE, &mesh, 0.0);
+      FE_Evaluate(exact_sol.val, exactsol_2D_Ned, &FE, sc, 0.0);
     } else if (FE.FEtype == 30) { // RT
-      FE_Evaluate(exact_sol.val, exactsol_2D_RT, &FE, &mesh, 0.0);
+      FE_Evaluate(exact_sol.val, exactsol_2D_RT, &FE, sc, 0.0);
     } else {
       status = ERROR_FE_TYPE;
       check_error(status, __FUNCTION__);
     }
   } else if (dim == 3) {
     if (FE.FEtype >= 0 && FE.FEtype < 10) { // PX
-      FE_Evaluate(exact_sol.val, exactsol_3D_PX, &FE, &mesh, 0.0);
+      FE_Evaluate(exact_sol.val, exactsol_3D_PX, &FE, sc, 0.0);
     } else if (FE.FEtype == 20) { // Nedelec
-      FE_Evaluate(exact_sol.val, exactsol_3D_Ned, &FE, &mesh, 0.0);
+      FE_Evaluate(exact_sol.val, exactsol_3D_Ned, &FE, sc, 0.0);
     } else if (FE.FEtype == 30) { // RT
-      FE_Evaluate(exact_sol.val, exactsol_3D_RT, &FE, &mesh, 0.0);
+      FE_Evaluate(exact_sol.val, exactsol_3D_RT, &FE, sc, 0.0);
     } else {
       status = ERROR_FE_TYPE;
       check_error(status, __FUNCTION__);
@@ -494,7 +493,7 @@ int main(int argc, char* argv[]) {
   char exactout[128];
   strncpy(exactout, inparam.output_dir, 128);
   strcat(exactout, "exact.vtu");
-  dump_sol_vtk(exactout, "ut", &mesh, &FE, exact_sol.val);
+  dump_sol_vtk(exactout, "ut", sc, &FE, exact_sol.val);
 
   dvec_free(&exact_sol);
 
@@ -510,7 +509,7 @@ int main(int argc, char* argv[]) {
     free(cq);
     cq = NULL;
   }
-  free_mesh(&mesh);
+  haz_scomplex_free(sc);
   /*******************************************************************/
 
   clock_t clk_overall_end = clock();

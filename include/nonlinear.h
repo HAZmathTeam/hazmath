@@ -69,8 +69,8 @@ typedef struct newton{
 
 typedef struct nested_it {
 
-  //! current level mesh
-  mesh_struct *mesh;
+  //! current level simplicial complex
+  scomplex *sc;
 
   //! current simplicial complex structure
   scomplex **sc_all;

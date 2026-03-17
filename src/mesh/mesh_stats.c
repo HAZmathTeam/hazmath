@@ -243,11 +243,11 @@ iCSRmat get_el_ed(iCSRmat* el_v,iCSRmat* ed_v)
 
 /*******************************************************************************/
 /*!
- * \fn void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates *cv,iCSRmat* ed_v,INT dim)
+ * \fn void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,scomplex *sc,iCSRmat* ed_v,INT dim)
  *
  * \brief Get length, tangent vector (tau), and midpoint of every edge
  *
- * \param cv                         Coordinates of vertices
+ * \param sc                         Simplicial complex
  * \param ed_v	                   Edge to vertex map
  * \param dim                        Dimension of problem
  *
@@ -257,7 +257,7 @@ iCSRmat get_el_ed(iCSRmat* el_v,iCSRmat* ed_v)
  *
  *
  */
-void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates *cv,iCSRmat* ed_v,INT dim)
+void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,scomplex *sc,iCSRmat* ed_v,INT dim)
 {
   // Loop indices
   INT i,jcnt,j,j_a,j_b;
@@ -278,10 +278,10 @@ void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates *cv,iCSRm
     jcnt = 0;
     for (j=j_a; j<j_b;j++) {
       ip[jcnt] = ed_v->JA[j];
-      x[jcnt] = cv->x[ip[jcnt]];
-      y[jcnt] = cv->y[ip[jcnt]];
+      x[jcnt] = sc->x[ip[jcnt]*dim];
+      y[jcnt] = sc->x[ip[jcnt]*dim+1];
       if (dim==3) {
-        z[jcnt] = cv->z[ip[jcnt]];
+        z[jcnt] = sc->x[ip[jcnt]*dim+2];
       } else {
         z[jcnt] = 0;
       }
@@ -590,11 +590,11 @@ void find_facenumber(iCSRmat* el_v,INT elm,INT* nd,INT dim,INT *f_num)
 
 /*******************************************************************************/
 /*!
- * \fn void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *mesh)
+ * \fn void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,scomplex *sc)
  *
  * \brief Get area, normal vector, and midpoints for all faces
  *
- * \param mesh                       Mesh struct
+ * \param sc                         Simplicial complex
  *
  * \return f_area                    Area of each face (length in 2D)
  * \return f_norm                    Normal vector or each face
@@ -602,7 +602,7 @@ void find_facenumber(iCSRmat* el_v,INT elm,INT* nd,INT dim,INT *f_num)
  *
  *
  */
-void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *mesh)
+void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,scomplex *sc)
 {
   // Flag for errors
   SHORT status;
@@ -610,14 +610,14 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *
   // Loop indices
   INT i,jcnt,j,j_a,j_b;
 
-  INT nface = mesh->el_f->col;
-  INT dim = mesh->dim;
-  INT el_order = mesh->v_per_elm;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
 
-  coordinates *cv = mesh->cv;
+  INT nface = fem->el_f->col;
+  INT el_order = (dim + 1);
 
-  iCSRmat *el_f = mesh->el_f;
-  iCSRmat *el_v = mesh->el_v;
+  iCSRmat *el_f = fem->el_f;
+  iCSRmat *el_v = fem->el_v;
 
   // Face Node Stuff
   INT* ipf = (INT *) calloc(dim,sizeof(INT));
@@ -655,10 +655,10 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *
     jcnt = 0;
     for (j=j_a; j<j_b;j++) {
       ipf[jcnt] = f_v->JA[j];
-      xf[jcnt] = cv->x[ipf[jcnt]];
-      yf[jcnt] = cv->y[ipf[jcnt]];
+      xf[jcnt] = sc->x[ipf[jcnt]*dim];
+      yf[jcnt] = sc->x[ipf[jcnt]*dim+1];
       if (dim==3) {
-        zf[jcnt] = cv->z[ipf[jcnt]];
+        zf[jcnt] = sc->x[ipf[jcnt]*dim+2];
       }
       jcnt++;
     }
@@ -691,10 +691,10 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *
       myel_n[jcnt] = el_v->JA[j];
       jcnt++;
     }
-    myx[0] = cv->x[myel_n[myopn]];
-    myx[1] = cv->y[myel_n[myopn]];
+    myx[0] = sc->x[myel_n[myopn]*dim];
+    myx[1] = sc->x[myel_n[myopn]*dim+1];
     if(dim==3) {
-      myx[2] = cv->z[myel_n[myopn]];
+      myx[2] = sc->x[myel_n[myopn]*dim+2];
     }
 
     /* Compute Area (length if 2D) and get midpt of face */
@@ -721,7 +721,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *
 
     // Compute Normal Vectors based on opposite node
     // Get Linear Basis Functions for particular element
-    PX_H1_basis(p,dp,myx,myel_n,1,mesh);
+    PX_H1_basis(p,dp,myx,myel_n,1,sc);
     grad_mag = dp[myopn*dim]*dp[myopn*dim]+dp[myopn*dim+1]*dp[myopn*dim+1];
     if(dim==3) {
       grad_mag += dp[myopn*dim+2]*dp[myopn*dim+2];
@@ -754,26 +754,27 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *
 
 /********************************************************************************/
 /*!
- * \fn void sync_facenode(iCSRmat *f_v,REAL* f_norm,mesh_struct *mesh)
+ * \fn void sync_facenode(iCSRmat *f_v,REAL* f_norm,scomplex *sc)
  *
  * \brief Reorder the Face-Node mapping so it has positive orientation with
  *        respect to the face's normal vector
  *
- * \param mesh                       Mesh struct
+ * \param sc                         Simplicial complex
  * \param f_norm                     Normal vector or each face
  *
  * \return f_v                       Reordered face to vertex map
  *
  */
-void sync_facenode(iCSRmat *f_v,REAL* f_norm,mesh_struct *mesh)
+void sync_facenode(iCSRmat *f_v,REAL* f_norm,scomplex *sc)
 {
   // Loop indices
   INT i,j;
 
-  INT nface = mesh->el_f->col;
-  INT dim = mesh->dim;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+
+  INT nface = fem->el_f->col;
   INT ndpf = dim;
-  coordinates *cv = mesh->cv;
 
   REAL nx,ny,nz,tx,ty,tz,mysign;
   INT nd,rowa,rowb,jcnt,nf1,nf2,nf3;
@@ -793,8 +794,8 @@ void sync_facenode(iCSRmat *f_v,REAL* f_norm,mesh_struct *mesh)
       jcnt=0;
       for(j=rowa;j<rowb;j++) {
         nd = f_v->JA[j];
-        xf[jcnt] = cv->x[nd];
-        yf[jcnt] = cv->y[nd];
+        xf[jcnt] = sc->x[nd*dim];
+        yf[jcnt] = sc->x[nd*dim+1];
         jcnt++;
       }
       // Determine proper orientation of basis vectors  Compute n^(\perp)*t.
@@ -822,9 +823,9 @@ void sync_facenode(iCSRmat *f_v,REAL* f_norm,mesh_struct *mesh)
       jcnt=0;
       for(j=rowa;j<rowb;j++) {
         nd = f_v->JA[j];
-        xf[jcnt] = cv->x[nd];
-        yf[jcnt] = cv->y[nd];
-        zf[jcnt] = cv->z[nd];
+        xf[jcnt] = sc->x[nd*dim];
+        yf[jcnt] = sc->x[nd*dim+1];
+        zf[jcnt] = sc->x[nd*dim+2];
         jcnt++;
       }
       // Determine proper orientation of basis vectors  Compute n^(\perp)*t.
@@ -851,18 +852,18 @@ void sync_facenode(iCSRmat *f_v,REAL* f_norm,mesh_struct *mesh)
 
 /********************************************************************************/
 /*!
- * \fn void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
+ * \fn void get_el_mid(REAL *el_mid,iCSRmat* el_v,scomplex *sc,INT dim)
  *
  * \brief Compute the midpoints of a triangluar element using the vertices
  *
  * \param el_v                   Element to vertex map
- * \param cv                     Coordinates of vertices
+ * \param sc                     Simplicial complex
  *
  * \return el_mid                Midpoint of elements
  *
  *
  */
-void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
+void get_el_mid(REAL *el_mid,iCSRmat* el_v,scomplex *sc,INT dim)
 {
   // Flag for errors
   SHORT status;
@@ -877,7 +878,7 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
       el_mid[i]=0;
       for (j=acol; j<bcol; j++) {
         nd = el_v->JA[j];
-        el_mid[i] += cv->x[nd];
+        el_mid[i] += sc->x[nd*dim];
       }
       el_mid[i]=el_mid[i]/2.0;
     }
@@ -889,8 +890,8 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
       el_mid[i*dim+1]=0;
       for (j=acol; j<bcol; j++) {
         nd = el_v->JA[j];
-        el_mid[i*dim] += cv->x[nd];
-        el_mid[i*dim+1] += cv->y[nd];
+        el_mid[i*dim] += sc->x[nd*dim];
+        el_mid[i*dim+1] += sc->x[nd*dim+1];
       }
       el_mid[i*dim]=el_mid[i*dim]/3.0;
       el_mid[i*dim+1]=el_mid[i*dim+1]/3.0;
@@ -904,9 +905,9 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
       el_mid[i*dim+2]=0;
       for (j=acol; j<bcol; j++) {
         nd = el_v->JA[j];
-        el_mid[i*dim] += cv->x[nd];
-        el_mid[i*dim+1] += cv->y[nd];
-        el_mid[i*dim+2] += cv->z[nd];;
+        el_mid[i*dim] += sc->x[nd*dim];
+        el_mid[i*dim+1] += sc->x[nd*dim+1];
+        el_mid[i*dim+2] += sc->x[nd*dim+2];
       }
       el_mid[i*dim]=0.25*el_mid[i*dim];
       el_mid[i*dim+1]=0.25*el_mid[i*dim+1];
@@ -922,12 +923,12 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
 
 /********************************************************************************/
 /*!
- * \fn void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm)
+ * \fn void get_el_vol(REAL *el_vol,iCSRmat *el_v,scomplex *sc,INT dim,INT v_per_elm)
  *
  * \brief Compute the area/volume of ALL triangluar/tetrahedral elements using the vertices
  *
  * \param el_v                   Element to vertex map
- * \param cv                     Coordinates of vertices
+ * \param sc                     Simplicial complex
  * \param dim                    Dimension of problem
  * \param v_per_elm              Number of vertices per element
  *
@@ -935,12 +936,12 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
  *
  *
  */
-void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm)
+void get_el_vol(REAL *el_vol,iCSRmat *el_v,scomplex *sc,INT dim,INT v_per_elm)
 {
   //  old_get_el_vol(el_vol,el_v,cv,dim,v_per_elm);
   //  return;
   // Loop Indices
-  INT i,j_a,j_b,j,k,l,jcnt,lv,lnv;
+  INT i,j_a,j_b,j,k,l,jcnt,lv;
 
   REAL x2,x3,x4,y2,y3,y4,z2,z3,z4;
 
@@ -948,17 +949,15 @@ void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm
   REAL* x = (REAL *) calloc(dim*v_per_elm,sizeof(REAL));
   REAL *y=NULL, *z=NULL;
   INT nelm = el_v->row;
-  INT nv = el_v->col;
   for (i=0;i<nelm;i++) {
     j_a = el_v->IA[i];
     j_b = el_v->IA[i+1];
     for (l=0;l<dim;l++){
       jcnt=0;
       lv=l*v_per_elm;
-      lnv=l*nv;
       for (j=j_a; j<j_b; j++) {
         k=el_v->JA[j];
-        x[lv+jcnt] = cv->x[lnv+k];
+        x[lv+jcnt] = sc->x[k*dim+l];
         jcnt++;
       }
     }

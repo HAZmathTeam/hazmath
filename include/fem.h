@@ -18,12 +18,11 @@
 #include "mesh.h"
 
 /* markers for boundary conditions:
-   in the mesh structure these will be the values of the array
    BOUNDARY FACES ARE MARKED WITH
-   mesh_struct.f_bdry[i]=0 then (i) is an interior face.
-   1 <= mesh_struct.f_bdry[i] <= 16 (i) is on the DIRICHLET boundary;
-   17 <= mesh_struct.f_bndry[i] <=32 (i) is  on the NEUMANN boundary;
-   33 <= mesh_struct.f_bndry[i] <=64 (i) is  on the ROBIN boundary;
+   f_bdry[i]=0 then (i) is an interior face.
+   1 <= f_bdry[i] <= 16 (i) is on the DIRICHLET boundary;
+   17 <= f_bndry[i] <=32 (i) is on the NEUMANN boundary;
+   33 <= f_bndry[i] <=64 (i) is on the ROBIN boundary;
 */
 #define MARKER_DIRICHLET 1
 #define MARKER_NEUMANN  17

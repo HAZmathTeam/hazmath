@@ -17,23 +17,22 @@
 
 /*******************************************************************************/
 /*!
-* \fn void compute_Voronoi_nodes(mesh_struct* mesh, coordinates* cv_vor)
+* \fn void compute_Voronoi_nodes(scomplex* sc, coordinates* cv_vor)
 *
 * \brief Computes the Voronoi nodes by finding circumcenters of Delaunay tets
 *
-* \param mesh      Delaunay triangulation mesh struct
+* \param sc        Simplicial complex (Delaunay triangulation)
 *
 * \return cv_vor   coord struct with Voronoi nodes (in ordering of Del tets)
 */
 
-void compute_Voronoi_nodes(mesh_struct* mesh, coordinates* cv_vor)
+void compute_Voronoi_nodes(scomplex* sc, coordinates* cv_vor)
 {
   //mesh info of Delaunay mesh
-  INT nelm = mesh->nelm;
-  iCSRmat* el_v = mesh->el_v;
-  
-  //create coord struct for Voronoi nodes
-  coordinates* cv_del = mesh->cv;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+  INT nelm = fem->ns_leaf;
+  iCSRmat* el_v = fem->el_v;
   
   //temp variables
   INT i,j,k;
@@ -58,11 +57,11 @@ void compute_Voronoi_nodes(mesh_struct* mesh, coordinates* cv_vor)
     get_incidence_row(i,el_v,index);	
 	
 	
-    for(j=0; j<4; j++){							
+    for(j=0; j<4; j++){
 
-      elm_coords[3*j] = cv_del->x[index[j]];
-      elm_coords[3*j+1] = cv_del->y[index[j]];
-      elm_coords[3*j+2] = cv_del->z[index[j]];
+      elm_coords[3*j] = sc->x[index[j]*dim];
+      elm_coords[3*j+1] = sc->x[index[j]*dim+1];
+      elm_coords[3*j+2] = sc->x[index[j]*dim+2];
     }
 	
 	//fill in matrices we need to compute det of
@@ -113,23 +112,24 @@ void compute_Voronoi_nodes(mesh_struct* mesh, coordinates* cv_vor)
 }
 
 /*!
-* \fn  REAL compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, dvector* vor_edge_length)
+* \fn  REAL compute_Voronoi_edges(scomplex * sc, coordinates* cv_vor, dvector* vor_edge_length)
 *
 * \brief Computes the length of Voronoi edges using subtraction (interior edges)
 		 or projections (boundary edges)
 *
-* \param mesh				Delaunay mesh struct
+* \param sc				Simplicial complex (Delaunay triangulation)
 * \param cv_vor				coord struct with Voronoi nodes
 *
 * \return vor_edge_length		vector of voronoi edge length (in ordering of Del faces)
 */
-void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, dvector* vor_edge_length)
+void compute_Voronoi_edges(scomplex * sc, coordinates* cv_vor, dvector* vor_edge_length)
 {
   //Delaunay mesh info
-  INT nface = mesh->nface;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+  INT nface = fem->nface;
   iCSRmat f_el;
-  icsr_trans(mesh->el_f, &f_el);
-  coordinates* cv_del = mesh->cv;
+  icsr_trans(fem->el_f, &f_el);
   
   //temp variables
   INT i;
@@ -146,7 +146,7 @@ void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, dvector* vor
 	get_incidence_row(i,&f_el,index); 
 	
 	//check if boundary del face = vor boundary edge
-    flag = mesh->f_flag[i];		
+    flag = fem->f_flag[i];
 	
 	//if face is not on boundary, |edge| = |p1 - p2|
     if(flag == 0){	
@@ -162,15 +162,15 @@ void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, dvector* vor
     else{
 
 	  //look at face to vertex map, grab a point on the face, normal vec n
-      get_incidence_row(i,mesh->f_v,index_f);
+      get_incidence_row(i,fem->f_v,index_f);
 
-      vx = cv_vor->x[index[0]] - cv_del->x[index_f[0]];
-      vy = cv_vor->y[index[0]] - cv_del->y[index_f[0]];
-      vz = cv_vor->z[index[0]] - cv_del->z[index_f[0]];
+      vx = cv_vor->x[index[0]] - sc->x[index_f[0]*dim];
+      vy = cv_vor->y[index[0]] - sc->x[index_f[0]*dim+1];
+      vz = cv_vor->z[index[0]] - sc->x[index_f[0]*dim+2];
 
-      nx = mesh->f_norm[3*i];
-      ny = mesh->f_norm[3*i+1];
-      nz = mesh->f_norm[3*i+2];
+      nx = fem->f_norm[3*i];
+      ny = fem->f_norm[3*i+1];
+      nz = fem->f_norm[3*i+2];
 
 	  proj = vx*nx+ vy*ny + vz*nz;
 
@@ -190,11 +190,11 @@ void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, dvector* vor
 
 
 /*!
-* \fn void neighbor_elm (mesh_struct * mesh, INT n, INT m, INT* ind, INT* f)
+* \fn void neighbor_elm (scomplex * sc, INT n, INT m, INT* ind, INT* f)
 *
 * \brief Determines whether two elements, n and m, are neighbors
 *
-* \param mesh 				Delaunay triangulation mesh struct
+* \param sc 				Simplicial complex (Delaunay triangulation)
 * \param n					index of one element
 * \param m					index of another element
 *
@@ -202,15 +202,16 @@ void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, dvector* vor
 * \return f_el				index of the face they share (otherwise -666)
 *
 */
-void neighbor_elm (mesh_struct * mesh, INT n, INT m, INT* ind, INT* f)
+void neighbor_elm (scomplex * sc, INT n, INT m, INT* ind, INT* f)
 {
+  sc_fem *fem = sc->fem;
   //if same element, return ind = 0, not neighbors
   if (n == m){	
     *ind =0;
     return;
   }
   //elm to face map
-  iCSRmat* el_f = mesh->el_f;	
+  iCSRmat* el_f = fem->el_f;
   //indices of 4 faces on n
   INT face_n[4];
   //indices of 4 faces on m  
@@ -244,12 +245,12 @@ void neighbor_elm (mesh_struct * mesh, INT n, INT m, INT* ind, INT* f)
 
 
 /*!
-* \fn REAL compute_Voronoi_faces(mesh_struct* mesh,coordinates* cv_vor, REAL* pt_on_face, dvec* vor_face_area)
+* \fn REAL compute_Voronoi_faces(scomplex* sc,coordinates* cv_vor, REAL* pt_on_face, dvec* vor_face_area)
 *
 * \brief Computes the area of Voronoi faces by partitioning the polygon into triangles
 			and computing the area of each triangle using cross products
 *
-* \param mesh 				Delaunay triangulation mesh struct
+* \param sc 				Simplicial complex (Delaunay triangulation)
 * \param cv_vor				Voronoi coord struct
 *
 * \return vor_face_area		vector of Voronoi face area (in ordering of Del edges)
@@ -258,17 +259,19 @@ void neighbor_elm (mesh_struct * mesh, INT n, INT m, INT* ind, INT* f)
 * \note
 *
 */
-void compute_Voronoi_faces(mesh_struct* mesh,coordinates* cv_vor, REAL* pt_on_face, dvector* vor_face_area)
+void compute_Voronoi_faces(scomplex* sc,coordinates* cv_vor, REAL* pt_on_face, dvector* vor_face_area)
 {
-//Delaunay mesh info	
-INT nedge = mesh->nedge;
+//Delaunay mesh info
+sc_fem *fem = sc->fem;
+INT dim = sc->dim;
+INT nedge = fem->nedge;
 // Get transposes of incident matrices
 iCSRmat ed_el;
-icsr_trans(mesh->el_ed,&ed_el);
+icsr_trans(fem->el_ed,&ed_el);
 iCSRmat ed_f;
-icsr_trans(mesh->f_ed, &ed_f);
+icsr_trans(fem->f_ed, &ed_f);
 iCSRmat f_el;
-icsr_trans(mesh->el_f, &f_el);
+icsr_trans(fem->el_f, &f_el);
 
 
 //temp variables
@@ -328,7 +331,7 @@ for(i=0; i<nedge; i++){
 			//if it hasn't been marked, see if it's a neighbor
 			if (temp[j] == 0){	
 			//check if a and ind[j] share a face			
-			neighbor_elm(mesh, a, index[j], &ind, &f);	
+			neighbor_elm(sc, a, index[j], &ind, &f);
 			}
 		}
 		//when ind = 1, add index j to ordered points
@@ -340,7 +343,7 @@ for(i=0; i<nedge; i++){
 	}
 	
 	//boundary edge--find intersection of face with boundary
-	if(mesh->ed_flag[i] == 1){		
+	if(fem->ed_flag[i] == 1){
 
 			
 			//we need 3 extra points
@@ -349,10 +352,10 @@ for(i=0; i<nedge; i++){
 			coords =(REAL *)calloc(3*(nnz+3),sizeof(REAL));		
 			
 			//grab a point on the del edge = pt on vor face
-			get_incidence_row(i,mesh->ed_v,endpt);		
-			x = mesh->cv->x[endpt[0]];
-			y = mesh->cv->y[endpt[0]];
-			z = mesh->cv->z[endpt[0]];
+			get_incidence_row(i,fem->ed_v,endpt);
+			x = sc->x[endpt[0]*dim];
+			y = sc->x[endpt[0]*dim+1];
+			z = sc->x[endpt[0]*dim+2];
 			
 			//get the incident faces
 			//don't know how many, so fill f_temp with -1's
@@ -364,7 +367,7 @@ for(i=0; i<nedge; i++){
 			l=0;
 			for(k=0; k<10; k++){
 				if(f_temp[k] >-1){
-					if(mesh->f_flag[f_temp[k]] == 1){
+					if(fem->f_flag[f_temp[k]] == 1){
 						faces[l] = f_temp[k];	
 						l++;
 					}
@@ -380,9 +383,9 @@ for(i=0; i<nedge; i++){
 			
 			f = faces[j];		
 
-			nx = mesh->f_norm[3*f];
-			ny = mesh->f_norm[3*f+1];
-			nz = mesh->f_norm[3*f+2];
+			nx = fem->f_norm[3*f];
+			ny = fem->f_norm[3*f+1];
+			nz = fem->f_norm[3*f+2];
 			
 			//if boundary face, only belongs to one element
 			INT elm[1];					
@@ -406,9 +409,9 @@ for(i=0; i<nedge; i++){
 			}
 		}
 			//compute point on the boundary edge -- just the midpoint.
-			coords[0] = mesh->ed_mid[3*i];	
-			coords[1] = mesh->ed_mid[3*i +1];
-			coords[2] = mesh->ed_mid[3*i+2];
+			coords[0] = fem->ed_mid[3*i];
+			coords[1] = fem->ed_mid[3*i +1];
+			coords[2] = fem->ed_mid[3*i+2];
 
 
 		for(k=0; k< nnz; k++){			
@@ -482,11 +485,11 @@ return;
 }
 
 /*!
-* \fn void compute_Voronoi_volumes(mesh_struct* mesh,coordinates* cv_vor, dvec* vor_face_area, REAL* pt_on_face, dvector* vor_el_vol)
+* \fn void compute_Voronoi_volumes(scomplex* sc,coordinates* cv_vor, dvec* vor_face_area, REAL* pt_on_face, dvector* vor_el_vol)
 *
 * \brief Computes the volume of the Voronoi polyhedra by partitioning Voronoi polyhedra into tetrahedra
 *
-* \param mesh 				Delaunay triangulation mesh struct
+* \param sc 				Simplicial complex (Delaunay triangulation)
 * \param cv_vor 			Voronoi coord struct
 * \param vor_face_area 		vector of Voronoi face areas
 * \param pt_on_face			point on each Voronoi face
@@ -494,13 +497,14 @@ return;
 * \return vor_el_vol			vector of Voronoi element volumes (in ordering of Del nodes)
 *
 */
-void compute_Voronoi_volumes(mesh_struct* mesh, coordinates* cv_vor, dvector* vor_face_area, REAL* pt_on_face, dvector* vor_el_vol)
+void compute_Voronoi_volumes(scomplex* sc, coordinates* cv_vor, dvector* vor_face_area, REAL* pt_on_face, dvector* vor_el_vol)
 {
    //Delaunay and Voronoi mesh info
-  INT nv_del = mesh->nv;
-  coordinates* cv_del = mesh->cv;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+  INT nv_del = sc->nv;
   iCSRmat v_ed;
-  icsr_trans(mesh->ed_v,&v_ed);
+  icsr_trans(fem->ed_v,&v_ed);
   //temp variables
   INT i,j;
   INT* index = NULL; 		
@@ -523,14 +527,14 @@ void compute_Voronoi_volumes(mesh_struct* mesh, coordinates* cv_vor, dvector* vo
       f = index[j];	
 	  
 	  // get tangent vector to Delaunay edge = normal toCoronoi face	  
-      tx = mesh->ed_tau[3*f]; 	
-      ty = mesh->ed_tau[3*f+1];
-      tz = mesh->ed_tau[3*f+2];
-	  
+      tx = fem->ed_tau[3*f];
+      ty = fem->ed_tau[3*f+1];
+      tz = fem->ed_tau[3*f+2];
+
 	  //find vector from face to del pt
-      x = cv_del->x[i] - pt_on_face[3*f];	
-      y = cv_del->y[i] - pt_on_face[3*f+1];
-      z = cv_del->z[i] - pt_on_face[3*f+2];
+      x = sc->x[i*dim] - pt_on_face[3*f];
+      y = sc->x[i*dim+1] - pt_on_face[3*f+1];
+      z = sc->x[i*dim+2] - pt_on_face[3*f+2];
 	  
 	  //project it in direction of normal to face (tan to Del edge)
 	  height = x*tx + y*ty + z*tz;			

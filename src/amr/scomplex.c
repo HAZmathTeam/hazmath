@@ -50,6 +50,7 @@ void haz_scomplex_realloc(scomplex* sc) {
     sc->bndry[i] = 0;
     sc->csys[i] = 0;
   }
+  sc->fem = NULL;
   return;
 }
 /**********************************************************************/
@@ -240,6 +241,7 @@ scomplex* haz_scomplex_init(const INT n, INT ns, INT nv, const INT nbig) {
   sc->v2s_simp = NULL;
   sc->v2s_count = 0;
   sc->v2s_alloc = 0;
+  sc->fem = NULL;
   return sc;
 }
 /**********************************************************************/
@@ -302,6 +304,7 @@ scomplex haz_scomplex_null(const INT n, const INT nbig) {
   sc.etree = NULL;
   sc.bfs = malloc(sizeof(iCSRmat));
   sc.bfs[0] = icsr_create(0, 0, 0);
+  sc.fem = NULL;
   return sc;
 }
 /**********************************************************************/
@@ -351,6 +354,7 @@ void haz_scomplex_init_part(scomplex* sc) {
     sc->bndry[i] = 0;
     sc->csys[i] = 0;
   }
+  sc->fem = NULL;
   return;
 }
 /**********************************************************************/
@@ -404,32 +408,46 @@ void vol_simplex(INT dim, REAL fact, REAL* xf, REAL* volt, void* wrk) {
  *
  */
 scomplex* haz_scomplex_read(FILE* fp, INT print_level) {
-  INT i, ns, nv, n, dummy;
-  i = fscanf(fp, "%lld %lld %lld %lld", (long long*)&ns, (long long*)&nv,
-             (long long*)&n, (long long*)&dummy);
-  INT n1 = n + 1, j, k, n1kj = -10,
-      nbig = n;  // we can only read same dimension complexes now.
+  INT i, j, k;
+  long long ns_, nv_, n_, nholes_;
+  fscanf(fp, "%lld %lld %lld %lld", &ns_, &nv_, &n_, &nholes_);
+  INT ns = (INT)ns_, nv = (INT)nv_, n = (INT)n_, nholes = (INT)nholes_;
+  INT n1 = n + 1;
+  INT nbig = n;  // we can only read same dimension complexes now.
   scomplex* sc = (scomplex*)haz_scomplex_init(n, ns, nv, n);
+  // Read element connectivity (nodes)
+  INT one_zero_flag = 1;
+  long long readint;
   for (j = 0; j < n1; j++) {
     for (k = 0; k < ns; k++) {
-      n1kj = n1 * k + j;
-      dummy = fscanf(fp, " %lld ", (long long*)(sc->nodes + n1kj));
-      /* shift if needed ; this should not be here: later CHANGE */
-      sc->nodes[n1kj] = sc->nodes[n1kj] - 1;
+      INT n1kj = n1 * k + j;
+      fscanf(fp, " %lld ", &readint);
+      sc->nodes[n1kj] = (INT)readint;
+      if (sc->nodes[n1kj] == 0 && one_zero_flag == 1)
+        one_zero_flag = 0;
     }
   }
+  if (one_zero_flag == 1)
+    for (i = 0; i < ns * n1; i++)
+      sc->nodes[i] -= 1;
+  // Read element flags
   for (k = 0; k < ns; k++) {
-    dummy = fscanf(fp, " %lld ", (long long*)sc->flags + k);
+    fscanf(fp, " %lld ", (long long*)sc->flags + k);
   }
+  // Read coordinates (file is column-major, store row-major)
   for (j = 0; j < nbig; j++) {
     for (i = 0; i < nv; i++) {
-      dummy = fscanf(fp, "%lg", sc->x + i * nbig + j);
+      fscanf(fp, "%lg", sc->x + i * nbig + j);
     }
   }
+  // Read vertex boundary codes
   for (i = 0; i < nv; i++) {
-    dummy = fscanf(fp, "%lld", (long long*)(sc->bndry + i));
+    fscanf(fp, "%lld", (long long*)(sc->bndry + i));
   }
-  sc->print_level = 0;
+  // Set connected components from nholes
+  sc->cc = 1;
+  sc->bndry_cc = (nholes == 0) ? 1 : nholes + 1;
+  sc->print_level = print_level;
   return sc;
 }
 /**********************************************************************/
@@ -530,6 +548,181 @@ void haz_scomplex_print(scomplex* sc, const INT ns0, const char* infor) {
  * \note
  *
  */
+/**********************************************************************/
+/*!
+ * \fn void sc_free_fem_data(scomplex *sc)
+ *
+ * \brief Frees FEM-derived data in sc->fem. Sets sc->fem to NULL.
+ *
+ * \param sc  simplicial complex
+ */
+void sc_free_fem_data(scomplex* sc) {
+  if (!sc || !sc->fem) return;
+  sc_fem* fem = sc->fem;
+  if (fem->leaf2global) free(fem->leaf2global);
+  if (fem->el_v) { icsr_free(fem->el_v); free(fem->el_v); }
+  if (fem->el_ed) { icsr_free(fem->el_ed); free(fem->el_ed); }
+  if (fem->el_f) { icsr_free(fem->el_f); free(fem->el_f); }
+  if (fem->ed_v) { icsr_free(fem->ed_v); free(fem->ed_v); }
+  if (fem->f_v) { icsr_free(fem->f_v); free(fem->f_v); }
+  if (fem->f_ed) { icsr_free(fem->f_ed); free(fem->f_ed); }
+  if (fem->el_vol) free(fem->el_vol);
+  if (fem->el_mid) free(fem->el_mid);
+  if (fem->ed_len) free(fem->ed_len);
+  if (fem->ed_tau) free(fem->ed_tau);
+  if (fem->ed_mid) free(fem->ed_mid);
+  if (fem->f_area) free(fem->f_area);
+  if (fem->f_norm) free(fem->f_norm);
+  if (fem->f_mid) free(fem->f_mid);
+  if (fem->el_flag) free(fem->el_flag);
+  if (fem->ed_flag) free(fem->ed_flag);
+  if (fem->f_flag) free(fem->f_flag);
+  if (fem->dwork) free(fem->dwork);
+  if (fem->iwork) free(fem->iwork);
+  free(fem);
+  sc->fem = NULL;
+}
+/**********************************************************************/
+/*!
+ * \fn void sc_build_fem_data(scomplex *sc)
+ *
+ * \brief Builds FEM-derived data (edges, faces, volumes, etc.) from
+ *        the leaf elements of the simplicial complex. Populates sc->fem.
+ *
+ * \param sc  simplicial complex (must have nodes, x, bndry, flags, child0, childn set)
+ *
+ * \note Calls geometry functions (edge_stats_all, face_stats, sync_facenode,
+ *       get_el_vol, get_el_mid) directly on the scomplex.
+ *       Requires dim == nbig (no manifold meshes).
+ */
+void sc_build_fem_data(scomplex* sc) {
+  if (sc->fem != NULL) return;  /* already built */
+  if (sc->nbig != sc->dim) return;  /* not supported yet */
+  INT dim = sc->dim, nv = sc->nv, n1 = dim + 1;
+  /* 1. Count leaf elements */
+  INT ns_leaf = 0;
+  for (INT j = 0; j < sc->ns; j++)
+    if (sc->child0[j] < 0 || sc->childn[j] < 0) ns_leaf++;
+  /* 2. Allocate and populate sc_fem */
+  sc_fem* fem = (sc_fem*)calloc(1, sizeof(sc_fem));
+  fem->ns_leaf = ns_leaf;
+  fem->leaf2global = (INT*)calloc(ns_leaf, sizeof(INT));
+  fem->el_flag = (INT*)calloc(ns_leaf, sizeof(INT));
+  INT idx = 0;
+  for (INT j = 0; j < sc->ns; j++) {
+    if (sc->child0[j] < 0 || sc->childn[j] < 0) {
+      fem->leaf2global[idx] = j;
+      fem->el_flag[idx] = sc->flags[j];
+      idx++;
+    }
+  }
+  /* 3. Build el_v CSR from nodes (leaf only) */
+  fem->el_v = (iCSRmat*)malloc(sizeof(iCSRmat));
+  fem->el_v[0] = icsr_create(ns_leaf, nv, ns_leaf * n1);
+  if (fem->el_v->val) { free(fem->el_v->val); fem->el_v->val = NULL; }
+  fem->el_v->IA[0] = 0;
+  for (INT j = 0; j < ns_leaf; j++) fem->el_v->IA[j + 1] = (j + 1) * n1;
+  for (INT j = 0; j < ns_leaf; j++) {
+    INT glob = fem->leaf2global[j];
+    memcpy(fem->el_v->JA + j * n1, sc->nodes + glob * n1, n1 * sizeof(INT));
+  }
+  /* 4. Count boundary vertices */
+  fem->nbv = 0;
+  for (INT i = 0; i < nv; i++)
+    if (sc->bndry[i] != 0) fem->nbv++;
+  /* 5. Allocate dwork */
+  fem->dwork = (REAL*)calloc(n1 * (dim + 1), sizeof(REAL));
+  /* 6. Assign fem to sc NOW so geometry functions can access sc->fem */
+  sc->fem = fem;
+  /* 7. Build edges, faces, geometry */
+  if (dim == 2 || dim == 3) {
+    /* Edge to vertex map */
+    INT nedge = 0;
+    iCSRmat ed_v = get_edge_v(&nedge, fem->el_v);
+    /* Element to edge map */
+    iCSRmat el_ed = get_el_ed(fem->el_v, &ed_v);
+    /* Edge stats */
+    REAL* ed_len = (REAL*)calloc(nedge, sizeof(REAL));
+    REAL* ed_tau = (REAL*)calloc(nedge * dim, sizeof(REAL));
+    REAL* ed_mid = (REAL*)calloc(nedge * dim, sizeof(REAL));
+    edge_stats_all(ed_len, ed_tau, ed_mid, sc, &ed_v, dim);
+    /* Compute number of faces via Euler characteristic */
+    INT nconn_bdry = sc->bndry_cc;
+    INT nholes = nconn_bdry - 1;
+    INT nface = 0;
+    INT euler = -10;
+    if (dim == 2) {
+      nface = nedge;
+      euler = nv - nedge + ns_leaf + nholes;
+    } else if (dim == 3) {
+      nface = 1 + nedge - nv + ns_leaf;
+      nface = nface + nholes;
+      euler = nv - nedge + nface - ns_leaf - nholes;
+    }
+    if (euler != 1) {
+      printf("ERROR HAZMATH DANGER: in function %s, Euler Characteristic doesn't equal 1+nholes! euler=%lld nholes=%lld.\n\n",
+             __FUNCTION__, (long long)euler, (long long)nholes);
+      exit(ERROR_DIM);
+    }
+    /* Face ordering */
+    INT f_per_elm = n1;
+    INT* fel_order = (INT*)calloc(f_per_elm * dim, sizeof(INT));
+    get_face_ordering(n1, dim, f_per_elm, fel_order);
+    /* Face maps */
+    iCSRmat f_v = icsr_create(nface, nv, nface * dim);
+    iCSRmat f_ed = icsr_create(nface, nedge, nface * (2 * dim - 3));
+    INT* f_flag = (INT*)calloc(nface, sizeof(INT));
+    INT nbface;
+    fem->el_f = malloc(sizeof(struct iCSRmat));
+    get_face_maps(fem->el_v, n1, &ed_v, nface, dim, f_per_elm, fem->el_f, f_flag, &nbface, &f_v, &f_ed, fel_order);
+    /* Edge and face boundary flags */
+    INT nbedge = 0;
+    INT* ed_flag = (INT*)calloc(nedge, sizeof(INT));
+    boundary_f_ed(&f_ed, &ed_v, nedge, nface, f_flag, sc->bndry, &nbedge, ed_flag, dim);
+    /* Face stats (needs fem->el_f and fem->el_v to be set) */
+    REAL* f_area = (REAL*)calloc(nface, sizeof(REAL));
+    REAL* f_mid = (REAL*)calloc(nface * dim, sizeof(REAL));
+    REAL* f_norm = (REAL*)calloc(nface * dim, sizeof(REAL));
+    face_stats(f_area, f_mid, f_norm, &f_v, sc);
+    /* Sync face nodes */
+    sync_facenode(&f_v, f_norm, sc);
+    /* Store in fem */
+    fem->nedge = nedge;
+    fem->nface = nface;
+    fem->nbedge = nbedge;
+    fem->nbface = nbface;
+    fem->el_ed = malloc(sizeof(struct iCSRmat));
+    *(fem->el_ed) = el_ed;
+    fem->ed_v = malloc(sizeof(struct iCSRmat));
+    *(fem->ed_v) = ed_v;
+    fem->f_v = malloc(sizeof(struct iCSRmat));
+    *(fem->f_v) = f_v;
+    fem->f_ed = malloc(sizeof(struct iCSRmat));
+    *(fem->f_ed) = f_ed;
+    fem->ed_len = ed_len;
+    fem->ed_tau = ed_tau;
+    fem->ed_mid = ed_mid;
+    fem->f_area = f_area;
+    fem->f_mid = f_mid;
+    fem->f_norm = f_norm;
+    fem->ed_flag = ed_flag;
+    fem->f_flag = f_flag;
+    if (fel_order) free(fel_order);
+  } else if (dim == 1) {
+    fem->nedge = 0;
+    fem->nface = 0;
+    fem->nbedge = 0;
+    fem->nbface = 0;
+  }
+  /* 8. Element volumes and midpoints */
+  REAL* el_mid = (REAL*)calloc(ns_leaf * dim, sizeof(REAL));
+  REAL* el_vol = (REAL*)calloc(ns_leaf, sizeof(REAL));
+  get_el_vol(el_vol, fem->el_v, sc, dim, n1);
+  get_el_mid(el_mid, fem->el_v, sc, dim);
+  fem->el_vol = el_vol;
+  fem->el_mid = el_mid;
+}
+/**********************************************************************/
 void haz_scomplex_free(scomplex* sc) {
   if (sc->marked) free(sc->marked);
   if (sc->gen) free(sc->gen);
@@ -578,6 +771,7 @@ void haz_scomplex_free(scomplex* sc) {
   }
   sc->v2s_count = 0;
   sc->v2s_alloc = 0;
+  sc_free_fem_data(sc);
   if (sc) free(sc);
   return;
 }
@@ -1500,105 +1694,7 @@ void refine(const INT ref_levels, scomplex* sc, ivector* marked) {
   sc->level++;
   return;
 }
-/******************************************************************/
-/*!
- * \fn void sc2mesh(scomplex *sc,mesh_struct *mesh)
- *
- * \brief copies scomplex structure to mesh struct (not all but the
- *        bare minimum needed to define mesh_struct.
- *
- * \param scomplex sc;
- *
- * \param mesh_struct mesh;
- *
- *
- */
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-mesh_struct sc2mesh(scomplex* sc) {
-  /*********************************************************************/
-  /* INPUT: pointer to a simplicial complex sc; returns mesh_struct
-     mesh.
-
-     Store the finest mesh in mesh_struct structure.  sc has all the
-    hierarchy, mesh_struct will have only the last mesh.
-  */
-  /*********************************************************************/
-  /* copy the final grid at position 1*/
-  mesh_struct mesh;
-  initialize_mesh(&mesh);
-  INT ns = 0, nv = sc->nv, n1 = sc->dim + 1, dim = sc->dim, dimbig = sc->nbig;
-  if (dimbig != dim) return mesh;
-  INT jk = -10, k = -10, j = -10, i = -10;
-  /*
-    count the number of elements on the last level of refinement.
-    On the last grid are all simplices that were not refined, so
-    these are the ones for which child0 and childn are not set.
-  */
-  ns = 0;
-  for (j = 0; j < sc->ns; j++)
-    if (sc->child0[j] < 0 || sc->childn[j] < 0) ns++;
-  /*Update mesh with known quantities*/
-  mesh.dim = sc->dim;
-  mesh.nelm = ns;  // do not ever put sc->ns here
-  mesh.nv = nv;
-  mesh.nconn_reg = sc->cc;  //
-  mesh.nconn_bdry =
-      sc->bndry_cc;  // the so called number of holes is this number minus 1.
-  mesh.v_per_elm = n1;
-  /*Allocate all pointers needed to init the mesh struct*/
-  // these are initialized to NULL, so we can use realloc.
-  mesh.el_flag = (INT*)realloc(mesh.el_flag, ns * sizeof(INT));
-  // mesh.el_vol = (REAL *)realloc(mesh.el_vol,ns*sizeof(REAL));
-  mesh.v_flag = (INT*)realloc(mesh.v_flag, nv * sizeof(INT));
-  mesh.cv = allocatecoords(nv, dim);
-  mesh.el_v = (iCSRmat*)malloc(sizeof(iCSRmat));
-  mesh.el_v[0] = icsr_create(mesh.nelm, mesh.nv, mesh.nelm * mesh.v_per_elm);
-  free(mesh.el_v->val);
-  mesh.el_v->val = NULL;
-  INT chk = (INT)(!(mesh.el_flag && mesh.v_flag && mesh.cv && mesh.cv->x &&
-                    mesh.el_v && mesh.el_v->IA && mesh.el_v->JA));
-  if (chk) {
-    fprintf(stderr, "\nCould not allocate memory for mesh in %s\n",
-            __FUNCTION__);
-    return mesh;
-  }
-  /********************************************************************/
-  /*element flag and element volumes; volumes are recomputed later in
-    build_mesh_all()*/
-  INT nsfake = 0;  // this one must be ns at the end.
-  for (j = 0; j < sc->ns; j++) {
-    if (sc->child0[j] < 0 || sc->childn[j] < 0) {
-      mesh.el_flag[nsfake] = sc->flags[j];
-      // mesh.el_vol[nsfake]=sc->vols[j];
-      nsfake++;
-    }
-  }
-  /*boundary flags*/
-  mesh.nbv = 0;
-  for (j = 0; j < mesh.nv; j++) {
-    if (sc->bndry[j] != 0) mesh.nbv++;
-    mesh.v_flag[j] = sc->bndry[j];
-  }
-  /*Coordinates*/
-  for (j = 0; j < mesh.dim; j++) {
-    for (i = 0; i < nv; i++) {
-      mesh.cv->x[j * nv + i] = sc->x[i * sc->dim + j];
-    }
-  }
-  // el_v
-  mesh.el_v->IA[0] = 0;
-  for (j = 0; j < mesh.nelm; j++) mesh.el_v->IA[j + 1] = mesh.el_v->IA[j] + n1;
-  jk = 0;
-  for (j = 0; j < sc->ns; j++) {
-    /*  copy el_v map using only the top grid;    */
-    if (sc->child0[j] < 0 || sc->childn[j] < 0) {
-      for (k = 0; k < n1; k++)
-        memcpy(mesh.el_v->JA + jk * n1, sc->nodes + j * n1, n1 * sizeof(INT));
-      jk++;
-    }
-  }
-  return mesh;
-}
+/* sc2mesh removed — scomplex is now the single mesh representation */
 /*********************************************************************/
 /*!
  * \fn scomplex *sc_bndry(scomplex *sc)
@@ -1842,6 +1938,167 @@ INT sc_conformity_check(scomplex* sc) {
             (long long)ns, (long long)sc->nv, (long long)dim);
   }
   return nerr;
+}
+/**********************************************************************/
+/*!
+* \fn scomplex* creategrid_fread(FILE *gfid,INT file_type)
+*
+* \brief Creates grid by reading in from file, returns an scomplex.
+*
+* \param gfid      Grid FILE ID
+* \param file_type Type of File Input: 0 - haz format
+*
+* \return scomplex* with the mesh and FEM data.
+*
+*/
+scomplex* creategrid_fread(FILE *gfid,INT file_type)
+{
+  if(file_type!=0) {
+    fprintf(stderr,"Unknown mesh file type, %lld. Try using native (.haz) format. -Exiting\n",(long long )file_type);
+    exit(255);
+  }
+  scomplex *sc = haz_scomplex_read(gfid, 0);
+  fprintf(stdout,"reading complete...\n");fflush(stdout);
+  // Build neighbors, volumes, and FEM data
+  find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
+  sc_vols(sc);
+  sc_build_fem_data(sc);
+  return sc;
+}
+/**********************************************************************/
+/*!
+* \fn scomplex* make_uniform_mesh(const INT dim,const INT mesh_ref_levels,const INT mesh_ref_type,const INT set_bndry_codes)
+*
+* \brief makes a mesh_ref_levels of refined mesh on the unit cube in dimension dim.
+*
+* \param dim               Dimension of computational domain
+* \param mesh_ref_levels   Number of refinement levels
+*
+* \param mesh_ref_type     if > 10: uniform refinement ;
+*                          if < 10: nearest vertex bisection ;
+*
+* \param set_bndry_codes   if .eq. 0: the boundary codes come from sc->bndry[];
+*                          if .ne. 0  the boundary codes are set
+*
+* \return scomplex* with the mesh and FEM data.
+*
+* \note 20210815 (ltz)
+* \note Works in 2D and 3D
+*
+*/
+scomplex* make_uniform_mesh(const INT dim,const INT mesh_ref_levels,const INT mesh_ref_type,const INT set_bndry_codes)
+{
+
+  // Loop Counters
+  INT jlevel,k;
+
+  // Create a simplicial complex
+  scomplex **sc_all=NULL,*sc=NULL,*sctop=NULL;
+  fprintf(stdout,"\n%%%%---------------------------------------------------------------------");
+  fprintf(stdout,"\n%%%%Meshing...");
+  // Get the coarsest mesh on the cube in dimension dim and set the refinement type.
+  sc_all=mesh_cube_init(dim,1,mesh_ref_type);
+  sc=sc_all[0];
+  if(sc->ref_type>10){
+    // Uniform refinement only for dim=2 or dim=3
+    if(dim==3){
+      for(jlevel=0;jlevel<mesh_ref_levels;++jlevel){
+        uniformrefine3d(sc);
+        sc_vols(sc);
+      }
+    } else if(dim==2){
+      for(jlevel=0;jlevel<mesh_ref_levels;++jlevel){
+        uniformrefine2d(sc);
+        sc_vols(sc);
+      }
+    } else {
+      check_error(ERROR_DIM, __FUNCTION__);
+    }
+    // Get boundaries
+    find_nbr(sc->ns,sc->nv,sc->dim,sc->nodes,sc->nbr);
+    sc_vols(sc);
+  } else {
+    // Nearest vertex bisection refinement
+    ivector marked; marked.val=NULL;
+    for(jlevel=0;jlevel<mesh_ref_levels;++jlevel){
+      // Choose the finest grid
+      sctop=scfinest(sc);
+      marked.row=sctop->ns;
+      marked.val=realloc(marked.val,marked.row*sizeof(INT));
+      // Mark everything
+      for(k=0;k<marked.row;k++) marked.val[k]=TRUE;
+      // Now we refine
+      refine(1,sc,&marked);
+      // Free the finest grid
+      haz_scomplex_free(sctop);
+    }
+    ivec_free(&marked);
+  }
+  fprintf(stdout,"Done.\n");
+  scfinalize(sc,(INT )1);
+  sc_vols(sc);
+  if (FALSE) {// (do not export)/(export) the mesh to vtu: [FALSE/TRUE]
+    vtu_data vdata;
+    vtu_data_init(sc, &vdata);
+    vtkw("mesh.vtu", &vdata);
+    vtu_data_free(&vdata);
+  }
+  fprintf(stdout,"%%%%---------------------------------------------------------------------\n");
+  // Build FEM data directly on the simplicial complex
+  sc_build_fem_data(sc);
+  // Free the pointer array but NOT the scomplex itself (caller owns it)
+  free(sc_all);
+  return sc;
+}
+/**********************************************************************/
+/*!
+ * \fn void create1Dgrid_Line(scomplex** sc_ptr,REAL left_end,REAL right_end,INT nelm)
+ *
+ * \brief Creates a 1D grid from scratch [left_end,right_end] with no holes.
+ *
+ * \param sc_ptr     Pointer to scomplex pointer (output)
+ * \param left_end   Coordinate of Left-End Point
+ * \param right_end  Coordinate of Right-End Point
+ * \param nelm       Number of Elements
+ *
+ * \return scomplex via sc_ptr with the mesh and FEM data.
+ *
+ */
+void create1Dgrid_Line(scomplex** sc_ptr,REAL left_end,REAL right_end,INT nelm)
+{
+  INT i; /* Loop index */
+
+  INT dim = 1;
+  INT nv = nelm+1;
+
+  // Get h-spacing
+  REAL h = (right_end - left_end)/nelm;
+
+  // Create scomplex
+  scomplex *sc = haz_scomplex_init(dim, nelm, nv, dim);
+
+  // Build element connectivity (nodes) and coordinates
+  for(i=0;i<nelm;i++) {
+    sc->nodes[i*2] = i;
+    sc->nodes[i*2+1] = i+1;
+    sc->x[i] = left_end + h*i;
+    sc->bndry[i] = 0;
+  }
+  sc->x[nelm] = right_end;
+  sc->bndry[0] = 1;
+  sc->bndry[nelm] = 1;
+
+  // Set connected components
+  sc->cc = 1;
+  sc->bndry_cc = 1;
+
+  // Build neighbors, volumes, and FEM data
+  find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
+  sc_vols(sc);
+  sc_build_fem_data(sc);
+
+  *sc_ptr = sc;
+  return;
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 /*EOF*/

@@ -19,8 +19,8 @@
  *
  */
 void initialize_ni(nested_it* ni) {
-  // Mesh
-  ni->mesh = malloc(sizeof(mesh_struct));
+  // Simplicial complex
+  ni->sc = malloc(sizeof(scomplex));
 
   // FE space
   ni->FE = malloc(sizeof(block_fespace));
@@ -83,10 +83,9 @@ void get_initial_mesh_ni(nested_it* ni, INT dim, INT init_ref_levels) {
   scfinalize_nofree(sc, (INT )1);
   sc_vols(sc);
 
-  // Convert to mesh_struct for FEM assembly
-  //ni->mesh=malloc(sizeof(mesh_struct));
-  ni->mesh[0] = sc2mesh(sc);
-  build_mesh_all(ni->mesh);
+  // Build FEM data on the simplicial complex
+  sc_build_fem_data(sc);
+  ni->sc[0] = *sc;
 
   return;
 }
@@ -124,12 +123,12 @@ void ni_refine_mesh(nested_it* ni) {
   scfinalize_nofree(sc, (INT )1);
   sc_vols(sc);
 
-  // Convert to mesh_struct for FEM assembly
-  ni->mesh[0] = sc2mesh(sc);
-  build_mesh_all(ni->mesh);
+  // Build FEM data on the simplicial complex
+  sc_build_fem_data(sc);
+  ni->sc[0] = *sc;
 
-  // Update the quadrature on the mesh using same order as previous level
-  ni->cq = get_quadrature(ni->mesh, ni->cq->nq1d);
+  // Update the quadrature on the sc using same order as previous level
+  ni->cq = get_quadrature(ni->sc, ni->cq->nq1d);
 
   return;
 }
@@ -164,11 +163,11 @@ void next_update_sol(nested_it* ni, INT dim) {
 void free_ni(nested_it* ni) {
   if (ni == NULL) return;
 
-  // Free Mesh
-  if (ni->mesh) {
-    free_mesh(ni->mesh);
-    free(ni->mesh);
-    ni->mesh = NULL;
+  // Free simplicial complex
+  if (ni->sc) {
+    // TODO: free sc fem data if needed
+    free(ni->sc);
+    ni->sc = NULL;
   }
 
   // Figure out how to free simplicial complex (sc_all)

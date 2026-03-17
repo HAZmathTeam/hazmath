@@ -46,11 +46,11 @@ void initialize_fespace(fespace *FE)
 /******************************************************************************/
 
 /*!
-* \fn void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
+* \fn void create_fespace(fespace *FE,scomplex* sc,INT FEtype)
 *
 * \brief Allocates memory and properties of fespace struct.
 *
-* \param mesh      Mesh struc
+* \param sc        Simplicial complex
 * \param FEtype    Element Type:
 *                  Implemented:  0-2: PX | 20: Ned-0 | 30: RT-0 | 62: P1 + facebubble | 99: single DoF for constraints
 *                  TBI: -9--1: DGX | 10-19: QX | 21-29: Ned-X | 31:39: RT-X | 40-59: Ned/RT-X on quads | 61: MINI element | 70-79: Vector of PX scalars
@@ -58,8 +58,11 @@ void initialize_fespace(fespace *FE)
 * \return FE       Struct for FE space
 *
 */
-void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
+void create_fespace(fespace *FE,scomplex* sc,INT FEtype)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+
   // Flag for errors
   SHORT status;
   INT i;
@@ -69,8 +72,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
 
   // Set parameters
   FE->FEtype = FEtype;
-  FE->nelm = mesh->nelm;
-  INT dim = mesh->dim;
+  FE->nelm = fem->ns_leaf;
 
   INT* dirichlet;
   INT* dof_flag;
@@ -88,34 +90,34 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     // Contants - P0
     case 0:
     FE->scal_or_vec = 0;
-    FE->ndof = mesh->nelm;
-    coordinates *barycenter = allocatecoords(mesh->nelm,dim);
-    for (i=0; i<mesh->nelm; i++) {
-      barycenter->x[i] = mesh->el_mid[i*dim];
-      if(mesh->dim>1)
-      barycenter->y[i] = mesh->el_mid[i*dim + 1];
-      if (mesh->dim>2)
-      barycenter->z[i] = mesh->el_mid[i*dim + 2];
+    FE->ndof = fem->ns_leaf;
+    coordinates *barycenter = allocatecoords(fem->ns_leaf,dim);
+    for (i=0; i<fem->ns_leaf; i++) {
+      barycenter->x[i] = fem->el_mid[i*dim];
+      if(dim>1)
+      barycenter->y[i] = fem->el_mid[i*dim + 1];
+      if (dim>2)
+      barycenter->z[i] = fem->el_mid[i*dim + 2];
     }
     FE->cdof = barycenter;
     FE->nbdof = 0;
     FE->dof_per_elm = 1;
     FE->dof_per_face = 1; // This is wrong but needs to be here
     FE->el_dof = malloc(sizeof(struct iCSRmat));
-    *(FE->el_dof) = icsr_create_identity(mesh->nelm, 0);
+    *(FE->el_dof) = icsr_create_identity(fem->ns_leaf, 0);
     if(dim>1) {
-      icsr_trans(mesh->el_ed,&ed_el);
+      icsr_trans(fem->el_ed,&ed_el);
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
       *(FE->ed_dof) = ed_el;
-      icsr_trans(mesh->el_f,&f_el);
+      icsr_trans(fem->el_f,&f_el);
       FE->f_dof = malloc(sizeof(struct iCSRmat));
       *(FE->f_dof) = f_el;
     }
-    dirichlet = (INT *) calloc(mesh->nelm,sizeof(INT));
-    dof_flag = (INT *) calloc(mesh->nelm,sizeof(INT));
-    for(i=0;i<mesh->nelm;i++) {
+    dirichlet = (INT *) calloc(fem->ns_leaf,sizeof(INT));
+    dof_flag = (INT *) calloc(fem->ns_leaf,sizeof(INT));
+    for(i=0;i<fem->ns_leaf;i++) {
       dirichlet[i] = 0;
-      dof_flag[i] = mesh->el_flag[i];
+      dof_flag[i] = fem->el_flag[i];
     }
     FE->dirichlet = dirichlet;
     FE->dof_flag = dof_flag;
@@ -126,105 +128,110 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     // Linears - P1
     case 1:
     FE->scal_or_vec = 0;
-    FE->cdof = mesh->cv;
-    FE->ndof = mesh->nv;
-    FE->nbdof = mesh->nbv;
-    FE->dof_per_elm = mesh->v_per_elm;
-    FE->dof_per_face = mesh->dim;
+    FE->cdof = allocatecoords(sc->nv, dim);
+    for(i=0;i<sc->nv;i++) {
+      FE->cdof->x[i] = sc->x[i*dim];
+      if(dim>1) FE->cdof->y[i] = sc->x[i*dim+1];
+      if(dim>2) FE->cdof->z[i] = sc->x[i*dim+2];
+    }
+    FE->ndof = sc->nv;
+    FE->nbdof = fem->nbv;
+    FE->dof_per_elm = (dim + 1);
+    FE->dof_per_face = dim;
     FE->dof_per_edge = 2;
-    FE->el_dof = mesh->el_v;
+    FE->el_dof = fem->el_v;
     if(dim>1) {
-      FE->ed_dof = mesh->ed_v;
-      FE->f_dof = mesh->f_v;
+      FE->ed_dof = fem->ed_v;
+      FE->f_dof = fem->f_v;
     }
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
     for(i=0;i<FE->ndof;i++) {
-      dirichlet[i] = mesh->v_flag[i];
-      dof_flag[i] = mesh->v_flag[i];
+      dirichlet[i] = sc->bndry[i];
+      dof_flag[i] = sc->bndry[i];
     }
     FE->dirichlet = dirichlet;
     FE->dof_flag = dof_flag;
     phi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
     FE->phi = phi;
-    dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    dphi = (REAL *) calloc(FE->dof_per_elm*dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
 
     // Quadratics - P2
     case 2:
     FE->scal_or_vec = 0;
-    FE->ndof = mesh->nv + mesh->nelm; // In 1D
-    FE->nbdof = mesh->nbv; // In 1D
-    FE->dof_per_elm = mesh->v_per_elm + 1; // In 1D
-    FE->dof_per_face = dim + (2*mesh->dim-3);
+    FE->ndof = sc->nv + fem->ns_leaf; // In 1D
+    FE->nbdof = fem->nbv; // In 1D
+    FE->dof_per_elm = (dim + 1) + 1; // In 1D
+    FE->dof_per_face = dim + (2*dim-3);
     FE->el_dof = malloc(sizeof(struct iCSRmat));
-    if(mesh->dim>1) { // Not in 1D
+    if(dim>1) { // Not in 1D
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
       FE->f_dof = malloc(sizeof(struct iCSRmat));
-      FE->ndof = mesh->nv + mesh->nedge;
-      FE->nbdof = mesh->nbv + mesh->nbedge;
-      FE->dof_per_elm = mesh->v_per_elm + mesh->ed_per_elm;
+      FE->ndof = sc->nv + fem->nedge;
+      FE->nbdof = fem->nbv + fem->nbedge;
+      FE->dof_per_elm = (dim + 1) + (dim*(dim+1)/2);
     }
-    get_P2(FE,mesh);
+    get_P2(FE,sc);
     phi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
     FE->phi = phi;
-    dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    dphi = (REAL *) calloc(FE->dof_per_elm*dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
 
     // Nedelec Elements
     case 20:
     FE->scal_or_vec = 1;
-    FE->cdof = array_2_coord ( mesh->ed_mid, mesh->nedge, mesh->dim);
-    FE->ndof = mesh->nedge;
-    FE->nbdof = mesh->nbedge;
-    FE->dof_per_elm = mesh->ed_per_elm;
-    FE->dof_per_face = (2*mesh->dim-3);
-    FE->el_dof = mesh->el_ed;
+    FE->cdof = array_2_coord ( fem->ed_mid, fem->nedge, dim);
+    FE->ndof = fem->nedge;
+    FE->nbdof = fem->nbedge;
+    FE->dof_per_elm = (dim*(dim+1)/2);
+    FE->dof_per_face = (2*dim-3);
+    FE->el_dof = fem->el_ed;
     FE->ed_dof = malloc(sizeof(struct iCSRmat));
-    *(FE->ed_dof) = icsr_create_identity(mesh->nedge, 0);
-    FE->f_dof = mesh->f_ed;
+    *(FE->ed_dof) = icsr_create_identity(fem->nedge, 0);
+    FE->f_dof = fem->f_ed;
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
     for(i=0;i<FE->ndof;i++) {
-      dirichlet[i] = mesh->ed_flag[i];
-      dof_flag[i] = mesh->ed_flag[i];
+      dirichlet[i] = fem->ed_flag[i];
+      dof_flag[i] = fem->ed_flag[i];
     }
     FE->dirichlet = dirichlet;
     FE->dof_flag = dof_flag;
-    phi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    phi = (REAL *) calloc(FE->dof_per_elm*dim,sizeof(REAL));
     FE->phi = phi;
-    if(mesh->dim==2) // Scalar Curl
+    if(dim==2) // Scalar Curl
     dphi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
     else // Vector Curl
-    dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    dphi = (REAL *) calloc(FE->dof_per_elm*dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
 
     // Raviart-Thomas Elements
     case 30:
     FE->scal_or_vec = 1;
-    FE->cdof = array_2_coord ( mesh->f_mid, mesh->nface, mesh->dim);
-    FE->ndof = mesh->nface;
-    FE->nbdof = mesh->nbface;
-    FE->dof_per_elm = mesh->f_per_elm;
+    FE->cdof = array_2_coord ( fem->f_mid, fem->nface, dim);
+    FE->ndof = fem->nface;
+    FE->nbdof = fem->nbface;
+    FE->dof_per_elm = (dim + 1);
     FE->dof_per_face = 1;
-    FE->el_dof = mesh->el_f;
-    icsr_trans(mesh->f_ed,&ed_f);
+    FE->el_dof = fem->el_f;
+    icsr_trans(fem->f_ed,&ed_f);
     FE->ed_dof = malloc(sizeof(struct iCSRmat));
     *(FE->ed_dof) = ed_f;
     FE->f_dof = malloc(sizeof(struct iCSRmat));
-    *(FE->f_dof) = icsr_create_identity(mesh->nface, 0);
+    *(FE->f_dof) = icsr_create_identity(fem->nface, 0);
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
     for(i=0;i<FE->ndof;i++) {
-      dirichlet[i] = mesh->f_flag[i];
-      dof_flag[i] = mesh->f_flag[i];
+      dirichlet[i] = fem->f_flag[i];
+      dof_flag[i] = fem->f_flag[i];
     }
     FE->dirichlet = dirichlet;
     FE->dof_flag = dof_flag;
-    phi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    phi = (REAL *) calloc(FE->dof_per_elm*dim,sizeof(REAL));
     FE->phi = phi;
     dphi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
     FE->dphi = dphi;
@@ -237,26 +244,26 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     // Note: numbering is as follows: 0, 1, ..., nv-1, nv, nv+1, ..., nv+nelm-1
     case 103:
     FE->scal_or_vec = 0; // Scalar
-    FE->ndof = mesh->nv + mesh->nelm;
-    FE->nbdof = mesh->nbv;
-    FE->dof_per_elm = mesh->v_per_elm + 1;
-    FE->dof_per_face = mesh->dim;
+    FE->ndof = sc->nv + fem->ns_leaf;
+    FE->nbdof = fem->nbv;
+    FE->dof_per_elm = (dim + 1) + 1;
+    FE->dof_per_face = dim;
     FE->dof_per_edge = 2;
     FE->el_dof = malloc(sizeof(struct iCSRmat));
 
     // Get coordinates and adjust el_dof maps to account for bubble
-    get_MINI(FE,mesh);
+    get_MINI(FE,sc);
 
     // Edge to DoF and Face to Dof is same as P1, since bubble is at element center
     if(dim>1) {
-      FE->ed_dof = mesh->ed_v;
-      FE->f_dof = mesh->f_v;
+      FE->ed_dof = fem->ed_v;
+      FE->f_dof = fem->f_v;
     }
 
     // Allocate space for basis functions
     phi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
     FE->phi = phi;
-    dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    dphi = (REAL *) calloc(FE->dof_per_elm*dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
 
@@ -264,78 +271,78 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     case 60:
     FE->scal_or_vec = 1;
     FE->cdof = NULL;
-    FE->ndof = mesh->nv * dim;
-    FE->nbdof = mesh->nbv * dim;
-    FE->dof_per_elm = mesh->v_per_elm * mesh->dim;
-    FE->dof_per_face = mesh->dim*mesh->dim;
+    FE->ndof = sc->nv * dim;
+    FE->nbdof = fem->nbv * dim;
+    FE->dof_per_elm = (dim + 1) * dim;
+    FE->dof_per_face = dim*dim;
     FE->el_dof = malloc(sizeof(struct iCSRmat));
     //printf("Before Concat\n");
     if(dim==1){
-      FE->el_dof = mesh->el_v;
+      FE->el_dof = fem->el_v;
     } else if(dim==2){
-      icsr_concat(mesh->el_v, mesh->el_v, FE->el_dof);
-    } else if(mesh->dim==3){
-      icsr_concat(mesh->el_v,mesh->el_v,temp);
-      icsr_concat(temp,mesh->el_v,FE->el_dof);
+      icsr_concat(fem->el_v, fem->el_v, FE->el_dof);
+    } else if(dim==3){
+      icsr_concat(fem->el_v,fem->el_v,temp);
+      icsr_concat(temp,fem->el_v,FE->el_dof);
       icsr_free(temp);
     }
     if(dim>1) {
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
-      if(mesh->dim==2){
-        icsr_concat(mesh->ed_v, mesh->ed_v, FE->ed_dof);
-      } else if(mesh->dim==3) {
-        icsr_concat(mesh->ed_v, mesh->ed_v, temp);
-        icsr_concat(temp, mesh->ed_v, FE->ed_dof);
+      if(dim==2){
+        icsr_concat(fem->ed_v, fem->ed_v, FE->ed_dof);
+      } else if(dim==3) {
+        icsr_concat(fem->ed_v, fem->ed_v, temp);
+        icsr_concat(temp, fem->ed_v, FE->ed_dof);
         icsr_free(temp);
       }
       FE->f_dof = malloc(sizeof(struct iCSRmat));
-      if(mesh->dim==2){
-        icsr_concat(mesh->f_v, mesh->f_v, FE->f_dof);
-      } else if(mesh->dim==3){
-        icsr_concat(mesh->f_v, mesh->f_v, temp);
-        icsr_concat(temp, mesh->f_v, FE->f_dof);
+      if(dim==2){
+        icsr_concat(fem->f_v, fem->f_v, FE->f_dof);
+      } else if(dim==3){
+        icsr_concat(fem->f_v, fem->f_v, temp);
+        icsr_concat(temp, fem->f_v, FE->f_dof);
         icsr_free(temp);
       }
     }
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
     for(i=0;i<FE->ndof;i++) {
-      dirichlet[i] = mesh->v_flag[i % mesh->nv];
-      dof_flag[i] = mesh->v_flag[i % mesh->nv];
+      dirichlet[i] = sc->bndry[i % sc->nv];
+      dof_flag[i] = sc->bndry[i % sc->nv];
     }
     FE->dirichlet = dirichlet;
     FE->dof_flag = dof_flag;
     phi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL)); // This is basis functions
     FE->phi = phi;
-    dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    dphi = (REAL *) calloc(FE->dof_per_elm*dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
 
     // Face bubbles // TODO Make one vector space plus linears
     case 61:
     FE->scal_or_vec = 1;
-    FE->cdof = array_2_coord ( mesh->f_mid, mesh->nface, mesh->dim);
-    FE->ndof = mesh->nface;
-    FE->nbdof = mesh->nbface;
-    FE->dof_per_elm = mesh->f_per_elm;
+    FE->cdof = array_2_coord ( fem->f_mid, fem->nface, dim);
+    FE->ndof = fem->nface;
+    FE->nbdof = fem->nbface;
+    FE->dof_per_elm = (dim + 1);
     FE->dof_per_face = 1;
-    FE->el_dof = mesh->el_f;
-    icsr_trans(mesh->f_ed,&ed_f);
+    FE->el_dof = fem->el_f;
+    icsr_trans(fem->f_ed,&ed_f);
     FE->ed_dof = malloc(sizeof(struct iCSRmat));
     *(FE->ed_dof) = ed_f;
     FE->f_dof = malloc(sizeof(struct iCSRmat));
-    *(FE->f_dof) = icsr_create_identity(mesh->nface, 0);
+    *(FE->f_dof) = icsr_create_identity(fem->nface, 0);
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
     for(i=0;i<FE->ndof;i++) {
-      dirichlet[i] = mesh->f_flag[i];
-      dof_flag[i] = mesh->f_flag[i];
+      dirichlet[i] = fem->f_flag[i];
+      dof_flag[i] = fem->f_flag[i];
     }
     FE->dirichlet = dirichlet;
     FE->dof_flag = dof_flag;
-    phi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    phi = (REAL *) calloc(FE->dof_per_elm*dim,sizeof(REAL));
     FE->phi = phi;
-    dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim*mesh->dim,sizeof(REAL));
+    dphi = (REAL *) calloc(FE->dof_per_elm*dim*dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
 
@@ -345,36 +352,36 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->ndof = 1;
     coordinates *domain = allocatecoords(1,dim);
     domain->x[0] = 0.0;
-    if(mesh->dim>1) domain->y[0] = 0.0;
-    if(mesh->dim>2) domain->z[0] = 0.0;
+    if(dim>1) domain->y[0] = 0.0;
+    if(dim>2) domain->z[0] = 0.0;
     FE->cdof = domain;
     FE->nbdof = 0;
     FE->dof_per_elm = 1;
     FE->dof_per_face = 1;
     FE->el_dof = malloc(sizeof(struct iCSRmat));
-    *(FE->el_dof) = icsr_create(mesh->nelm,1,mesh->nelm);
-    for(i=0;i<mesh->nelm;i++) {
+    *(FE->el_dof) = icsr_create(fem->ns_leaf,1,fem->ns_leaf);
+    for(i=0;i<fem->ns_leaf;i++) {
       FE->el_dof->IA[i] = i;
       FE->el_dof->JA[i] = 0;
       FE->el_dof->val[i] = 1;
     }
-    FE->el_dof->IA[mesh->nelm] = mesh->nelm;
+    FE->el_dof->IA[fem->ns_leaf] = fem->ns_leaf;
     FE->f_dof = malloc(sizeof(struct iCSRmat));
-    *(FE->f_dof) = icsr_create(mesh->nface,1,mesh->nface);
-    for(i=0;i<mesh->nface;i++) {
+    *(FE->f_dof) = icsr_create(fem->nface,1,fem->nface);
+    for(i=0;i<fem->nface;i++) {
       FE->f_dof->IA[i] = i;
       FE->f_dof->JA[i] = 0;
       FE->f_dof->val[i] = 1;
     }
-    FE->f_dof->IA[mesh->nface] = mesh->nface;
+    FE->f_dof->IA[fem->nface] = fem->nface;
     FE->ed_dof = malloc(sizeof(struct iCSRmat));
-    *(FE->ed_dof) = icsr_create(mesh->nedge,1,mesh->nedge);
-    for(i=0;i<mesh->nedge;i++) {
+    *(FE->ed_dof) = icsr_create(fem->nedge,1,fem->nedge);
+    for(i=0;i<fem->nedge;i++) {
       FE->ed_dof->IA[i] = i;
       FE->ed_dof->JA[i] = 0;
       FE->ed_dof->val[i] = 1;
     }
-    FE->ed_dof->IA[mesh->nedge] = mesh->nedge;
+    FE->ed_dof->IA[fem->nedge] = fem->nedge;
     dirichlet = (INT *) calloc(1,sizeof(INT));
     dof_flag = (INT *) calloc(1,sizeof(INT));
     dirichlet[0] = 0;
@@ -418,7 +425,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
 */
 void free_fespace(fespace* FE)
 {
-  if(FE->cdof && (FE->FEtype!=1)) { // If Linears, free_mesh will destroy coordinate struct
+  if(FE->cdof) {
     free_coords(FE->cdof);
     free(FE->cdof);
     FE->cdof = NULL;
@@ -505,13 +512,13 @@ void initialize_fesystem(block_fespace *FE,INT nspaces,INT nun,INT ndof,INT nelm
 /******************************************************************************/
 
 /*!
-* \fn void initialize_localdata_elm(simplex_local_data *simplex_data,fe_local_data *fe_data,mesh_struct* mesh,block_fespace *FE,INT nq1d)
+* \fn void initialize_localdata_elm(simplex_local_data *simplex_data,fe_local_data *fe_data,scomplex* sc,block_fespace *FE,INT nq1d)
 *
 * \brief Initializes some of the components of simplex_local_data and
 *        fe_local_data (things that come from the global data and are fixed).
 *        Assumes data is on elements
 *
-* \param mesh     mesh data
+* \param sc       Simplicial complex
 * \param nq1d     number of quadrature points in a 1D direction
 * \param FE       Struct for block FE system
 *
@@ -519,17 +526,19 @@ void initialize_fesystem(block_fespace *FE,INT nspaces,INT nun,INT ndof,INT nelm
 * \return fe_data      Local FE data on elm
 *
 */
-void initialize_localdata_elm(simplex_local_data *simplex_data,fe_local_data *fe_data,mesh_struct* mesh,block_fespace *FE,INT nq1d)
+void initialize_localdata_elm(simplex_local_data *simplex_data,fe_local_data *fe_data,scomplex* sc,block_fespace *FE,INT nq1d)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+
   // counters
   INT i;
 
-  INT dim = mesh->dim;
   INT nspaces = FE->nspaces;
   INT nun = FE->nun;
-  INT v_per_elm = mesh->v_per_elm;
-  INT ed_per_elm = mesh->ed_per_elm;
-  INT f_per_elm = mesh->f_per_elm;
+  INT v_per_elm = (dim + 1);
+  INT ed_per_elm = (dim*(dim+1)/2);
+  INT f_per_elm = (dim + 1);
   INT dof_per_elm_tot = 0;
 
   // Simplex Data first that is fixed
@@ -603,68 +612,70 @@ void initialize_localdata_elm(simplex_local_data *simplex_data,fe_local_data *fe
 /******************************************************************************/
 
 /*!
-* \fn void get_elmlocaldata(simplex_local_data* elm_data,mesh_struct* mesh,INT elm)
+* \fn void get_elmlocaldata(simplex_local_data* elm_data,scomplex* sc,INT elm)
 *
 * \brief On a given element, grab the local mesh data.  We assume fixed values
 *        for the mesh have been initialized already, and just filling in element
 *        specific data here.
 *
-* \param mesh     mesh data
+* \param sc       Simplicial complex
 * \param elm      Element we are considering
 *
 * \return elm_data Struct for local simplex data on elm
 *
 */
-void get_elmlocaldata(simplex_local_data* elm_data,mesh_struct* mesh,INT elm)
+void get_elmlocaldata(simplex_local_data* elm_data,scomplex* sc,INT elm)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+
   // counters
   INT i,j,vind;
 
-  INT dim = mesh->dim;
-  INT v_per_elm = mesh->v_per_elm;
-  INT ed_per_elm = mesh->ed_per_elm;
-  INT f_per_elm = mesh->f_per_elm;
+  INT v_per_elm = (dim + 1);
+  INT ed_per_elm = (dim*(dim+1)/2);
+  INT f_per_elm = (dim + 1);
 
   // Generic elm data
   elm_data->sindex = elm;
-  elm_data->vol = mesh->el_vol[elm];
-  elm_data->flag = mesh->el_flag[elm];
+  elm_data->vol = fem->el_vol[elm];
+  elm_data->flag = fem->el_flag[elm];
 
   // Get vertices on element
-  get_incidence_row(elm,mesh->el_v,elm_data->local_v);
+  get_incidence_row(elm,fem->el_v,elm_data->local_v);
   // Temporary fix until coordinates is made dimensionless
   for(i=0;i<v_per_elm;i++) {
     vind = elm_data->local_v[i];
     for(j=0;j<dim;j++) {
-      elm_data->xv[i*dim+j] = mesh->cv->x[vind*dim+j];
+      elm_data->xv[i*dim+j] = sc->x[vind*dim+j];
     }
   }
 
   // Edge data
   INT v_per_ed = 2;
   INT edge;
-  get_incidence_row(elm,mesh->el_ed,elm_data->local_ed);
+  get_incidence_row(elm,fem->el_ed,elm_data->local_ed);
   for(i=0;i<ed_per_elm;i++) {
     edge = elm_data->local_ed[i];
-    get_incidence_row(edge,mesh->ed_v,elm_data->v_on_ed+i*v_per_ed);
-    elm_data->ed_len[i] = mesh->ed_len[edge];
+    get_incidence_row(edge,fem->ed_v,elm_data->v_on_ed+i*v_per_ed);
+    elm_data->ed_len[i] = fem->ed_len[edge];
     for(j=0;j<dim;j++) {
-      elm_data->ed_tau[i*dim+j] = mesh->ed_tau[edge*dim+j];
-      elm_data->ed_mid[i*dim+j] = mesh->ed_mid[edge*dim+j];
+      elm_data->ed_tau[i*dim+j] = fem->ed_tau[edge*dim+j];
+      elm_data->ed_mid[i*dim+j] = fem->ed_mid[edge*dim+j];
     }
   }
 
   // Face data
   INT v_per_f = dim;
   INT face;
-  get_incidence_row(elm,mesh->el_f,elm_data->local_f);
+  get_incidence_row(elm,fem->el_f,elm_data->local_f);
   for(i=0;i<f_per_elm;i++) {
     face = elm_data->local_f[i];
-    get_incidence_row(face,mesh->f_v,elm_data->v_on_f+i*v_per_f);
-    elm_data->f_area[i] = mesh->f_area[face];
+    get_incidence_row(face,fem->f_v,elm_data->v_on_f+i*v_per_f);
+    elm_data->f_area[i] = fem->f_area[face];
     for(j=0;j<dim;j++) {
-      elm_data->f_norm[i*dim+j] = mesh->f_norm[face*dim+j];
-      elm_data->f_mid[i*dim+j] = mesh->f_mid[face*dim+j];
+      elm_data->f_norm[i*dim+j] = fem->f_norm[face*dim+j];
+      elm_data->f_mid[i*dim+j] = fem->f_mid[face*dim+j];
     }
   }
 
@@ -677,13 +688,13 @@ void get_elmlocaldata(simplex_local_data* elm_data,mesh_struct* mesh,INT elm)
 /******************************************************************************/
 
 /*!
-* \fn void initialize_localdata_face(simplex_local_data *simplex_data,fe_local_data *fe_data,mesh_struct* mesh,block_fespace *FE,INT nq1d)
+* \fn void initialize_localdata_face(simplex_local_data *simplex_data,fe_local_data *fe_data,scomplex* sc,block_fespace *FE,INT nq1d)
 *
 * \brief Initializes some of the components of simplex_local_data and
 *        fe_local_data (things that come from the global data and are fixed).
 *        Assumes data is on faces
 *
-* \param mesh     mesh data
+* \param sc       Simplicial complex
 * \param nq1d     number of quadrature points in a 1D direction
 * \param FE       Struct for block FE system
 *
@@ -691,12 +702,13 @@ void get_elmlocaldata(simplex_local_data* elm_data,mesh_struct* mesh,INT elm)
 * \return fe_data      Local FE data on face
 *
 */
-void initialize_localdata_face(simplex_local_data *simplex_data,fe_local_data *fe_data,mesh_struct* mesh,block_fespace *FE,INT nq1d)
+void initialize_localdata_face(simplex_local_data *simplex_data,fe_local_data *fe_data,scomplex* sc,block_fespace *FE,INT nq1d)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+
   // counters
   INT i;
-
-  INT dim = mesh->dim;
   INT nspaces = FE->nspaces;
   INT nun = FE->nun;
   INT v_per_f = dim;
@@ -748,61 +760,63 @@ void initialize_localdata_face(simplex_local_data *simplex_data,fe_local_data *f
 
 /****************************************************************************************/
 /*!
-* \fn void get_facelocaldata(simplex_local_data* face_data,mesh_struct* mesh,INT face)
+* \fn void get_facelocaldata(simplex_local_data* face_data,scomplex* sc,INT face)
 *
 * \brief On a given face, grab the local mesh data.  We assume fixed values
 *        for the mesh have been initialized already, and just filling in face
 *        specific data here.
 *
-* \param mesh     mesh data
+* \param sc       Simplicial complex
 * \param face     face we are considering
 *
 * \return face_data Struct for local simplex data on face
 *
 */
-void get_facelocaldata(simplex_local_data* face_data,mesh_struct* mesh,INT face)
+void get_facelocaldata(simplex_local_data* face_data,scomplex* sc,INT face)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+
   // counters
   INT i,j,vind;
 
-  INT dim = mesh->dim;
   INT v_per_f = dim;
   INT ed_per_f = 2*dim-3;
 
   // Generic elm data
   face_data->sindex = face;
-  face_data->vol = mesh->f_area[face];
-  face_data->flag = mesh->f_flag[face];
+  face_data->vol = fem->f_area[face];
+  face_data->flag = fem->f_flag[face];
 
   // Get vertices on element
-  get_incidence_row(face,mesh->f_v,face_data->local_v);
+  get_incidence_row(face,fem->f_v,face_data->local_v);
   // Temporary fix until coordinates is made dimensionless
   for(i=0;i<v_per_f;i++) {
     vind = face_data->local_v[i];
     for(j=0;j<dim;j++) {
-      face_data->xv[i*dim+j] = mesh->cv->x[vind*dim+j];
+      face_data->xv[i*dim+j] = sc->x[vind*dim+j];
     }
   }
 
   // Edge data
   INT v_per_ed = 2;
   INT edge;
-  get_incidence_row(face,mesh->f_ed,face_data->local_ed);
+  get_incidence_row(face,fem->f_ed,face_data->local_ed);
   for(i=0;i<ed_per_f;i++) {
     edge = face_data->local_ed[i];
-    get_incidence_row(edge,mesh->ed_v,face_data->v_on_ed+i*v_per_ed);
-    face_data->ed_len[i] = mesh->ed_len[edge];
+    get_incidence_row(edge,fem->ed_v,face_data->v_on_ed+i*v_per_ed);
+    face_data->ed_len[i] = fem->ed_len[edge];
     for(j=0;j<dim;j++) {
-      face_data->ed_tau[i*dim+j] = mesh->ed_tau[edge*dim+j];
-      face_data->ed_mid[i*dim+j] = mesh->ed_mid[edge*dim+j];
+      face_data->ed_tau[i*dim+j] = fem->ed_tau[edge*dim+j];
+      face_data->ed_mid[i*dim+j] = fem->ed_mid[edge*dim+j];
     }
   }
 
   // Face data
-  face_data->f_area[0] = mesh->f_area[face];
+  face_data->f_area[0] = fem->f_area[face];
   for(j=0;j<dim;j++) {
-    face_data->f_norm[j] = mesh->f_norm[face*dim+j];
-    face_data->f_mid[j] = mesh->f_mid[face*dim+j];
+    face_data->f_norm[j] = fem->f_norm[face*dim+j];
+    face_data->f_mid[j] = fem->f_mid[face*dim+j];
   }
 
   // Quadrature (will ignore reference mapping for now)
@@ -813,13 +827,13 @@ void get_facelocaldata(simplex_local_data* face_data,mesh_struct* mesh,INT face)
 /******************************************************************************/
 
 /*!
-* \fn void initialize_localdata_edge(simplex_local_data *simplex_data,fe_local_data *fe_data,mesh_struct* mesh,block_fespace *FE,INT nq1d)
+* \fn void initialize_localdata_edge(simplex_local_data *simplex_data,fe_local_data *fe_data,scomplex* sc,block_fespace *FE,INT nq1d)
 *
 * \brief Initializes some of the components of simplex_local_data and
 *        fe_local_data (things that come from the global data and are fixed).
 *        Assumes data is on edges
 *
-* \param mesh     mesh data
+* \param sc       Simplicial complex
 * \param nq1d     number of quadrature points in a 1D direction
 * \param FE       Struct for block FE system
 *
@@ -827,12 +841,13 @@ void get_facelocaldata(simplex_local_data* face_data,mesh_struct* mesh,INT face)
 * \return fe_data      Local FE data on edge
 *
 */
-void initialize_localdata_edge(simplex_local_data *simplex_data,fe_local_data *fe_data,mesh_struct* mesh,block_fespace *FE,INT nq1d)
+void initialize_localdata_edge(simplex_local_data *simplex_data,fe_local_data *fe_data,scomplex* sc,block_fespace *FE,INT nq1d)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+
   // counters
   INT i;
-
-  INT dim = mesh->dim;
   INT nspaces = FE->nspaces;
   INT nun = FE->nun;
   INT v_per_ed = 2;
@@ -877,46 +892,48 @@ void initialize_localdata_edge(simplex_local_data *simplex_data,fe_local_data *f
 
 /****************************************************************************************/
 /*!
-* \fn void get_edgelocaldata(simplex_local_data* edge_data,mesh_struct* mesh,INT edge)
+* \fn void get_edgelocaldata(simplex_local_data* edge_data,scomplex* sc,INT edge)
 *
 * \brief On a given edge, grab the local mesh data.  We assume fixed values
 *        for the mesh have been initialized already, and just filling in edge
 *        specific data here.
 *
-* \param mesh     mesh data
+* \param sc       Simplicial complex
 * \param edge     edge we are considering
 *
 * \return edge_data Struct for local simplex data on edge
 *
 */
-void get_edgelocaldata(simplex_local_data* edge_data,mesh_struct* mesh,INT edge)
+void get_edgelocaldata(simplex_local_data* edge_data,scomplex* sc,INT edge)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+
   // counters
   INT i,j,vind;
 
-  INT dim = mesh->dim;
   INT v_per_ed = 2;
 
   // Generic elm data
   edge_data->sindex = edge;
-  edge_data->vol = mesh->ed_len[edge];
-  edge_data->flag = mesh->ed_flag[edge];
+  edge_data->vol = fem->ed_len[edge];
+  edge_data->flag = fem->ed_flag[edge];
 
   // Get vertices on edge
-  get_incidence_row(edge,mesh->ed_v,edge_data->local_v);
+  get_incidence_row(edge,fem->ed_v,edge_data->local_v);
   // Temporary fix until coordinates is made dimensionless
   for(i=0;i<v_per_ed;i++) {
     vind = edge_data->local_v[i];
     for(j=0;j<dim;j++) {
-      edge_data->xv[i*dim+j] = mesh->cv->x[vind*dim+j];
+      edge_data->xv[i*dim+j] = sc->x[vind*dim+j];
     }
   }
 
   // Edge data
-  edge_data->ed_len[0] = mesh->ed_len[edge];
+  edge_data->ed_len[0] = fem->ed_len[edge];
   for(j=0;j<dim;j++) {
-    edge_data->ed_tau[j] = mesh->ed_tau[edge*dim+j];
-    edge_data->ed_mid[j] = mesh->ed_mid[edge*dim+j];
+    edge_data->ed_tau[j] = fem->ed_tau[edge*dim+j];
+    edge_data->ed_mid[j] = fem->ed_mid[edge*dim+j];
   }
 
   // Quadrature (will ignore reference mapping for now)
@@ -1032,54 +1049,56 @@ void free_simplexlocaldata(simplex_local_data* loc_data)
 }
 
 /*!
-* \fn void get_P2(fespace* FE,mesh_struct* mesh)
+* \fn void get_P2(fespace* FE,scomplex* sc)
 *
 * \brief Converts mesh data to account for P2 elements
 *
-* \param mesh      Mesh struct
+* \param sc        Simplicial complex
 *
 * \return FE       Struct for P2 FE space
 *
 */
-void get_P2(fespace* FE,mesh_struct* mesh)
+void get_P2(fespace* FE,scomplex* sc)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+
   // Loop indices
   INT i,j,k,s,jcntr;
   INT n1,n2,n3,va,vb,ea,eb,v1,v2,mye,ed,na,ed1,ed2,face;
 
   INT ndof = FE->ndof;
   INT dof_per_elm = FE->dof_per_elm;
-  INT dim = mesh->dim;
-  INT nv = mesh->nv;
-  INT nedge = mesh->nedge;
-  INT nface = mesh->nface;
-  INT nelm = mesh->nelm;
-  INT v_per_elm = mesh->v_per_elm;
-  iCSRmat *el_v = mesh->el_v;
+  INT nv = sc->nv;
+  INT nedge = fem->nedge;
+  INT nface = fem->nface;
+  INT nelm = fem->ns_leaf;
+  INT v_per_elm = (dim + 1);
+  iCSRmat *el_v = fem->el_v;
   iCSRmat *el_ed = NULL;
   iCSRmat *ed_v = NULL;
   iCSRmat *f_v = NULL;
   iCSRmat *f_ed = NULL;
 
   if(dim>1) {
-    el_ed = mesh->el_ed;
-    ed_v = mesh->ed_v;
-    f_v = mesh->f_v;
-    f_ed = mesh->f_ed;
+    el_ed = fem->el_ed;
+    ed_v = fem->ed_v;
+    f_v = fem->f_v;
+    f_ed = fem->f_ed;
   }
 
-  INT* ipv = (INT *) calloc(mesh->v_per_elm,sizeof(INT));
+  INT* ipv = (INT *) calloc((dim + 1),sizeof(INT));
 
   // Get Coordinates
   coordinates *cdof = allocatecoords(ndof,dim);
 
   // First go through all vertices.
   for (i=0; i<nv; i++) {
-    cdof->x[i] = mesh->cv->x[i];
+    cdof->x[i] = sc->x[i*dim];
     if(dim>1)
-    cdof->y[i] = mesh->cv->y[i];
+    cdof->y[i] = sc->x[i*dim+1];
     if (dim>2)
-    cdof->z[i] = mesh->cv->z[i];
+    cdof->z[i] = sc->x[i*dim+2];
   }
   // Now, go through and add extra nodes
   s = nv;
@@ -1087,7 +1106,7 @@ void get_P2(fespace* FE,mesh_struct* mesh)
   // In 1D this is just the midpoint of the elements
   if(dim==1) {
     for(i=0;i<nelm;i++) {
-      cdof->x[s] = mesh->el_mid[i];
+      cdof->x[s] = fem->el_mid[i];
       s++;
     }
   } else { // In 2D or 3D, these are simply the midpoints of the edges
@@ -1095,9 +1114,9 @@ void get_P2(fespace* FE,mesh_struct* mesh)
       ed = ed_v->IA[i];
       n1 = ed_v->JA[ed];
       n2 = ed_v->JA[ed+1];
-      cdof->x[s] = 0.5*(mesh->cv->x[n1]+mesh->cv->x[n2]);
-      cdof->y[s] = 0.5*(mesh->cv->y[n1]+mesh->cv->y[n2]);
-      if (dim>2) { cdof->z[s] = 0.5*(mesh->cv->z[n1]+mesh->cv->z[n2]); }
+      cdof->x[s] = 0.5*(sc->x[n1*dim]+sc->x[n2*dim]);
+      cdof->y[s] = 0.5*(sc->x[n1*dim+1]+sc->x[n2*dim+1]);
+      if (dim>2) { cdof->z[s] = 0.5*(sc->x[n1*dim+2]+sc->x[n2*dim+2]); }
       s++;
     }
   }
@@ -1158,8 +1177,8 @@ void get_P2(fespace* FE,mesh_struct* mesh)
   INT* dof_flag = (INT *) calloc(ndof,sizeof(INT));
   // First set of nodes are vertices
   for (i=0; i<nv; i++) {
-    dirichlet[i] = mesh->v_flag[i];
-    dof_flag[i] = mesh->v_flag[i];
+    dirichlet[i] = sc->bndry[i];
+    dof_flag[i] = sc->bndry[i];
   }
   // In 1D rest are interior
   if(dim==1) {
@@ -1170,8 +1189,8 @@ void get_P2(fespace* FE,mesh_struct* mesh)
   } else {
     // In 2D or 3D, rest are edges
     for(i=0;i<nedge;i++) {
-      dirichlet[nv+i] = mesh->ed_flag[i];
-      dof_flag[nv+i] = mesh->ed_flag[i];
+      dirichlet[nv+i] = fem->ed_flag[i];
+      dof_flag[nv+i] = fem->ed_flag[i];
     }
   }
 
@@ -1231,34 +1250,36 @@ void get_P2(fespace* FE,mesh_struct* mesh)
 /******************************************************************************************/
 
 /*!
-* \fn void get_MINI(fespace* FE,mesh_struct* mesh)
+* \fn void get_MINI(fespace* FE,scomplex* sc)
 *
 * \brief Converts mesh data to account for Mini elements
 *
-* \param mesh      Mesh struct
+* \param sc        Simplicial complex
 *
 * \return FE       Struct for Mini FE space (P1 + cubic bubble)
 *
 */
-void get_MINI(fespace* FE,mesh_struct* mesh)
+void get_MINI(fespace* FE,scomplex* sc)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+
   // Loop indices
   INT i,j,s,jcntr;
   INT va,vb,dofa;
 
   INT ndof = FE->ndof;
   INT dof_per_elm = FE->dof_per_elm;
-  INT dim = mesh->dim;
-  INT nv = mesh->nv;
-  INT nelm = mesh->nelm;
-  iCSRmat *el_v = mesh->el_v;
+  INT nv = sc->nv;
+  INT nelm = fem->ns_leaf;
+  iCSRmat *el_v = fem->el_v;
 
   // Get Coordinates
   coordinates *cdof = allocatecoords(ndof,dim);
   // First go through all vertices.
   for (i=0; i<nv; i++) {
     for (j=0;j<dim;j++) {
-      cdof->x[j*ndof+i] = mesh->cv->x[j*nv+i];
+      cdof->x[j*ndof+i] = sc->x[i*dim+j];
     }
   }
   // Now, go through and add extra nodes for the midpoint of element
@@ -1266,7 +1287,7 @@ void get_MINI(fespace* FE,mesh_struct* mesh)
   // In 1D this is just the midpoint of the elements
   for(i=0;i<nelm;i++) {
     for (j=0;j<dim;j++) {
-      cdof->x[j*ndof+s] = mesh->el_mid[i*dim+j];
+      cdof->x[j*ndof+s] = fem->el_mid[i*dim+j];
     }
     s++;
   }
@@ -1296,13 +1317,13 @@ void get_MINI(fespace* FE,mesh_struct* mesh)
   INT* dof_flag = (INT *) calloc(ndof,sizeof(INT));
   // First set of nodes are vertices
   for (i=0; i<nv; i++) {
-    dirichlet[i] = mesh->v_flag[i];
-    dof_flag[i] = mesh->v_flag[i];
+    dirichlet[i] = sc->bndry[i];
+    dof_flag[i] = sc->bndry[i];
   }
   // Rest are interior element centers
   for(i=0;i<nelm;i++) {
     dirichlet[nv+i] = 0;
-    dof_flag[nv+i] = mesh->el_flag[i];
+    dof_flag[nv+i] = fem->el_flag[i];
   }
 
   FE->dirichlet = dirichlet;
@@ -1388,13 +1409,13 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
 
 /****************************************************************************************/
 /*!
-* \fn void set_dirichlet_bdry(fespace* FE,mesh_struct* mesh, const INT flag0, const INT flag1)
+* \fn void set_dirichlet_bdry(fespace* FE,scomplex* sc, const INT flag0, const INT flag1)
 *
 * \brief Determine which boundary DOF are Dirichlet.  Determined by the FE space type
 *        and by the given flag from the mesh file.
 *
 * \param FE               FE space struct
-* \param mesh             Mesh struct
+* \param sc               Simplicial complex
 * \param flag0            min flag value for Dirichlet DOF
 *                         (e.g. in fem.h: MARKER_DIRICHLET)
 * \param flag1            max flag value for Dirichlet DOF
@@ -1403,7 +1424,7 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
 * \return FE.dirichlet    Binary boundary array for DOF
 *
 */
-void set_dirichlet_bdry(fespace* FE,mesh_struct* mesh, const INT flag0, const INT flag1)
+void set_dirichlet_bdry(fespace* FE,scomplex* sc, const INT flag0, const INT flag1)
 {
   INT i;
   for(i=0;i<FE->ndof;i++) {
@@ -1419,19 +1440,19 @@ void set_dirichlet_bdry(fespace* FE,mesh_struct* mesh, const INT flag0, const IN
 
 /****************************************************************************************/
 /*!
-* \fn void set_dirichlet_bdry_block(fespace* FE,mesh_struct* mesh)
+* \fn void set_dirichlet_bdry_block(block_fespace* FE,scomplex* sc)
 *
 * \brief Determine which boundary DOF are Dirichlet.  Determined by the BLOCK FE space type
 *        and by the given flag from the mesh file.
 *
 * \param FE               BLOCK FE space struct
-* \param mesh             Mesh struct
+* \param sc               Simplicial complex
 *
 * \return FE.dirichlet    Binary boundary array for DOF
 * \return FE.dof_flag     Also set DOF flags based on each FE space
 *
 */
-void set_dirichlet_bdry_block(block_fespace* FE,mesh_struct* mesh)
+void set_dirichlet_bdry_block(block_fespace* FE,scomplex* sc)
 {
   INT i,j,ndof,cnt;
 
@@ -1456,13 +1477,13 @@ void set_dirichlet_bdry_block(block_fespace* FE,mesh_struct* mesh)
 
 /****************************************************************************************/
 /*!
-* \fn void set_periodic_bdry(fespace* FE,mesh_struct* mesh, const REAL minx,const REAL maxx,const REAL miny,const REAL maxy,const REAL minz,const REAL maxz)
+* \fn void set_periodic_bdry(fespace* FE,scomplex* sc, const REAL minx,const REAL maxx,const REAL miny,const REAL maxy,const REAL minz,const REAL maxz)
 *
 * \brief Determine which boundary DOF are periodic, and for each DOF which is
 *        the corresponding periodic DOF.
 *
 * \param FE                  FE space struct
-* \param mesh                Mesh struct
+* \param sc                  Simplicial complex
 * \param minx, miny, minz    Min values of x, y and z
 * \param maxx, maxy, maxz    Max values of x, y and z
 *
@@ -1473,8 +1494,11 @@ void set_dirichlet_bdry_block(block_fespace* FE,mesh_struct* mesh)
 *       dimension is not periodic.
 *
 */
-void set_periodic_bdry(fespace* FE,mesh_struct* mesh,const REAL minx,const REAL maxx,const REAL miny,const REAL maxy,const REAL minz,const REAL maxz)
+void set_periodic_bdry(fespace* FE,scomplex* sc,const REAL minx,const REAL maxx,const REAL miny,const REAL maxy,const REAL minz,const REAL maxz)
 {
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+
   // Flag for errors
   SHORT status;
 
@@ -1493,11 +1517,11 @@ void set_periodic_bdry(fespace* FE,mesh_struct* mesh,const REAL minx,const REAL 
   REAL* xvals = (REAL *) calloc(FE->ndof,sizeof(REAL));
   REAL* yvals = (REAL *) calloc(FE->ndof,sizeof(REAL));
   REAL* zvals=NULL;
-  if(mesh->dim==3) zvals = (REAL *) calloc(FE->ndof,sizeof(REAL));
+  if(dim==3) zvals = (REAL *) calloc(FE->ndof,sizeof(REAL));
   for(i=0;i<FE->ndof;i++) {
     xvals[i] = -666.66;
     yvals[i] = -666.66;
-    if(mesh->dim==3) zvals[i] = -666.66;
+    if(dim==3) zvals[i] = -666.66;
   }
 
   // Tolerance for finding difference in real number values
@@ -1505,7 +1529,7 @@ void set_periodic_bdry(fespace* FE,mesh_struct* mesh,const REAL minx,const REAL 
 
   // Cycle through DOF finding corresponding values.
   // This depends on the FE, but we assume FE->cdof contains the Coordinates
-  if(mesh->dim==1) {
+  if(dim==1) {
     for(i=0;i<FE->ndof;i++) {
       if(xper && fabs(FE->cdof->x[i]-minx)<=mytol) {
         for(j=0;j<FE->ndof;j++) {
@@ -1516,7 +1540,7 @@ void set_periodic_bdry(fespace* FE,mesh_struct* mesh,const REAL minx,const REAL 
         }
       }
     }
-  } else if(mesh->dim==2) {
+  } else if(dim==2) {
     for(i=0;i<FE->ndof;i++) {
       if(xper && fabs(FE->cdof->x[i]-minx)<=mytol) {
         yvals[i] = FE->cdof->y[i];
@@ -1537,7 +1561,7 @@ void set_periodic_bdry(fespace* FE,mesh_struct* mesh,const REAL minx,const REAL 
         }
       }
     }
-  } else if(mesh->dim==3) {
+  } else if(dim==3) {
     for(i=0;i<FE->ndof;i++) {
       if(xper && fabs(FE->cdof->x[i]-minx)<=mytol) {
         yvals[i] = FE->cdof->y[i];
