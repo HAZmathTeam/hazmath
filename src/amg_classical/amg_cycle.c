@@ -84,7 +84,7 @@ static void cf_bwd_gs(dCSRmat* A, const INT* cf_order, INT n,
  *
  *  Uses hazmath smoothers for GS and Jacobi, custom for L1 and CF-GS.
  * ====================================================================== */
-static void smooth_fwd(AMG_data *mgl, AMG_param *param, INT lev,
+static void smooth_fwd(AMG_data* mgl, AMG_param* param, INT lev,
                        const REAL* b, REAL* x, INT nu) {
   rs_level_aux* aux = RS_AUX(mgl, lev);
   INT n = mgl[lev].A.row;
@@ -112,7 +112,7 @@ static void smooth_fwd(AMG_data *mgl, AMG_param *param, INT lev,
   }
 }
 
-static void smooth_bwd(AMG_data *mgl, AMG_param *param, INT lev,
+static void smooth_bwd(AMG_data* mgl, AMG_param* param, INT lev,
                        const REAL* b, REAL* x, INT nu) {
   rs_level_aux* aux = RS_AUX(mgl, lev);
   INT n = mgl[lev].A.row;
@@ -143,7 +143,7 @@ static void smooth_bwd(AMG_data *mgl, AMG_param *param, INT lev,
 /* ======================================================================
  *  Backslash recursive: pre-smooth + coarse correct
  * ====================================================================== */
-static void backslash_rec(AMG_data *mgl, AMG_param *param, INT lev,
+static void backslash_rec(AMG_data* mgl, AMG_param* param, INT lev,
                           const REAL* b, REAL* x, INT nu) {
   INT nlev = mgl[0].num_levels;
   INT n = mgl[lev].A.row;
@@ -176,16 +176,15 @@ static void backslash_rec(AMG_data *mgl, AMG_param *param, INT lev,
   free(r); free(rc); free(ec);
 }
 
-void rs_amg_backslash(AMG_data *mgl, AMG_param *param, INT lev,
-                      const REAL* b, REAL* x, INT nu)
-{
+void rs_amg_backslash(AMG_data* mgl, AMG_param* param, INT lev,
+                      const REAL* b, REAL* x, INT nu) {
   backslash_rec(mgl, param, lev, b, x, nu);
 }
 
 /* ======================================================================
  *  Fwdslash recursive: coarse correct + post-smooth
  * ====================================================================== */
-static void fwdslash_rec(AMG_data *mgl, AMG_param *param, INT lev,
+static void fwdslash_rec(AMG_data* mgl, AMG_param* param, INT lev,
                          const REAL* b, REAL* x, INT nu) {
   INT nlev = mgl[0].num_levels;
   INT n = mgl[lev].A.row;
@@ -217,18 +216,16 @@ static void fwdslash_rec(AMG_data *mgl, AMG_param *param, INT lev,
   free(r); free(rc); free(ec);
 }
 
-void rs_amg_fwdslash(AMG_data *mgl, AMG_param *param, INT lev,
-                     const REAL* b, REAL* x, INT nu)
-{
+void rs_amg_fwdslash(AMG_data* mgl, AMG_param* param, INT lev,
+                     const REAL* b, REAL* x, INT nu) {
   fwdslash_rec(mgl, param, lev, b, x, nu);
 }
 
 /* ======================================================================
  *  Symmetric V-cycle: backslash + fwdslash
  * ====================================================================== */
-void rs_amg_vcycle_precond(AMG_data *mgl, AMG_param *param,
-                           const REAL* g, REAL* x)
-{
+void rs_amg_vcycle_precond(AMG_data* mgl, AMG_param* param,
+                           const REAL* g, REAL* x) {
   INT n = mgl[0].A.row;
   INT nu = param->presmooth_iter;
 

@@ -14,16 +14,15 @@
 #include "hazmath.h"
 
 /* Mark all leaf simplices that contain at least one of the given points */
-static ivector mark_containing(scomplex *sctop,
-                               INT npts, REAL *pts)
-{
+static ivector mark_containing(scomplex* sctop,
+                               INT npts, REAL* pts) {
   INT dim = sctop->n, n1 = dim + 1;
   INT ns = sctop->ns, i, k;
   ivector marked;
   marked.row = ns;
-  marked.val = (INT *)calloc(ns, sizeof(INT));
+  marked.val = (INT*)calloc(ns, sizeof(INT));
   for (i = 0; i < ns; i++) {
-    INT *el = sctop->nodes + i * n1;
+    INT* el = sctop->nodes + i * n1;
     for (k = 0; k < npts; k++) {
       if (!xins(dim, el, sctop->x, pts + k * dim)) {
         marked.val[i] = 1;
@@ -34,8 +33,7 @@ static ivector mark_containing(scomplex *sctop,
   return marked;
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char* argv[]) {
   INT dim = 2, nref = 8, seed = 42;
   if (argc > 1) dim = atoi(argv[1]);
   if (argc > 2) nref = atoi(argv[2]);
@@ -44,7 +42,7 @@ int main(int argc, char *argv[])
   /* Generate 3 random points in (0,1)^dim (mesh_cube_init uses (0,1)^d) */
   srand(seed);
   INT npts = 3;
-  REAL *pts = (REAL *)calloc(npts * dim, sizeof(REAL));
+  REAL* pts = (REAL*)calloc(npts * dim, sizeof(REAL));
   INT i, j;
   fprintf(stdout, "\n%% dim=%d, nref=%d, seed=%d\n", (int)dim, (int)nref, (int)seed);
   fprintf(stdout, "%% Points in (0,1)^%d:\n", (int)dim);
@@ -60,14 +58,14 @@ int main(int argc, char *argv[])
   /* Build initial mesh on (0,1)^dim using mesh_cube_init with ref_type=20 */
   INT ndiv = 1;
   if (dim == 2) ndiv = 2; /* finer initial mesh for 2D */
-  scomplex **sc_all = mesh_cube_init(dim, ndiv, 20);
-  scomplex *sc = sc_all[0];
+  scomplex** sc_all = mesh_cube_init(dim, ndiv, 20);
+  scomplex* sc = sc_all[0];
   sc->ref_type = 20; /* DGS initialization */
 
   fprintf(stdout, "%% Initial mesh: ns=%d, nv=%d\n", (int)sc->ns, (int)sc->nv);
 
   /* Adaptive refinement loop */
-  scomplex *sctop = NULL;
+  scomplex* sctop = NULL;
   ivector marked;
   for (i = 0; i < nref; i++) {
     sctop = scfinest(sc);
@@ -122,7 +120,7 @@ int main(int argc, char *argv[])
   {
     char fname[256];
     snprintf(fname, sizeof(fname), "output/dgs_points_%dd.csv", (int)dim);
-    FILE *fp = fopen(fname, "w");
+    FILE* fp = fopen(fname, "w");
     for (i = 0; i < npts; i++) {
       for (j = 0; j < dim; j++)
         fprintf(fp, "%.10e%s", pts[i * dim + j], (j < dim - 1) ? "," : "\n");

@@ -12,18 +12,16 @@
 */
 
 // Exact Solution (if we have one)
-void exactsol(REAL *val,REAL* x,REAL time,	\
-	      const INT dim,void *param)
-{
-  switch(dim){
+void exactsol(REAL* val, REAL* x, REAL time, const INT dim, void* param) {
+  switch (dim) {
   case 1:
-    *val = -x[0]*x[0];
+    *val = -x[0] * x[0];
     break;
   case 2:
-    *val = 4*x[0]*x[0]-5e0*x[1]*x[1];
+    *val = 4 * x[0] * x[0] - 5e0 * x[1] * x[1];
     break;
   case 3:
-    *val = 3*x[0]*x[0]+x[1]*x[1]-5e0*x[2]*x[2];
+    *val = 3 * x[0] * x[0] + x[1] * x[1] - 5e0 * x[2] * x[2];
     break;
   default:
     *val = 0e0;
@@ -32,49 +30,37 @@ void exactsol(REAL *val,REAL* x,REAL time,	\
 }
 // PDE Coefficients
 /*====================================================================*/
-void diffusion(REAL *val,REAL *x, const REAL time,	\
-	       const INT dim, void *params)
-{
-  // diffusion coefficient. 
-  val[0]=1e0;
+void diffusion(REAL* val, REAL* x, const REAL time, const INT dim, void* params) {
+  // diffusion coefficient.
+  val[0] = 1e0;
   return;
 }
 /*====================================================================*/
-void advection(REAL *val,REAL *x, const REAL time,	\
-	       const INT dim, void *param)
-{
+void advection(REAL* val, REAL* x, const REAL time, const INT dim, void* param) {
   // advection coefficient (vector valued);
-  memset(val,0,dim*sizeof(REAL));
+  memset(val, 0, dim * sizeof(REAL));
   //  val[0]=1e0;
   return;
 }
 /*EOF*/
-void reaction(REAL *val,REAL* x,REAL time,	\
-	      const INT dim, void *param)
-{
+void reaction(REAL* val, REAL* x, REAL time, const INT dim, void* param) {
   // reaction coefficieent
   val[0] = 0e0;
 }
 //
-void rhs_pde(REAL *val,REAL* x,REAL time,	\
-	     const INT dim, void *param)
-{
+void rhs_pde(REAL* val, REAL* x, REAL time, const INT dim, void* param) {
   REAL u;
   // right hand side for the PDE
-  exactsol(val,x,time,dim,param);
-  val[0]=2e0; // + 2e0*val[0];
+  exactsol(val, x, time, dim, param);
+  val[0] = 2e0; // + 2e0*val[0];
 }
-void rhs_natural_bc(REAL *val,REAL* x,REAL time,	\
-		    const INT dim, void *param)
-{
+void rhs_natural_bc(REAL* val, REAL* x, REAL time, const INT dim, void* param) {
   // right hand side for the natural boundary condition
   // (flux.n=rhs_natural_bc)
   val[0] = 0e0;
 }
 
-void rhs_essential_bc(REAL *val,REAL* x,REAL time,	\
-		      const INT dim,void *param)
-{
+void rhs_essential_bc(REAL* val, REAL* x, REAL time, const INT dim, void* param) {
   // dirichlet boundary conditions: set up through exactsol().
-  exactsol(val,x,time,dim,param);
+  exactsol(val, x, time, dim, param);
 }

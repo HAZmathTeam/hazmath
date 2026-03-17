@@ -13,8 +13,8 @@
 /* Preconditioner wrappers for hazmath precond struct */
 
 typedef struct {
-  AMG_data *mgl;
-  AMG_param *param;
+  AMG_data* mgl;
+  AMG_param* param;
   const dCSRmat* A;
   const dCSRmat* L;
 } pcg_precond_data;
@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
   param.relaxation      = 0.5;
 
   /* Build AMG hierarchy from Ap */
-  AMG_data *mgl = amg_data_create(param.max_levels);
+  AMG_data* mgl = amg_data_create(param.max_levels);
 
   if (two_matrix)
     fprintf(stderr, "\nBuilding AMG hierarchy from %s ...\n", amg_file);

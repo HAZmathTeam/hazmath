@@ -24,8 +24,7 @@
 #include "hazmath.h"
 
 /* Sort column indices within each row via double transpose */
-static void dcsr_sort_columns(dCSRmat* A)
-{
+static void dcsr_sort_columns(dCSRmat* A) {
   dCSRmat At;
   dcsr_alloc(A->col, A->row, A->nnz, &At);
   dcsr_transz(A, NULL, &At);
@@ -33,8 +32,7 @@ static void dcsr_sort_columns(dCSRmat* A)
   dcsr_free(&At);
 }
 
-void ichol_compute(const dCSRmat* Ain, dCSRmat* L)
-{
+void ichol_compute(const dCSRmat* Ain, dCSRmat* L) {
   INT n = Ain->row;
   if (n <= 0) return;
   /* Sort column indices */
@@ -131,8 +129,7 @@ void ichol_compute(const dCSRmat* Ain, dCSRmat* L)
 }
 
 /* Solve L * L' * x = b  =>  L*y = b (fwd), L'*x = y (bwd) */
-void ichol_solve(const dCSRmat* L, const REAL* b, REAL* x)
-{
+void ichol_solve(const dCSRmat* L, const REAL* b, REAL* x) {
   INT n = L->row;
   REAL* y = (REAL*)calloc((size_t)n, sizeof(REAL));
 
@@ -177,8 +174,7 @@ void ichol_solve(const dCSRmat* L, const REAL* b, REAL* x)
  *  Drops entries with |l_ij| < tau * ||a_i||_1 / n_i
  *  Allows fill-in (unlike ichol(0)).
  * ====================================================================== */
-void icholt_compute(const dCSRmat* Ain, REAL tau, dCSRmat* L)
-{
+void icholt_compute(const dCSRmat* Ain, REAL tau, dCSRmat* L) {
   INT n = Ain->row;
   if (n <= 0) return;
   /* Sort column indices */
@@ -318,8 +314,7 @@ void icholt_compute(const dCSRmat* Ain, REAL tau, dCSRmat* L)
  *  Keeps the sparsity pattern of A.  A = L * U  (L unit lower, U upper)
  *  L and U stored separately as dCSRmat.
  * ====================================================================== */
-void ilu_compute(const dCSRmat* Ain, dCSRmat* L, dCSRmat* U)
-{
+void ilu_compute(const dCSRmat* Ain, dCSRmat* L, dCSRmat* U) {
   INT n = Ain->row;
   if (n <= 0) return;
   /* Sort column indices */
@@ -416,8 +411,7 @@ void ilu_compute(const dCSRmat* Ain, dCSRmat* L, dCSRmat* U)
 
 /* Solve L * U * x = b  =>  L*y = b (fwd), U*x = y (bwd)
  * L is unit lower triangular, U is upper triangular. */
-void ilu_solve(const dCSRmat* L, const dCSRmat* U, const REAL* b, REAL* x)
-{
+void ilu_solve(const dCSRmat* L, const dCSRmat* U, const REAL* b, REAL* x) {
   INT n = L->row;
   REAL* y = (REAL*)calloc((size_t)n, sizeof(REAL));
 
@@ -450,8 +444,7 @@ void ilu_solve(const dCSRmat* L, const dCSRmat* U, const REAL* b, REAL* x)
  *  ILUT: Incomplete LU with threshold dropping
  *  Drops fill entries with |val| < tau * ||a_i||_1 / n_i
  * ====================================================================== */
-void ilut_compute(const dCSRmat* Ain, REAL tau, dCSRmat* L, dCSRmat* U)
-{
+void ilut_compute(const dCSRmat* Ain, REAL tau, dCSRmat* L, dCSRmat* U) {
   INT n = Ain->row;
   if (n <= 0) return;
   /* Sort column indices */
@@ -608,8 +601,8 @@ void ilut_compute(const dCSRmat* Ain, REAL tau, dCSRmat* L, dCSRmat* U)
 
 /* Data bundle passed through void* to PCG */
 typedef struct {
-  AMG_data *mgl;
-  AMG_param *param;
+  AMG_data* mgl;
+  AMG_param* param;
   const dCSRmat* A;
   const dCSRmat* L;
 } amg_ichol_data;
@@ -643,10 +636,9 @@ static void amg_ichol_apply(REAL* g, REAL* x, void* data) {
   free(u1); free(r1); free(ichol_corr); free(r2); free(corr);
 }
 
-void rs_amg_ichol_precond(AMG_data *mgl, AMG_param *param,
+void rs_amg_ichol_precond(AMG_data* mgl, AMG_param* param,
                           const dCSRmat* A, const dCSRmat* L,
-                          const REAL* g, REAL* x)
-{
+                          const REAL* g, REAL* x) {
   amg_ichol_data d;
   d.mgl = mgl;
   d.param = param;

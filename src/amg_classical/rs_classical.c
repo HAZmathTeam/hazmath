@@ -27,12 +27,11 @@
  *  Output S has the same dimension as A and stores only strong
  *  off-diagonal entries with their original values from A.
  * ====================================================================== */
-void rs_strength(const dCSRmat *A, REAL theta, dCSRmat *S)
-{
+void rs_strength(const dCSRmat* A, REAL theta, dCSRmat* S) {
   INT n = A->row;
 
   /* --- pass 1: row-wise max of (-a_{ij}) for j != i --- */
-  REAL *row_max = (REAL *)calloc(n, sizeof(REAL));
+  REAL* row_max = (REAL*)calloc(n, sizeof(REAL));
   for (INT i = 0; i < n; i++) {
     REAL mx = 0.0;
     for (INT k = A->IA[i]; k < A->IA[i + 1]; k++) {
@@ -44,7 +43,7 @@ void rs_strength(const dCSRmat *A, REAL theta, dCSRmat *S)
   }
 
   /* --- pass 2: count strong connections per row --- */
-  INT *s_ia = (INT *)calloc(n + 1, sizeof(INT));
+  INT* s_ia = (INT*)calloc(n + 1, sizeof(INT));
   for (INT i = 0; i < n; i++) {
     REAL thr = theta * row_max[i];
     INT cnt = 0;
@@ -59,8 +58,8 @@ void rs_strength(const dCSRmat *A, REAL theta, dCSRmat *S)
     s_ia[i + 1] += s_ia[i];
 
   INT s_nnz = s_ia[n];
-  INT  *s_ja  = (INT  *)malloc(s_nnz * sizeof(INT));
-  REAL *s_val = (REAL *)malloc(s_nnz * sizeof(REAL));
+  INT*  s_ja  = (INT*)malloc(s_nnz * sizeof(INT));
+  REAL* s_val = (REAL*)malloc(s_nnz * sizeof(REAL));
 
   /* --- pass 3: fill --- */
   for (INT i = 0; i < n; i++) {
@@ -100,17 +99,16 @@ void rs_strength(const dCSRmat *A, REAL theta, dCSRmat *S)
  *    cf[i] = RS_C_PT (1) or RS_F_PT (-1), length n.
  *    *n_coarse = number of C-points.
  * ====================================================================== */
-void rs_coarsening(const dCSRmat *S, INT *cf, INT *n_coarse)
-{
+void rs_coarsening(const dCSRmat* S, INT* cf, INT* n_coarse) {
   INT n = S->row;
 
   /* --- transpose S: ST[i] = { j : i in S_j } = points influenced by i --- */
   dCSRmat ST;
   dcsr_alloc(n, n, S->nnz, &ST);
-  dcsr_transz((dCSRmat *)S, NULL, &ST);
+  dcsr_transz((dCSRmat*)S, NULL, &ST);
 
   /* --- initialize lambda and cf --- */
-  INT *lambda = (INT *)calloc(n, sizeof(INT));
+  INT* lambda = (INT*)calloc(n, sizeof(INT));
   INT max_lam = ST.IA[1] - ST.IA[0];
   cf[0] = RS_UNDECIDED;
   for (INT i = 1; i < n; i++) {
@@ -131,9 +129,9 @@ void rs_coarsening(const dCSRmat *S, INT *cf, INT *n_coarse)
     num_buckets = max_lam + max_row_s + 1;
   }
 
-  INT *bucket_head = (INT *)malloc(num_buckets * sizeof(INT));
-  INT *next = (INT *)malloc(n * sizeof(INT));
-  INT *prev = (INT *)malloc(n * sizeof(INT));
+  INT* bucket_head = (INT*)malloc(num_buckets * sizeof(INT));
+  INT* next = (INT*)malloc(n * sizeof(INT));
+  INT* prev = (INT*)malloc(n * sizeof(INT));
 
   for (INT k = 0; k < num_buckets; k++)
     bucket_head[k] = -1;
@@ -238,20 +236,19 @@ void rs_coarsening(const dCSRmat *S, INT *cf, INT *n_coarse)
  * ====================================================================== */
 
 /* 3a. Build sparsity pattern of P */
-void rs_standard_interpolation_sparsity(const dCSRmat *S,
-                                        const INT      *cf,
-                                        dCSRmat       *P)
-{
+void rs_standard_interpolation_sparsity(const dCSRmat* S,
+                                        const INT*     cf,
+                                        dCSRmat*       P) {
   INT n = S->row;
 
   /* --- coarse-grid index map --- */
   INT nc = 0;
-  INT *cmap = (INT *)malloc(n * sizeof(INT));
+  INT* cmap = (INT*)malloc(n * sizeof(INT));
   for (INT i = 0; i < n; i++)
     cmap[i] = (cf[i] == RS_C_PT) ? nc++ : -1;
 
   /* --- count P entries per row --- */
-  INT *P_ia = (INT *)calloc(n + 1, sizeof(INT));
+  INT* P_ia = (INT*)calloc(n + 1, sizeof(INT));
   for (INT i = 0; i < n; i++) {
     if (cf[i] == RS_C_PT) {
       P_ia[i + 1] = 1;
@@ -266,8 +263,8 @@ void rs_standard_interpolation_sparsity(const dCSRmat *S,
     P_ia[i + 1] += P_ia[i];
 
   INT P_nnz  = P_ia[n];
-  INT  *P_ja = (INT  *)malloc(P_nnz * sizeof(INT));
-  REAL *P_v  = (REAL *)calloc(P_nnz, sizeof(REAL));
+  INT*  P_ja = (INT*)malloc(P_nnz * sizeof(INT));
+  REAL* P_v  = (REAL*)calloc(P_nnz, sizeof(REAL));
 
   /* --- fill column indices --- */
   for (INT i = 0; i < n; i++) {
@@ -292,16 +289,15 @@ void rs_standard_interpolation_sparsity(const dCSRmat *S,
 }
 
 /* 3b. Compute interpolation weights (fill P->val) */
-void rs_standard_interpolation_values(const dCSRmat *A,
-                                      const dCSRmat *S,
-                                      const INT      *cf,
-                                      dCSRmat       *P)
-{
+void rs_standard_interpolation_values(const dCSRmat* A,
+                                      const dCSRmat* S,
+                                      const INT*     cf,
+                                      dCSRmat*       P) {
   INT n = A->row;
 
   /* --- workspace arrays (size n, reused per row) --- */
-  INT *is_strong = (INT *)malloc(n * sizeof(INT));
-  INT *pos = (INT *)malloc(n * sizeof(INT));
+  INT* is_strong = (INT*)malloc(n * sizeof(INT));
+  INT* pos = (INT*)malloc(n * sizeof(INT));
   memset(is_strong, -1, n * sizeof(INT));
   memset(pos,       -1, n * sizeof(INT));
 
@@ -394,11 +390,10 @@ void rs_standard_interpolation_values(const dCSRmat *A,
 }
 
 /* 3c. Standard (Direct) Interpolation -- convenience wrapper */
-void rs_standard_interpolation(const dCSRmat *A,
-                               const dCSRmat *S,
-                               const INT      *cf,
-                               dCSRmat       *P)
-{
+void rs_standard_interpolation(const dCSRmat* A,
+                               const dCSRmat* S,
+                               const INT*     cf,
+                               dCSRmat*       P) {
   rs_standard_interpolation_sparsity(S, cf, P);
   rs_standard_interpolation_values(A, S, cf, P);
 }

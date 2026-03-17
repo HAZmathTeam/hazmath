@@ -21,28 +21,25 @@
 * \return marked     ivector of elements to be marked, TRUE for marked
 *
 */
-ivector amr_maximal_mark(scomplex *sc, REAL *estimator, REAL gamma) 
-{
-  
-  INT i,k=0;
+ivector amr_maximal_mark(scomplex* sc, REAL* estimator, REAL gamma) {
+  INT i, k = 0;
   INT ns = sc->ns;
   REAL errmax;
-  ivector marked=ivec_create(sc->ns);
-  errmax=estimator[0];
-  for(i=1;i<ns;i++) {
-    if(fabs(estimator[i])>errmax) {
-      errmax=estimator[i];
+  ivector marked = ivec_create(sc->ns);
+  errmax = estimator[0];
+  for (i = 1; i < ns; i++) {
+    if (fabs(estimator[i]) > errmax) {
+      errmax = estimator[i];
     }
   }
-  for(i=0;i<ns;i++) {
-    if(fabs(estimator[i])>gamma*errmax){
-      marked.val[i]=TRUE;
+  for (i = 0; i < ns; i++) {
+    if (fabs(estimator[i]) > gamma * errmax) {
+      marked.val[i] = TRUE;
       k++;
     } else {
-      marked.val[i]=FALSE;
+      marked.val[i] = FALSE;
     }
   }
-  
-  printf("\nMarking elements for AMR using Maximal Mark strategy.\n\tMarking elements with %3.2f%% of the max error: --> %d of %d elements were marked to be refined.\n",gamma*100,k,ns);
+  printf("\nMarking elements for AMR using Maximal Mark strategy.\n\tMarking elements with %3.2f%% of the max error: --> %d of %d elements were marked to be refined.\n", gamma * 100, k, ns);
   return marked;
 }

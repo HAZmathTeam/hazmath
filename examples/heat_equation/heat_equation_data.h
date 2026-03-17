@@ -10,35 +10,35 @@
 */
 
 // PDE Coefficients
-void diffusion_coeff(REAL *val,REAL* x,REAL time,void *param) {
+void diffusion_coeff(REAL* val, REAL* x, REAL time, void* param) {
   // a(x)
   *val = 1.0;
 }
 
 // Exact Solution (if you have one)
 // Change as needed for different dimensions
-void exactsol2D(REAL *val,REAL* x,REAL time,void *param) {
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1])*exp(-2.0*M_PI*M_PI*time);
+void exactsol2D(REAL* val, REAL* x, REAL time, void* param) {
+  *val = sin(M_PI * x[0]) * sin(M_PI * x[1]) * exp(-2.0 * M_PI * M_PI * time);
 }
-void exactsol3D(REAL *val,REAL* x,REAL time,void *param) {
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2])*exp(-3*M_PI*M_PI*time);
+void exactsol3D(REAL* val, REAL* x, REAL time, void* param) {
+  *val = sin(M_PI * x[0]) * sin(M_PI * x[1]) * sin(M_PI * x[2]) * exp(-3 * M_PI * M_PI * time);
 }
 
 // Right-hand Side
-void myrhs(REAL *val,REAL* x,REAL time,void *param) {
+void myrhs(REAL* val, REAL* x, REAL time, void* param) {
   *val = 0.0;
 }
 
 // Boundary Conditions
-void bc(REAL *val,REAL* x,REAL time,void *param) {
-  *val= 0.0;
+void bc(REAL* val, REAL* x, REAL time, void* param) {
+  *val = 0.0;
 }
 
 // Initial Conditions
 // Change as needed for different dimensions
-void initial_conditions2D(REAL *val,REAL* x,REAL time,void *param) {
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
+void initial_conditions2D(REAL* val, REAL* x, REAL time, void* param) {
+  *val = sin(M_PI * x[0]) * sin(M_PI * x[1]);
 }
-void initial_conditions3D(REAL *val,REAL* x,REAL time,void *param) {
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
+void initial_conditions3D(REAL* val, REAL* x, REAL time, void* param) {
+  *val = sin(M_PI * x[0]) * sin(M_PI * x[1]) * sin(M_PI * x[2]);
 }

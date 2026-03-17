@@ -33,8 +33,7 @@ static void ilu_precond_fct(REAL* r, REAL* z, void* data) {
 }
 
 /* Load and symmetrize a matrix from a COO file */
-static void load_and_symmetrize(const char* filename, dCSRmat* A)
-{
+static void load_and_symmetrize(const char* filename, dCSRmat* A) {
   dcoo_read_dcsr(filename, A);
   INT n = A->row;
   dCSRmat At;
@@ -47,8 +46,7 @@ static void load_and_symmetrize(const char* filename, dCSRmat* A)
   *A = Asum;
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
   if (argc < 2) {
     fprintf(stderr, "Usage: %s <matrix_file> [tau]\n", argv[0]);
     return 1;

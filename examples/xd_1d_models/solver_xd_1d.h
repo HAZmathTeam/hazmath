@@ -10,20 +10,19 @@
  */
 
 /************* HAZMATH FUNCTIONS and INCLUDES ***************************/
-INT solver_xd_1d(const char *finput_solver,const char *dir_matrices)
-{
+INT solver_xd_1d(const char* finput_solver, const char* dir_matrices) {
   /*************** ACTION *************************************/
   //  char *dir_matrices=strdup("./input/1d_matrices_2d/");
   //  char *finput_solver=strdup("./input/solver.input");
   /* Set Solver Parameters */
   input_param inparam;
   dCSRmat A; //
-  dvector b,x;
-  ivector *idofs=malloc(1*sizeof(ivector));
-  idofs->row=0;
-  idofs->val=NULL;
+  dvector b, x;
+  ivector* idofs = malloc(1 * sizeof(ivector));
+  idofs->row = 0;
+  idofs->val = NULL;
   //
-  read_and_setup_blk(finput_solver,dir_matrices,&inparam,&A,&b,&x,&idofs);
+  read_and_setup_blk(finput_solver, dir_matrices, &inparam, &A, &b, &x, &idofs);
   //
   //  INT num_iters=-20;
   /* Set parameters for linear iterative methods */
@@ -35,24 +34,23 @@ INT solver_xd_1d(const char *finput_solver,const char *dir_matrices)
   param_amg_set(&amgparam, &inparam);
   param_amg_print(&amgparam);
 
-  fprintf(stdout,"\n===========================================================================\n");
-  fprintf(stdout,"Solving the linear system \n");
-  fprintf(stdout,"===========================================================================\n");
+  fprintf(stdout, "\n===========================================================================\n");
+  fprintf(stdout, "Solving the linear system \n");
+  fprintf(stdout, "===========================================================================\n");
   // --------------------------------------------------------------------------------------------
   // Set diagonal blocks for AMG solver.  Coarsening is based on the blocks in AD.
   // They can be diagonal blocks of the block matrix A or approximations to the Schur complements
   // --------------------------------------------------------------------------------------------
-  if (linear_itparam.linear_precond_type == 16 ){
+  if (linear_itparam.linear_precond_type == 16) {
     linear_solver_dcsr_krylov_metric_amg(&A, &b, &x, idofs, &linear_itparam, &amgparam);
-  }
-  else if (linear_itparam.linear_precond_type == PREC_AMG){
+  } else if (linear_itparam.linear_precond_type == PREC_AMG) {
     linear_solver_dcsr_krylov_amg(&A, &b, &x, &linear_itparam, &amgparam);
   }
   // No preconditoner
-  else{
-    linear_itparam.linear_precond_type=0;
+  else {
+    linear_itparam.linear_precond_type = 0;
     linear_solver_dcsr_krylov(&A, &b, &x, &linear_itparam);
-  }  
+  }
   dvec_free(&b);
   dvec_free(&x);
   dcsr_free(&A);

@@ -46,16 +46,16 @@
  * ====================================================================== */
 
 /* --- hierarchy construction (build_hierarchy.c) --- */
-void rs_amg_build_hierarchy(AMG_data *mgl, AMG_param *param, const dCSRmat* A);
-void rs_amg_rebuild_values(AMG_data *mgl, AMG_param *param, const dCSRmat* A_new);
-void rs_amg_free(AMG_data *mgl);
+void rs_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A);
+void rs_amg_rebuild_values(AMG_data* mgl, AMG_param* param, const dCSRmat* A_new);
+void rs_amg_free(AMG_data* mgl);
 
 /* --- V-cycle (amg_cycle.c) --- */
-void rs_amg_backslash(AMG_data *mgl, AMG_param *param, INT lev,
+void rs_amg_backslash(AMG_data* mgl, AMG_param* param, INT lev,
                       const REAL* b, REAL* x, INT nu);
-void rs_amg_fwdslash(AMG_data *mgl, AMG_param *param, INT lev,
+void rs_amg_fwdslash(AMG_data* mgl, AMG_param* param, INT lev,
                      const REAL* b, REAL* x, INT nu);
-void rs_amg_vcycle_precond(AMG_data *mgl, AMG_param *param,
+void rs_amg_vcycle_precond(AMG_data* mgl, AMG_param* param,
                            const REAL* g, REAL* x);
 
 /* --- ichol (ichol.c) --- */
@@ -63,7 +63,7 @@ void ichol_compute(const dCSRmat* A, dCSRmat* L);
 void ichol_solve(const dCSRmat* L, const REAL* b, REAL* x);
 
 /* --- combined preconditioner (amg_ichol_precond.c) --- */
-void rs_amg_ichol_precond(AMG_data *mgl, AMG_param *param,
+void rs_amg_ichol_precond(AMG_data* mgl, AMG_param* param,
                           const dCSRmat* A, const dCSRmat* L,
                           const REAL* g, REAL* x);
 

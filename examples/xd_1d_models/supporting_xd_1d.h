@@ -8,34 +8,33 @@
  * \note
  */
 /************************************************************/
-static char *str_add_dim(const INT dim, const char *prefix, const char *suffix)
-{
-  INT k=dim;
-  if(k<1) k=1;
+static char* str_add_dim(const INT dim, const char* prefix, const char* suffix) {
+  INT k = dim;
+  if (k < 1) k = 1;
   //else if(k>3) k=3;
-  char *dir0=calloc(1023,sizeof(char));
-  snprintf(dir0,1023,"%s%d%s",prefix,k,suffix);
-  trim_str(&dir0,1);
+  char* dir0 = calloc(1023, sizeof(char));
+  snprintf(dir0, 1023, "%s%d%s", prefix, k, suffix);
+  trim_str(&dir0, 1);
   return dir0;
 }
-static char *fname_set(const char *dir, const char *fname_in) {
+static char* fname_set(const char* dir, const char* fname_in) {
   // combine names: fname_in[0]=dir/fname_in[0]
   size_t ldir0 = strlen(dir) + 1;
   size_t lfname = strlen(fname_in);
-  char *fname = strndup(dir, ldir0);
+  char* fname = strndup(dir, ldir0);
   fname = realloc(fname, (lfname + ldir0 + 1) * sizeof(char));
   strncat(fname, fname_in, lfname);
-  trim_str(&fname,1);
+  trim_str(&fname, 1);
   return fname;
 }
 /************************************************************/
-static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar,
-                               REAL *xstar, iCSRmat *node_ins,
+static ivector mark_around_pts(scomplex* sc, scomplex* scglobal, INT nstar,
+                               REAL* xstar, iCSRmat* node_ins,
                                const INT max_nodes) {
   /* scglobal is the global sc that contains all refinements */
   iCSRmat ins_node;
   dCSRmat xins_node, xnode_ins;
-  INT *ii, *jj;
+  INT* ii, *jj;
   INT dim = scglobal->n, dim1 = dim + 1, n = sc->n, n1 = n + 1, ns = sc->ns;
   INT nzw = -10, jstar, jk, p, pj, j = -1, iwa, iwb;
   /* un-mark everything */
@@ -45,8 +44,8 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar,
   //  for(j=0;j<ns;j++) marked.val[j]=TRUE;
   //  bail out if no points
   if (!nstar || (xstar == NULL)) return marked;
-  INT *scnjn = NULL;
-  REAL *xstar0 = NULL;
+  INT* scnjn = NULL;
+  REAL* xstar0 = NULL;
   //  fprintf(stdout,"\nlevel=%d",scglobal->level);
   if (!(scglobal->level)) {
     // on the coarsest level we need to set the matrix as for a first time:
@@ -210,9 +209,9 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar,
             // this is in, so we add it.
             ii[nzw] = j;      // note: ii is alias for ins_node.val
             jj[nzw] = jstar;  // note: jj is alias for node_ins->JA
-                              // (node_ins->val does not exist).
+                               // (node_ins->val does not exist).
             nzw++;
-          }else{
+          } else {
             // fprintf(stdout, "\nchk_node2=%d", jstar);
             // print_full_mat(1, n, xstar0, "xstar0_2");
           }
@@ -225,7 +224,7 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar,
     ins_node.row = scglobal->ns;
     ins_node.col = nstar;
     ins_node.nnz = nzw;
-    INT *ind = calloc((ins_node.row + 1), sizeof(INT));
+    INT* ind = calloc((ins_node.row + 1), sizeof(INT));
     ins_node.IA = realloc(ins_node.IA, (ins_node.row + 1) * sizeof(INT));
     // initins_node.IAlize
     memset(ind, 0, sizeof(INT) * (ins_node.row + 1));
@@ -292,9 +291,8 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar,
   /* } */
   return marked;
 }
-static void data_1d_init(const INT dimbig,const char *idir, const char *odir,data_1d *g)
-{
-  const char *fnames[] = {
+static void data_1d_init(const INT dimbig, const char* idir, const char* odir, data_1d* g) {
+  const char* fnames[] = {
     "001_coordinates_of_vertices",
     "002_segments_definition",
     "003_number_of_points_by_segment",
@@ -304,13 +302,13 @@ static void data_1d_init(const INT dimbig,const char *idir, const char *odir,dat
     "\0"};
   //  char
   //////////////////////////////////////////////////////////////////////////////
-  g->odir=strdup(odir);
-  g->idir=strdup(idir);
+  g->odir = strdup(odir);
+  g->idir = strdup(idir);
   //////////////////////////////////////////////////////////////////////////////
   g->dim = 1;
   g->dimbig = dimbig;
-  if(g->dimbig<2) g->dimbig=2;
-  else if(g->dimbig>3) g->dimbig=3;  
+  if (g->dimbig < 2) g->dimbig = 2;
+  else if (g->dimbig > 3) g->dimbig = 3;
   g->nv = 0;
   g->nseg = 0;
   g->xv = NULL;
@@ -325,8 +323,8 @@ static void data_1d_init(const INT dimbig,const char *idir, const char *odir,dat
   g->fpt_thickness = fname_set(g->idir, fnames[4]);
   g->fseg_radius = fname_set(g->idir, fnames[5]);
   //
-  g->fvtu_3d = str_add_dim(g->dimbig,g->odir,"d_grid");
-  g->fvtu_1d = str_add_dim(g->dim,g->odir,"d_grid");
+  g->fvtu_3d = str_add_dim(g->dimbig, g->odir, "d_grid");
+  g->fvtu_1d = str_add_dim(g->dim, g->odir, "d_grid");
   ////////////////////////////////////////////////////////////////////
   /* fprintf(stdout,"\n%%%%INPUT FILENAMES=\n%s\n%s\n%s\n%s\n%s\n%s\n",\ */
   /* 	  g->fv_coords,g->fseg,g->fdivisions,g->fvtmp_coords,g->fpt_thickness,g->fseg_radius); */
@@ -341,15 +339,15 @@ static void data_1d_init(const INT dimbig,const char *idir, const char *odir,dat
  *
  */
 /*************************************************************/
-static void getdata_1d(data_1d *g) {
-  FILE *fp;
+static void getdata_1d(data_1d* g) {
+  FILE* fp;
   //
-  REAL *xvtmp = NULL;  // working
+  REAL* xvtmp = NULL;  // working
   INT nvsize, nvaddsize, nsegsize;
-  read_eof(g->fv_coords, (void **)&g->xv, &nvsize, 'R', 0);
-  free(g->fv_coords);g->fv_coords=NULL;
-  read_eof(g->fvtmp_coords, (void **)&xvtmp, &nvaddsize, 'R', 0);
-  free(g->fvtmp_coords);g->fvtmp_coords=NULL;
+  read_eof(g->fv_coords, (void**)&g->xv, &nvsize, 'R', 0);
+  free(g->fv_coords); g->fv_coords = NULL;
+  read_eof(g->fvtmp_coords, (void**)&xvtmp, &nvaddsize, 'R', 0);
+  free(g->fvtmp_coords); g->fvtmp_coords = NULL;
   //
   g->nv = (INT)nvsize / g->dimbig;
   g->nvadd = (INT)nvaddsize / g->dimbig;
@@ -361,8 +359,8 @@ static void getdata_1d(data_1d *g) {
   free(xvtmp);
   xvtmp = (g->xv + nvsize);
   /// integers
-  read_eof(g->fseg, (void **)&g->seg, &nsegsize, 'I', 0);
-  free(g->fseg);g->fseg=NULL;
+  read_eof(g->fseg, (void**)&g->seg, &nsegsize, 'I', 0);
+  free(g->fseg); g->fseg = NULL;
   //
   g->nseg = nsegsize / (g->dim + 1);
   // for the rest we know the sizes so we alocate and then read:
@@ -370,25 +368,24 @@ static void getdata_1d(data_1d *g) {
   fp = fopen(g->fdivisions, "r");
   rveci_(fp, g->divisions, &g->nseg);
   fclose(fp);
-  free(g->fdivisions);g->fdivisions=NULL;
+  free(g->fdivisions); g->fdivisions = NULL;
   //
   g->seg_radius = calloc(g->nseg, sizeof(REAL));
   fp = fopen(g->fseg_radius, "r");
   rvecd_(fp, g->seg_radius, &g->nseg);
   fclose(fp);
-  free(g->fseg_radius);g->fseg_radius=NULL;
+  free(g->fseg_radius); g->fseg_radius = NULL;
   //
   g->pt_thickness = calloc(g->nvadd, sizeof(REAL));
   fp = fopen(g->fpt_thickness, "r");
   rvecd_(fp, g->pt_thickness, &g->nvadd);
   fclose(fp);
-  free(g->fpt_thickness);g->fpt_thickness=NULL;
+  free(g->fpt_thickness); g->fpt_thickness = NULL;
   //  fprintf(stdout, "\nnseg=%d\n", g->nseg);
   return;
 }
 /********************************************************************************/
-static void data_1d_free(data_1d *g)
-{  
+static void data_1d_free(data_1d* g) {
   free(g->divisions);
   free(g->seg);
   free(g->pt_thickness);
@@ -406,15 +403,14 @@ static void data_1d_free(data_1d *g)
   return;
 }
 /*********************************************************************************************/
-static INT init_pts(const INT dim, const INT npts, REAL *pts, scomplex *sc, const REAL scale)
-{
+static INT init_pts(const INT dim, const INT npts, REAL* pts, scomplex* sc, const REAL scale) {
   INT k = 0, i, j;
-  cube2simp *c2s = cube2simplex(dim);  // now we have the vertices of the unit cube in bits
-  REAL *vc = calloc(4 * dim * c2s->nvcube, sizeof(REAL));
-  REAL *xmintmp = vc;                                 // maps to [0...0]
-  REAL *xmaxtmp = xmintmp + dim * (c2s->nvcube - 1);  // last vertex
-  REAL *xmin = xmaxtmp + dim * (c2s->nvcube - 1);     // last vertex
-  REAL *xmax = xmin + dim * (c2s->nvcube - 1);        // last vertex
+  cube2simp* c2s = cube2simplex(dim);  // now we have the vertices of the unit cube in bits
+  REAL* vc = calloc(4 * dim * c2s->nvcube, sizeof(REAL));
+  REAL* xmintmp = vc;                                 // maps to [0...0]
+  REAL* xmaxtmp = xmintmp + dim * (c2s->nvcube - 1);  // last vertex
+  REAL* xmin = xmaxtmp + dim * (c2s->nvcube - 1);     // last vertex
+  REAL* xmax = xmin + dim * (c2s->nvcube - 1);        // last vertex
   INT kdimi;
   for (i = 0; i < dim; i++) {
     xmax[i] = pts[i];
@@ -446,11 +442,11 @@ static INT init_pts(const INT dim, const INT npts, REAL *pts, scomplex *sc, cons
   return 0;
 }
 /****************************************************************************************/
-static void special_1d(scomplex *sc, data_1d *g, dvector *seg_r) {
+static void special_1d(scomplex* sc, data_1d* g, dvector* seg_r) {
   // construct 1-homogenous simplicial complex embedded in 2d or 3d
   INT i, j, k, l, m, dimbig;
   dimbig = g->dimbig;
-  REAL *xvtmp = g->xv + g->nv * dimbig;
+  REAL* xvtmp = g->xv + g->nv * dimbig;
   REAL r = -1e20;
   INT i1, i2, ko, bego, endo, ptrn, ptre;
   bego = 0, ptrn = 0;
@@ -503,79 +499,78 @@ static void special_1d(scomplex *sc, data_1d *g, dvector *seg_r) {
   return;
 }
 /********************************************************************************************/
-static void read_and_setup_blk(const char *finput_solver,const char *dir_matrices, \
-			       input_param *inparam, dCSRmat *A, dvector *b, dvector *x, \
-			       ivector **idofs_in)
-{
+static void read_and_setup_blk(const char* finput_solver, const char* dir_matrices,
+                                input_param* inparam, dCSRmat* A, dvector* b, dvector* x,
+                                ivector** idofs_in) {
   /* matrix and right hand side: reads block, returns monolitic */
   block_dCSRmat Ablk;
-  fprintf(stdout,"\n===========================================================================\n");
-  fprintf(stdout,"Reading the matrix, right hand side, and parameters...\n");
-   fprintf(stdout,"===========================================================================\n"); 
+  fprintf(stdout, "\n===========================================================================\n");
+  fprintf(stdout, "Reading the matrix, right hand side, and parameters...\n");
+  fprintf(stdout, "===========================================================================\n");
   /* set Parameters from an Input File */
   param_input_init(inparam);
-  param_input(finput_solver,inparam);
+  param_input(finput_solver, inparam);
   /* read the matrix and right hand side (2 by 2) */
-  INT brow = 2, bcol = 2,i,j;;
+  INT brow = 2, bcol = 2, i, j;;
   bdcsr_alloc_minimal(brow, bcol, &Ablk);
   bdcsr_alloc(brow, bcol, &Ablk);
-  unsigned char fmt='B'; // 'b' or 'B' is for binary format
+  unsigned char fmt = 'B'; // 'b' or 'B' is for binary format
   // Read the 00 block of the stiffness matrix
   /************************************************************/
-  const char *fnames_mat[] = {"A.npy","B.npy","Bt.npy","C.npy","b0.npy","b1.npy","\0"}; // this uses 3d nodes
+  const char* fnames_mat[] = {"A.npy", "B.npy", "Bt.npy", "C.npy", "b0.npy", "b1.npy", "\0"}; // this uses 3d nodes
   //  const char *fnames_mat[] = {"A.npy","B.npy","Bt.npy","C.npy","b0.npy","b1.npy","idofs3d.npy","\0"}; // this uses 3d nodes
   //const char *fnames_mat[] = {"A.npy","B.npy","Bt.npy","C.npy","b0.npy","b1.npy","idofs.npy","\0"}; // this uses 1d nodes
   //
-  char *fmata  = fname_set(dir_matrices, fnames_mat[0]);
-  char *fmatb  = fname_set(dir_matrices, fnames_mat[1]);
-  char *fmatbt = fname_set(dir_matrices, fnames_mat[2]);
-  char *fmatc  = fname_set(dir_matrices, fnames_mat[3]);
-  char *fb0    = fname_set(dir_matrices, fnames_mat[4]);
-  char *fb1    = fname_set(dir_matrices, fnames_mat[5]);
-  fprintf(stdout,"\n%s\n%s\n%s\n%s\n%s\n%s\n",
-	  fmata,				\
-	  fmatb,				\
-	  fmatbt,				\
-	  fmatc,				\
-	  fb0,					\
-	  fb1);fflush(stdout);
+  char* fmata = fname_set(dir_matrices, fnames_mat[0]);
+  char* fmatb = fname_set(dir_matrices, fnames_mat[1]);
+  char* fmatbt = fname_set(dir_matrices, fnames_mat[2]);
+  char* fmatc = fname_set(dir_matrices, fnames_mat[3]);
+  char* fb0 = fname_set(dir_matrices, fnames_mat[4]);
+  char* fb1 = fname_set(dir_matrices, fnames_mat[5]);
+  fprintf(stdout, "\n%s\n%s\n%s\n%s\n%s\n%s\n",
+          fmata,
+          fmatb,
+          fmatbt,
+          fmatc,
+          fb0,
+          fb1); fflush(stdout);
 // reading
-  Ablk.blocks[0]=dcoo_read_eof_dcsr_p(fmata,NULL,fmt);
-  Ablk.blocks[3]=dcoo_read_eof_dcsr_p(fmatc,NULL,fmt);
-  INT size[2]; 
-  size[0]=Ablk.blocks[0]->row;  size[1]=Ablk.blocks[3]->row;
-  Ablk.blocks[1]=dcoo_read_eof_dcsr_p(fmatbt,size,fmt);
-  size[1]=Ablk.blocks[0]->row;  size[0]=Ablk.blocks[3]->row;
-  Ablk.blocks[2]=dcoo_read_eof_dcsr_p(fmatb,size,fmt);
+  Ablk.blocks[0] = dcoo_read_eof_dcsr_p(fmata, NULL, fmt);
+  Ablk.blocks[3] = dcoo_read_eof_dcsr_p(fmatc, NULL, fmt);
+  INT size[2];
+  size[0] = Ablk.blocks[0]->row;  size[1] = Ablk.blocks[3]->row;
+  Ablk.blocks[1] = dcoo_read_eof_dcsr_p(fmatbt, size, fmt);
+  size[1] = Ablk.blocks[0]->row;  size[0] = Ablk.blocks[3]->row;
+  Ablk.blocks[2] = dcoo_read_eof_dcsr_p(fmatb, size, fmt);
   //
-  dvector **b_blk=malloc(bcol*sizeof(dvector));
-  b_blk[0]=dvector_read_eof_p(fb0,fmt);
-  b_blk[1]=dvector_read_eof_p(fb1,fmt);
-  idofs_in[0]=(ivector*)malloc(sizeof(ivector));
-  idofs_in[0]->row=0;
-  idofs_in[0]->val=NULL;
+  dvector** b_blk = malloc(bcol * sizeof(dvector));
+  b_blk[0] = dvector_read_eof_p(fb0, fmt);
+  b_blk[1] = dvector_read_eof_p(fb1, fmt);
+  idofs_in[0] = (ivector*)malloc(sizeof(ivector));
+  idofs_in[0]->row = 0;
+  idofs_in[0]->val = NULL;
   //  idofs_in[0] = ivector_read_eof_p(fidofs,fmt);
   //
   // clean filenames
   free(fmata);  free(fb0); free(fb1); free(fmatb);  free(fmatbt); free(fmatc);
-  fmata=NULL; fmatb=NULL; fmatbt=NULL; fmatc=NULL; fb0=NULL; fb1=NULL;
-  b->row=b_blk[0]->row+b_blk[1]->row;
-  b->val=calloc(b->row,sizeof(REAL));
-  memcpy(b->val,b_blk[0]->val,b_blk[0]->row*sizeof(REAL));
-  memcpy(&b->val[b_blk[0]->row],b_blk[1]->val,b_blk[1]->row*sizeof(REAL));
-  for(i=0;i<brow;++i)
+  fmata = NULL; fmatb = NULL; fmatbt = NULL; fmatc = NULL; fb0 = NULL; fb1 = NULL;
+  b->row = b_blk[0]->row + b_blk[1]->row;
+  b->val = calloc(b->row, sizeof(REAL));
+  memcpy(b->val, b_blk[0]->val, b_blk[0]->row * sizeof(REAL));
+  memcpy(&b->val[b_blk[0]->row], b_blk[1]->val, b_blk[1]->row * sizeof(REAL));
+  for (i = 0; i < brow; ++i)
     free(b_blk[i]);// not needed any longer
   free(b_blk); b_blk = NULL;
   /* set initial guess */
   dvec_alloc(b->row, x);
   dvec_set(b->row, x, 0e0);
   /*************** *************************************/
-  A[0]=bdcsr_2_dcsr(&Ablk);
+  A[0] = bdcsr_2_dcsr(&Ablk);
   /* Ablk is not needed */
-  for(i=0;i<brow;++i){
-    for(j=0;j<bcol;++j){
+  for (i = 0; i < brow; ++i) {
+    for (j = 0; j < bcol; ++j) {
       //
-      dcsr_free(Ablk.blocks[i*bcol+j]);
+      dcsr_free(Ablk.blocks[i * bcol + j]);
     }
   }
   bdcsr_free(&Ablk);
@@ -590,36 +585,35 @@ static void read_and_setup_blk(const char *finput_solver,const char *dir_matrice
   return;
 }
 /*************************************************************************/
-static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
-			   input_param *inparam, dCSRmat *A, dvector *b, dvector *x, \
-			   ivector **idofs_in)
-{
-  dCSRmat *Ablk = (dCSRmat*)malloc(sizeof(dCSRmat));
+static void read_and_setup(const char* finput_solver, const char* dir_matrices,
+                            input_param* inparam, dCSRmat* A, dvector* b, dvector* x,
+                            ivector** idofs_in) {
+  dCSRmat* Ablk = (dCSRmat*)malloc(sizeof(dCSRmat));
 
   /* fprintf(stdout,"\n===========================================================================\n"); */
-  fprintf(stdout,"Reading the matrix, right hand side, and parameters...\n");
+  fprintf(stdout, "Reading the matrix, right hand side, and parameters...\n");
   /* fprintf(stdout,"===========================================================================\n"); */
   /* set Parameters from an Input File */
   param_input_init(inparam);
-  param_input(finput_solver,inparam);
+  param_input(finput_solver, inparam);
   /* read the matrix and right hand side (2 by 2) */
-  unsigned char fmt='B'; // 'b' or 'B' is for binary format
+  unsigned char fmt = 'B'; // 'b' or 'B' is for binary format
   // Read the 00 block of the stiffness matrix
   /************************************************************/
   //const char *fnames_mat[] = {"A.npy","B.npy","Bt.npy","C.npy","b0.npy","b1.npy","idofs3d.npy","\0"}; // this uses 3d nodes
   //const char *fnames_mat[] = {"A.npy","B.npy","Bt.npy","C.npy","b0.npy","b1.npy","idofs.npy","\0"}; // this uses 1d nodes
-  const char *fnames_mat[] = {"A.npy","b.npy","idofs.npy","\0"};
+  const char* fnames_mat[] = {"A.npy", "b.npy", "idofs.npy", "\0"};
   //
-  char *fmata  = fname_set(dir_matrices, fnames_mat[0]);
+  char* fmata = fname_set(dir_matrices, fnames_mat[0]);
   //char *fmatb  = fname_set(dir_matrices, fnames_mat[1]);
   //char *fmatbt = fname_set(dir_matrices, fnames_mat[2]);
   //char *fmatc  = fname_set(dir_matrices, fnames_mat[3]);
   //char *fb0    = fname_set(dir_matrices, fnames_mat[4]);
-  char *fb    = fname_set(dir_matrices, fnames_mat[1]);
+  char* fb = fname_set(dir_matrices, fnames_mat[1]);
   //  char *fidofs = fname_set(dir_matrices, fnames_mat[2]);
-  fprintf(stdout,"\n%s\n%s\n",			\
-	  fmata,				\
-	  fb);fflush(stdout);
+  fprintf(stdout, "\n%s\n%s\n",
+          fmata,
+          fb); fflush(stdout);
   /* fprintf(stdout,"\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", */
   /* 	  fmata,				\ */
   /* 	  fmatb,				\ */
@@ -630,26 +624,26 @@ static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
   /* 	  fidofs);fflush(stdout); */
   //  fprintf(stdout, "\n%s\n", fidofs); fflush(stdout);
 // reading
-  Ablk=dcoo_read_eof_dcsr_p(fmata, NULL, fmt);
-  dvector *b_blk=(dvector*)malloc(sizeof(dvector));
-  fprintf(stdout,"\nFILE=%s\n",fb);fflush(stdout);
-  b_blk=dvector_read_eof_p(fb, fmt);
+  Ablk = dcoo_read_eof_dcsr_p(fmata, NULL, fmt);
+  dvector* b_blk = (dvector*)malloc(sizeof(dvector));
+  fprintf(stdout, "\nFILE=%s\n", fb); fflush(stdout);
+  b_blk = dvector_read_eof_p(fb, fmt);
 
-  idofs_in[0]=(ivector*)malloc(sizeof(ivector));
-  idofs_in[0]->row=0;
-  idofs_in[0]->val=NULL;
+  idofs_in[0] = (ivector*)malloc(sizeof(ivector));
+  idofs_in[0]->row = 0;
+  idofs_in[0]->val = NULL;
   //  idofs_in[0] = ivector_read_eof_p(fidofs,fmt);
   //
   // clean filenames
   free(fmata);  free(fb); //free(fidofs); //free(fmatb);  free(fmatbt); free(fmatc);  free(fb0);    free(fb1); free(fidofs);
-  fmata=NULL; fb=NULL; //fidofs=NULL; //fmatb=NULL; fmatbt=NULL; fmatc=NULL; fb0=NULL; fb1=NULL;  fidofs=NULL;
+  fmata = NULL; fb = NULL; //fidofs=NULL; //fmatb=NULL; fmatbt=NULL; fmatc=NULL; fb0=NULL; fb1=NULL;  fidofs=NULL;
   //b->row=b_blk[0]->row+b_blk[1]->row;
   //b->val=calloc(b->row,sizeof(REAL));
   //memcpy(b->val,b_blk[0]->val,b_blk[0]->row*sizeof(REAL));
   //memcpy(&b->val[b_blk[0]->row],b_blk[1]->val,b_blk[1]->row*sizeof(REAL));
   b->row = b_blk->row;
-  b->val=calloc(b->row,sizeof(REAL));
-  memcpy(b->val, b_blk->val,b_blk->row*sizeof(REAL));
+  b->val = calloc(b->row, sizeof(REAL));
+  memcpy(b->val, b_blk->val, b_blk->row * sizeof(REAL));
 
   //for(i=0;i<brow;++i)
   //  free(b_blk[i]);// not needed any longer

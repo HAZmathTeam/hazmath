@@ -33,15 +33,14 @@ static rs_level_aux* rs_aux_create(void) {
 /* ======================================================================
  *  Classical Ruge-Stuben hierarchy
  * ====================================================================== */
-void rs_amg_build_hierarchy(AMG_data *mgl, AMG_param *param, const dCSRmat* A)
-{
+void rs_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) {
   REAL threshold = param->strong_coupled;
   INT min_size   = param->coarse_dof;
   INT max_levels = param->max_levels;
 
   /* Copy A to level 0 */
   dcsr_alloc(A->row, A->col, A->nnz, &mgl[0].A);
-  dcsr_cp((dCSRmat *)A, &mgl[0].A);
+  dcsr_cp((dCSRmat*)A, &mgl[0].A);
 
   rs_level_aux* aux0 = rs_aux_create();
   compute_l1_diag(&mgl[0].A, &aux0->l1_diag);
@@ -63,7 +62,7 @@ void rs_amg_build_hierarchy(AMG_data *mgl, AMG_param *param, const dCSRmat* A)
     rs_strength(Ac, threshold, &cur_aux->A_filtered);
 
     /* Step 2: Classical RS coarsening */
-    INT *cf = (INT *)calloc(n_fine, sizeof(INT));
+    INT* cf = (INT*)calloc(n_fine, sizeof(INT));
     INT n_coarse = 0;
     rs_coarsening(&cur_aux->A_filtered, cf, &n_coarse);
 
@@ -75,13 +74,13 @@ void rs_amg_build_hierarchy(AMG_data *mgl, AMG_param *param, const dCSRmat* A)
     }
 
     /* Populate mis[] and isolated[] */
-    cur_aux->mis = (INT *)calloc(n_fine, sizeof(INT));
-    cur_aux->isolated = (INT *)calloc(n_fine, sizeof(INT));
+    cur_aux->mis = (INT*)calloc(n_fine, sizeof(INT));
+    cur_aux->isolated = (INT*)calloc(n_fine, sizeof(INT));
     for (INT i = 0; i < n_fine; i++)
       cur_aux->mis[i] = (cf[i] == 1) ? 1 : 0;
 
     /* Build CF ordering: C-points first, then F-points */
-    cur_aux->cf_order = (INT *)malloc(n_fine * sizeof(INT));
+    cur_aux->cf_order = (INT*)malloc(n_fine * sizeof(INT));
     INT idx = 0;
     for (INT i = 0; i < n_fine; i++)
       if (cf[i] == 1) cur_aux->cf_order[idx++] = i;
@@ -141,8 +140,7 @@ void rs_amg_build_hierarchy(AMG_data *mgl, AMG_param *param, const dCSRmat* A)
 /* ======================================================================
  *  Rebuild hierarchy values for a spectrally equivalent matrix
  * ====================================================================== */
-void rs_amg_rebuild_values(AMG_data *mgl, AMG_param *param, const dCSRmat* A_new)
-{
+void rs_amg_rebuild_values(AMG_data* mgl, AMG_param* param, const dCSRmat* A_new) {
   INT nlev = mgl[0].num_levels;
   (void)param;
 
@@ -152,7 +150,7 @@ void rs_amg_rebuild_values(AMG_data *mgl, AMG_param *param, const dCSRmat* A_new
   /* Replace level 0 matrix */
   dcsr_free(&mgl[0].A);
   dcsr_alloc(A_new->row, A_new->col, A_new->nnz, &mgl[0].A);
-  dcsr_cp((dCSRmat *)A_new, &mgl[0].A);
+  dcsr_cp((dCSRmat*)A_new, &mgl[0].A);
   rs_level_aux* aux0 = RS_AUX(mgl, 0);
   if (aux0->l1_diag) { free(aux0->l1_diag); aux0->l1_diag = NULL; }
   compute_l1_diag(&mgl[0].A, &aux0->l1_diag);
@@ -166,7 +164,7 @@ void rs_amg_rebuild_values(AMG_data *mgl, AMG_param *param, const dCSRmat* A_new
     INT n = mgl[k].A.row;
 
     /* Reconstruct cf array from mis */
-    INT *cf = (INT *)malloc(n * sizeof(INT));
+    INT* cf = (INT*)malloc(n * sizeof(INT));
     for (INT i = 0; i < n; i++)
       cf[i] = cur_aux->mis[i] ? 1 : -1;
 
@@ -217,8 +215,7 @@ void rs_amg_rebuild_values(AMG_data *mgl, AMG_param *param, const dCSRmat* A_new
 }
 
 /* ====================================================================== */
-void rs_amg_free(AMG_data *mgl)
-{
+void rs_amg_free(AMG_data* mgl) {
   INT nlev = mgl[0].num_levels;
   for (INT k = 0; k < nlev; k++) {
     dcsr_free(&mgl[k].A);

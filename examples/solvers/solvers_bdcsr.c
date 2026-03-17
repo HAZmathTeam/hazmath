@@ -14,8 +14,7 @@
 /***********************************************************************/
 
 /****** MAIN DRIVER **************************************************/
-int main (int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
   printf("\n===========================================================================\n");
   printf("Beginning Program to solve a linear system in BSR format.\n");
   printf("===========================================================================\n");
@@ -24,7 +23,7 @@ int main (int argc, char* argv[])
   block_dCSRmat A;
   dvector b, x;
 
-  dCSRmat *A_diag;
+  dCSRmat* A_diag;
 
   INT i;
 
@@ -41,7 +40,7 @@ int main (int argc, char* argv[])
   INT bcol = 2;
   //bdcsr_alloc_minimal(brow, bcol, &A);
   bdcsr_alloc(brow, bcol, &A);
-  A_diag = (dCSRmat *)calloc(brow, sizeof(dCSRmat));
+  A_diag = (dCSRmat*)calloc(brow, sizeof(dCSRmat));
 
   // Read the 00 block of the stiffness matrix
   dcoo_read_dcsr("A11.dat", A.blocks[0]);
@@ -59,7 +58,7 @@ int main (int argc, char* argv[])
   dvec_set(b.row, &x, 0.0);
 
   /* Set Solver Parameters */
-  INT solver_flag=-20;
+  INT solver_flag = -20;
   /* Set parameters for linear iterative methods */
   linear_itsolver_param linear_itparam;
   param_linear_solver_set(&linear_itparam, &inparam);
@@ -83,14 +82,13 @@ int main (int argc, char* argv[])
 
   // Use approximated Schur complement of the second diagonal block in A_diag
   dvector diag_M;
-  dCSRmat invM = dcsr_create(A.blocks[0]->row,A.blocks[0]->row,A.blocks[0]->row);
+  dCSRmat invM = dcsr_create(A.blocks[0]->row, A.blocks[0]->row, A.blocks[0]->row);
   dcsr_getdiag(A.blocks[0]->row, A.blocks[0], &diag_M);
-  for (i=0;i<A.blocks[0]->row;i++)
-  {
-      invM.IA[i] = i;
-      invM.JA[i] = i;
-      if (diag_M.val[i] > SMALLREAL) invM.val[i]   = 1.0/diag_M.val[i];
-      else invM.val[i] = 1.0;
+  for (i = 0; i < A.blocks[0]->row; i++) {
+    invM.IA[i] = i;
+    invM.JA[i] = i;
+    if (diag_M.val[i] > SMALLREAL) invM.val[i] = 1.0 / diag_M.val[i];
+    else invM.val[i] = 1.0;
   }
   invM.IA[A.blocks[0]->row] = A.blocks[0]->row;
   dCSRmat BTB;
@@ -98,12 +96,12 @@ int main (int argc, char* argv[])
   dcsr_add(&BTB, 1.0, A.blocks[3], -1.0, &A_diag[1]);
 
   // Use Krylov Iterative Solver
-  if (linear_itparam.linear_precond_type == PREC_AMG){
-      solver_flag = linear_solver_bdcsr_krylov_amg(&A, &b, &x, &linear_itparam, &amgparam, A_diag);
+  if (linear_itparam.linear_precond_type == PREC_AMG) {
+    solver_flag = linear_solver_bdcsr_krylov_amg(&A, &b, &x, &linear_itparam, &amgparam, A_diag);
   }
   // No preconditoner
-  else{
-       solver_flag = linear_solver_bdcsr_krylov(&A, &b, &x, &linear_itparam);
+  else {
+    solver_flag = linear_solver_bdcsr_krylov(&A, &b, &x, &linear_itparam);
   }
 
   // Clean up memory
@@ -111,12 +109,12 @@ int main (int argc, char* argv[])
   dvec_free(&b);
   dvec_free(&x);
 
-  for (i=0; i<brow; i++) dcsr_free(&A_diag[i]);
+  for (i = 0; i < brow; i++) dcsr_free(&A_diag[i]);
   if (A_diag) free(A_diag);
 
   dvec_free(&diag_M);
   dcsr_free(&invM);
   dcsr_free(&BTB);
 
-}	/* End of Program */
+} /* End of Program */
 /*******************************************************************/

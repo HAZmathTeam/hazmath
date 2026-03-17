@@ -19,16 +19,15 @@
 #define READ_TO_EOF 0
 #endif
 /****** MAIN DRIVER **************************************************/
-int main (int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
   printf("\n===========================================================================\n");
   printf("Beginning Program to solve a linear system.\n");
   printf("===========================================================================\n");
 
   /* matrix and right hand side */
-  dCSRmat *A=NULL;
-  dvector *b=NULL;
-  dvector *x=NULL;
+  dCSRmat* A = NULL;
+  dvector* b = NULL;
+  dvector* x = NULL;
 
   printf("\n===========================================================================\n");
   printf("Reading the matrix, right hand side, and parameters\n");
@@ -39,44 +38,44 @@ int main (int argc, char* argv[])
   param_input_init(&inparam);
   param_input("./input.dat", &inparam);
   /* read the matrix and right hand side */
-  SHORT read_to_eof=READ_TO_EOF;
-  FILE *fp=NULL;
-  char *fnamea=NULL,*fnameb=NULL;
-  if(argc<3){
-    fprintf(stderr,"\n\n=========================================================\n\n");
-    fprintf(stderr,"***ERROR: %s called with wrong number of arguments!!!\n",argv[0]);
-    fprintf(stderr,"Usage: %s filename_with_MATRIX(I,J,V) filename_with_RHS\n",argv[0]);
-    fprintf(stderr,"\n***USING THE DEFAULTS:\n\t\t\t%s A.dat b.dat",argv[0]);
-    fprintf(stderr,  "\n=========================================================\n\n");
-    fnamea=strdup("A.dat");
-    fnameb=strdup("b.dat");
-    read_to_eof=0;
+  SHORT read_to_eof = READ_TO_EOF;
+  FILE* fp = NULL;
+  char* fnamea = NULL, *fnameb = NULL;
+  if (argc < 3) {
+    fprintf(stderr, "\n\n=========================================================\n\n");
+    fprintf(stderr, "***ERROR: %s called with wrong number of arguments!!!\n", argv[0]);
+    fprintf(stderr, "Usage: %s filename_with_MATRIX(I,J,V) filename_with_RHS\n", argv[0]);
+    fprintf(stderr, "\n***USING THE DEFAULTS:\n\t\t\t%s A.dat b.dat", argv[0]);
+    fprintf(stderr, "\n=========================================================\n\n");
+    fnamea = strdup("A.dat");
+    fnameb = strdup("b.dat");
+    read_to_eof = 0;
 //    exit(129);
   } else {
-    fnamea=strdup(argv[1]);
-    fnameb=strdup(argv[2]);
+    fnamea = strdup(argv[1]);
+    fnameb = strdup(argv[2]);
   }
-  printf("Matrix A read from file %s\n",fnamea);
-  printf("RHS b read from file %s\n",fnameb);
-  printf("read_to_eof=%d\n",read_to_eof);
-  if(read_to_eof){
-    A=dcoo_read_eof_dcsr_p(fnamea,NULL,'A'); //'A' is for ascii. 
-    if(fnamea) free(fnamea);
-    b=dvector_read_eof_p(fnameb,'A'); //'A' is for ascii
-    if(fnameb) free(fnameb);
+  printf("Matrix A read from file %s\n", fnamea);
+  printf("RHS b read from file %s\n", fnameb);
+  printf("read_to_eof=%d\n", read_to_eof);
+  if (read_to_eof) {
+    A = dcoo_read_eof_dcsr_p(fnamea, NULL, 'A'); //'A' is for ascii.
+    if (fnamea) free(fnamea);
+    b = dvector_read_eof_p(fnameb, 'A'); //'A' is for ascii
+    if (fnameb) free(fnameb);
   } else {
-    INT  m,n,nnz;
-    fp = fopen(fnamea,"r");
+    INT  m, n, nnz;
+    fp = fopen(fnamea, "r");
     if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
-    if(fnamea) free(fnamea);
-    A=dcoo_read_dcsr_p(fp);
-    printf("Matrix A read from file %s\n",fnamea);
+    if (fnamea) free(fnamea);
+    A = dcoo_read_dcsr_p(fp);
+    printf("Matrix A read from file %s\n", fnamea);
     fclose(fp);
-    fp = fopen(fnameb,"r");
+    fp = fopen(fnameb, "r");
     if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
-    if(fnameb) free(fnameb);
-    b=dvector_read_p(fp);
-    printf("RHS b read from file %s\n",fnameb);
+    if (fnameb) free(fnameb);
+    b = dvector_read_p(fp);
+    printf("RHS b read from file %s\n", fnameb);
     fclose(fp);
   }
 
@@ -86,11 +85,11 @@ int main (int argc, char* argv[])
   /************************************************************/
   /*************** ACTION *************************************/
   /* set initial guess */
-  dvec_alloc_p(A->row,&x); //  same as x=dvec_create_p(A->row);
+  dvec_alloc_p(A->row, &x); //  same as x=dvec_create_p(A->row);
   dvec_set(x->row, x, 0.0);
 
   /* Set Solver Parameters */
-  INT solver_flag=-20;
+  INT solver_flag = -20;
   /* Set parameters for linear iterative methods */
   linear_itsolver_param linear_itparam;
   param_linear_solver_set(&linear_itparam, &inparam);
@@ -105,20 +104,20 @@ int main (int argc, char* argv[])
   printf("===========================================================================\n");
 
   // Use AMG as iterative solver
-  if (linear_itparam.linear_itsolver_type == SOLVER_AMG){
+  if (linear_itparam.linear_itsolver_type == SOLVER_AMG) {
     solver_flag = linear_solver_amg(A, b, x, &amgparam);
   } else { // Use Krylov Iterative Solver
     // Diagonal preconditioner
     if (linear_itparam.linear_precond_type == PREC_DIAG) {
-        solver_flag = linear_solver_dcsr_krylov_diag(A, b, x, &linear_itparam);
+      solver_flag = linear_solver_dcsr_krylov_diag(A, b, x, &linear_itparam);
     }
     // AMG preconditioner
-    else if (linear_itparam.linear_precond_type == PREC_AMG){
-        solver_flag = linear_solver_dcsr_krylov_amg(A, b, x, &linear_itparam, &amgparam);
+    else if (linear_itparam.linear_precond_type == PREC_AMG) {
+      solver_flag = linear_solver_dcsr_krylov_amg(A, b, x, &linear_itparam, &amgparam);
     }
     // No preconditoner
-    else{
-        solver_flag = linear_solver_dcsr_krylov(A, b, x, &linear_itparam);
+    else {
+      solver_flag = linear_solver_dcsr_krylov(A, b, x, &linear_itparam);
     }
   }
 
@@ -126,6 +125,5 @@ int main (int argc, char* argv[])
   free(A);
   free(b);
   free(x);
-}	/* End of Program */
+} /* End of Program */
 /*******************************************************************/
-

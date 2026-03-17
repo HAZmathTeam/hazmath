@@ -15,13 +15,12 @@
 #include "supporting_xd_1d.h"
 #include "solver_xd_1d.h"
 /***********************************************************************/
-INT main(int argc, char* argv[])
-{
+INT main(int argc, char* argv[]) {
   /*************** ACTION *************************************/
   //  char *dir_matrices=strdup("./input/1d_matrices_3d/");
-  char *dir_matrices=strdup("./input/1d_matrices_2d/");
-  char *finput_solver=strdup("./input/solver.input");
-  solver_xd_1d(finput_solver,dir_matrices);
+  char* dir_matrices = strdup("./input/1d_matrices_2d/");
+  char* finput_solver = strdup("./input/solver.input");
+  solver_xd_1d(finput_solver, dir_matrices);
   free(finput_solver);
   free(dir_matrices);
   /* Set Solver Parameters */

@@ -10,18 +10,18 @@
 #include "amg_helping.h"
 
 typedef struct {
-  dCSRmat      A;
-  AMG_data    *mgl;
-  AMG_param    param;
-  dCSRmat L;
+  dCSRmat   A;
+  AMG_data* mgl;
+  AMG_param param;
+  dCSRmat   L;
 } amg_solver;
 
 /* Preconditioner callback matching hazmath precond.fct signature */
 typedef struct {
-  AMG_data       *mgl;
-  AMG_param      *param;
-  const dCSRmat  *A;
-  const dCSRmat *L;
+  AMG_data*      mgl;
+  AMG_param*     param;
+  const dCSRmat* A;
+  const dCSRmat* L;
 } precond_ctx;
 
 static void precond_wrap(REAL* r, REAL* z, void* data) {
