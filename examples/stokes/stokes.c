@@ -143,15 +143,15 @@ int main(int argc, char* argv[]) {
   clock_t clk_assembly_start = clock();
 
   // Allocate the right-hand and declare the block csr matrix
-  dvector b;
+  dvector b; b.row = 0; b.val = NULL;
 
   // Put into Block Form
   block_dCSRmat A;
   bdcsr_alloc(nspaces, nspaces, &A);
 
   // Assemble the matricies without BC first
-  if (dim == 2) assemble_global_block(&A, &b, local_assembly_Stokes, FEM_Block_RHS_Local, &FE, sc, cq, source2D, 0.0);
-  if (dim == 3) assemble_global_block(&A, &b, local_assembly_Stokes, FEM_Block_RHS_Local, &FE, sc, cq, source3D, 0.0);
+  if (dim == 2) assemble_global_system(&A, &b, &FE, sc, cq, local_assembly_Stokes_unified, NULL, source2D, NULL, 0.0);
+  if (dim == 3) assemble_global_system(&A, &b, &FE, sc, cq, local_assembly_Stokes_unified, NULL, source3D, NULL, 0.0);
 
   // Eliminate boundary conditions in matrix and rhs
   if (dim == 2) eliminate_DirichletBC_blockFE_blockA(bc2D, &FE, sc, &b, &A, 0.0);
@@ -199,8 +199,9 @@ int main(int argc, char* argv[]) {
     dcsr_cp(A.blocks[i * (dim + 2)], &A_diag[i]);
   }
   // For pressure, we use the mass matrix
-  dCSRmat Mp;
-  assemble_global(&Mp, NULL, assemble_mass_local, &FE_p, sc, cq, NULL, one_coeff_scal, 0.0);
+  dCSRmat Mp = dcsr_create(0,0,0);
+  assemble_global_single(&Mp, NULL, &FE_p, sc, cq,
+                         local_assembly_mass, NULL, NULL, one_coeff_scal, 0.0);
   dcsr_alloc(Mp.row, Mp.col, Mp.nnz, &A_diag[dim]);
   dcsr_cp(&Mp, &A_diag[dim]);
 

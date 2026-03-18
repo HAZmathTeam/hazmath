@@ -115,18 +115,18 @@ int main(int argc, char* argv[]) {
   clock_t clk_assembly_start = clock();
 
   // Allocate the right-hand side and declare the csr matrix
-  dvector b;
-  dCSRmat A;
-  dCSRmat M;
+  dvector b; b.row = 0; b.val = NULL;
+  dCSRmat A = dcsr_create(0,0,0);
+  dCSRmat M = dcsr_create(0,0,0);
 
   // Assemble the matrix without BC
   // Diffusion block
-  assemble_global(&A, &b, assemble_DuDv_local, &FE, sc, cq, myrhs,
-                  diffusion_coeff, 0.0);
+  assemble_global_single(&A, &b, &FE, sc, cq,
+                         local_assembly_DuDv, NULL, myrhs, diffusion_coeff, 0.0);
 
   // Time-Derivative block
-  assemble_global(&M, NULL, assemble_mass_local, &FE, sc, cq, NULL,
-                  one_coeff_scal, 0.0);
+  assemble_global_single(&M, NULL, &FE, sc, cq,
+                         local_assembly_mass, NULL, NULL, one_coeff_scal, 0.0);
 
   // Create Time Operator (one with BC and one without)
   // We solve operators of the form du/dt + L(u) = f
@@ -226,7 +226,8 @@ int main(int argc, char* argv[]) {
 
     // Recompute RHS if it's time-dependent
     if (time_stepper.rhs_timedep) {
-      assemble_global_RHS(time_stepper.rhs, &FE, sc, cq, myrhs, time_stepper.time);
+      assemble_global_single(NULL, time_stepper.rhs, &FE, sc, cq,
+                             local_assembly_rhs_only, NULL, myrhs, NULL, time_stepper.time);
     }
 
     // Update RHS

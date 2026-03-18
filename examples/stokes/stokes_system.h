@@ -342,8 +342,9 @@ void meanzero_pressure(block_dCSRmat* A, dvector* b, scomplex* sc, fespace* FEp,
   } else {
     // In P1 or higher, the extra row is Mp*1, where Mp is the mass matrix for
     // the pressure space and 1 is the vector of ones.
-    dCSRmat Mp;
-    assemble_global(&Mp, NULL, assemble_mass_local, FEp, sc, cq, NULL, one_coeff_scal, 0.0);
+    dCSRmat Mp = dcsr_create(0,0,0);
+    assemble_global_single(&Mp, NULL, FEp, sc, cq,
+                           local_assembly_mass, NULL, NULL, one_coeff_scal, 0.0);
     dvector* ones = dvec_create_p(ndof);
     dvec_set(ndof, ones, 1.0);
     REAL* constraint = (REAL*)calloc(ndof, sizeof(REAL));
@@ -358,4 +359,17 @@ void meanzero_pressure(block_dCSRmat* A, dvector* b, scomplex* sc, fespace* FEp,
   if (btmp) free(btmp);
 
   return;
+}
+
+/* Adapter for assemble_global_system: wraps local_assembly_Stokes + FEM_Block_RHS_Local */
+void local_assembly_Stokes_unified(REAL *ALoc, REAL *bLoc, dvector *old_sol,
+    block_fespace *FE, scomplex *sc, qcoordinates *cq,
+    INT *dof_on_elm, INT *v_on_elm, INT elm,
+    void (*rhs)(REAL *,REAL *,REAL,void *),
+    void (*coeff)(REAL *,REAL *,REAL,void *), REAL time)
+{
+  if(ALoc!=NULL)
+    local_assembly_Stokes(ALoc, FE, sc, cq, dof_on_elm, v_on_elm, elm, time);
+  if(bLoc!=NULL && rhs!=NULL)
+    FEM_Block_RHS_Local(bLoc, FE, sc, cq, dof_on_elm, v_on_elm, elm, rhs, time);
 }

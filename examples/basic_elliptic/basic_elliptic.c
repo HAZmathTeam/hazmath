@@ -161,59 +161,38 @@ int main(int argc, char* argv[]) {
   clock_t clk_assembly_start = clock();
 
   // Allocate the right-hand side and declare the csr matrix
-  dvector b;
-  dCSRmat Diff;
+  dvector b; b.row = 0; b.val = NULL;
+  dCSRmat Diff = dcsr_create(0,0,0);
   dCSRmat A;
-  dCSRmat Mass;
+  dCSRmat Mass = dcsr_create(0,0,0);
 
   // Assemble the matrix without BC
-  // Different cases for dimension and FE of test problem
-
-  // Diffusion block
+  // Select RHS based on dimension and FE type
+  void (*myrhs)(REAL*,REAL*,REAL,void*) = NULL;
   if (dim == 1) {
-    if (FE.FEtype > 0 && FE.FEtype < 10) { // PX
-      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, sc, cq,
-                      rhs_1D_PX, diffusion_coeff, 0.0);
-    } else {
-      status = ERROR_FE_TYPE;
-      check_error(status, __FUNCTION__);
-    }
+    if (FE.FEtype > 0 && FE.FEtype < 10) { myrhs = rhs_1D_PX; }
+    else { status = ERROR_FE_TYPE; check_error(status, __FUNCTION__); }
   } else if (dim == 2) {
-    if (FE.FEtype > 0 && FE.FEtype < 10) { // PX
-      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, sc, cq,
-                      rhs_2D_PX, diffusion_coeff, 0.0);
-    } else if (FE.FEtype == 20) { // Nedelec
-      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, sc, cq,
-                      rhs_2D_Ned, diffusion_coeff, 0.0);
-    } else if (FE.FEtype == 30) { // RT
-      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, sc, cq,
-                      rhs_2D_RT, diffusion_coeff, 0.0);
-    } else {
-      status = ERROR_FE_TYPE;
-      check_error(status, __FUNCTION__);
-    }
+    if (FE.FEtype > 0 && FE.FEtype < 10) { myrhs = rhs_2D_PX; }
+    else if (FE.FEtype == 20) { myrhs = rhs_2D_Ned; }
+    else if (FE.FEtype == 30) { myrhs = rhs_2D_RT; }
+    else { status = ERROR_FE_TYPE; check_error(status, __FUNCTION__); }
   } else if (dim == 3) {
-    if (FE.FEtype > 0 && FE.FEtype < 10) { // PX
-      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, sc, cq,
-                      rhs_3D_PX, diffusion_coeff, 0.0);
-    } else if (FE.FEtype == 20) { // Nedelec
-      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, sc, cq,
-                      rhs_3D_Ned, diffusion_coeff, 0.0);
-    } else if (FE.FEtype == 30) { // RT
-      assemble_global(&Diff, &b, assemble_DuDv_local, &FE, sc, cq,
-                      rhs_3D_RT, diffusion_coeff, 0.0);
-    } else {
-      status = ERROR_FE_TYPE;
-      check_error(status, __FUNCTION__);
-    }
+    if (FE.FEtype > 0 && FE.FEtype < 10) { myrhs = rhs_3D_PX; }
+    else if (FE.FEtype == 20) { myrhs = rhs_3D_Ned; }
+    else if (FE.FEtype == 30) { myrhs = rhs_3D_RT; }
+    else { status = ERROR_FE_TYPE; check_error(status, __FUNCTION__); }
   } else {
-    status = ERROR_DIM;
-    check_error(status, __FUNCTION__);
+    status = ERROR_DIM; check_error(status, __FUNCTION__);
   }
 
+  // Diffusion block
+  assemble_global_single(&Diff, &b, &FE, sc, cq,
+                         local_assembly_DuDv, NULL, myrhs, diffusion_coeff, 0.0);
+
   // Reaction block
-  assemble_global(&Mass, NULL, assemble_mass_local, &FE, sc, cq, NULL,
-                  reaction_coeff, 0.0);
+  assemble_global_single(&Mass, NULL, &FE, sc, cq,
+                         local_assembly_mass, NULL, NULL, reaction_coeff, 0.0);
 
   // Add M + D
   dcsr_add(&Diff, 1.0, &Mass, 1.0, &A);

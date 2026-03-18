@@ -640,13 +640,29 @@ void block_LocaltoGlobal(INT *dof_on_elm,block_fespace *FE,dvector *b,block_dCSR
     block_dof_per_elm += FE->var_spaces[block_row]->dof_per_elm;
   }
 
+  // RHS-only path: scatter bLoc into b
+  if(A==NULL) {
+    if(bLoc!=NULL && b!=NULL) {
+      INT jcntr = 0;
+      INT rowa = 0;
+      for(block_row=0;block_row<nblocks;block_row++) {
+        for(i=0;i<FE->var_spaces[block_row]->dof_per_elm;i++) {
+          local_row = dof_on_elm[jcntr];
+          b->val[local_row+rowa] += bLoc[jcntr];
+          jcntr++;
+        }
+        rowa += FE->var_spaces[block_row]->ndof;
+      }
+    }
+    return;
+  }
+
   // Loop through all the blocks
   for(block_row=0;block_row<nblocks;block_row++) {
     dof_per_elm_test = FE->var_spaces[block_row]->dof_per_elm;
 
     for(block_col=0;block_col<nblocks;block_col++) {
       dof_per_elm_trial = FE->var_spaces[block_col]->dof_per_elm;
-
 
       /* Rows of Local Stiffness (test space)*/
       for (i=0; i<dof_per_elm_test; i++) {
@@ -1978,3 +1994,5 @@ void apply_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, dvector* u
 
 }
 /******************************************************************************************************/
+
+/* wrap/unwrap utilities removed — assemble_global_single handles single-space directly */
