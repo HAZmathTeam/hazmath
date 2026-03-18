@@ -507,8 +507,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,scomple
   sc_fem *fem = sc->fem;
   INT dim = sc->dim;
   INT j,m;
-  INT maxdim=4; // Used to allocate coordinate arrays
-  REAL x[maxdim];
+  REAL x[dim+1];
   INT nv = sc->nv;
   INT ndof = FE->ndof;
   INT FEtype = FE->FEtype;
@@ -517,7 +516,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,scomple
   REAL* valx=NULL;
 
   // Needed for face bubbles
-  INT face_vertex[maxdim];
+  INT face_vertex[dim+1];
   // Needed for MINI element
   INT* loc_el_v = (INT *) calloc((dim + 1),sizeof(INT));
   INT elv;
@@ -672,15 +671,14 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
   INT dim = sc->dim;
   INT i,j,m;
   INT nq1d = 3; // Number of quadrature points in 1D if not given.
-  INT maxdim=4;
-  REAL x[maxdim];
+  REAL x[dim+1];
   INT FEtype = FE->var_spaces[comp]->FEtype;
   INT ndof = FE->var_spaces[comp]->ndof;
   INT nv = sc->nv;
   REAL valx[dim*FE->nspaces];
   INT local_dim = 0;
   REAL val=-666e+00;
-  INT face_vertex[maxdim];
+  INT face_vertex[dim+1];
 
   // Needed for MINI element
   INT* loc_el_v = (INT *) calloc((dim + 1),sizeof(INT));
@@ -877,9 +875,8 @@ void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,scomplex *sc)
   sc_fem *fem = sc->fem;
   INT dim = sc->dim;
   INT i,k,j;
-  INT maxdim = 4;
-  REAL* x = (REAL *) calloc(maxdim,sizeof(REAL));
-  REAL val[maxdim];
+  REAL* x = (REAL *) calloc(dim+1,sizeof(REAL));
+  REAL val[dim+1];
 
   // Get FE and Mesh data
   INT dof_per_elm = FE->dof_per_elm;

@@ -53,8 +53,7 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,scomplex *sc,qcoordinates *cq,IN
 
   // Quadrature Weights and Nodes
   REAL w;
-  INT maxdim=4;
-  REAL qx[maxdim];
+  REAL qx[dim+1];
 
   // Stiffness Matrix Entry
   REAL kij;
@@ -163,8 +162,7 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,scomplex *sc,qcoordinates *cq,IN
 
   // Quadrature Weights and Nodes
   REAL w;
-  INT maxdim=4;
-  REAL qx[maxdim];
+  REAL qx[dim+1];
 
   // Stiffness Matrix Entry
   REAL kij;
@@ -266,8 +264,7 @@ void assemble_P1masslump_local(REAL* MLoc,fespace *FE,scomplex *sc,qcoordinates 
 
   // Quadrature Weights and Nodes
   REAL w;
-  INT maxdim=4;
-  REAL qx[maxdim];
+  REAL qx[dim+1];
 
   // Stiffness Matrix Entry
   REAL kij;
@@ -381,8 +378,7 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,scomplex *sc,qcoordinate
 
   // Quadrature Weights and Nodes
   REAL w;
-  INT maxdim=4;
-  REAL qx[maxdim];
+  REAL qx[dim+1];
   // Stiffness Matrix Entry
   REAL kij;
   // Coefficient Value at Quadrature Nodes
@@ -762,8 +758,7 @@ void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,scomplex *sc,qc
 
   // Quadrature Weights and Nodes
   REAL w;
-  INT maxdim=4;
-  REAL qx[maxdim];
+  REAL qx[dim+1];
 
   // Stiffness Matrix Entry
   REAL kij;
@@ -954,8 +949,7 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,scomplex *sc,qcoordinates *cq,INT *dof
 
   // Quadrature Weights and Nodes
   REAL w;
-  INT maxdim=4;
-  REAL qx[maxdim];
+  REAL qx[dim+1];
 
   // Right-hand side function at Quadrature Nodes
   REAL rhs_val_scalar;
@@ -1050,8 +1044,7 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,scomplex *sc,qcoordinates 
 
   // Quadrature Weights and Nodes
   REAL w;
-  INT maxdim=4;
-  REAL qx[maxdim];
+  REAL qx[dim+1];
 
   // Right-hand side function at Quadrature Nodes
   REAL rhs_val[nun];
@@ -1140,8 +1133,7 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,scomplex *sc
 
   // Quadrature Weights and Nodes
   REAL w;
-  INT maxdim=4;
-  REAL qx[maxdim];
+  REAL qx[dim+1];
 
   // Right-hand side function at Quadrature Nodes
   REAL ucoeff[3];
@@ -1226,8 +1218,7 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,scomplex *sc,qco
   // Quadrature Weights and Nodes
   qcoordinates *cq_face = allocateqcoords_bdry(cq->nq1d,1,dim,2);
   quad_face(cq_face,sc,cq->nq1d,face);
-  INT maxdim=4;
-  REAL qx[maxdim];
+  REAL qx[dim+1];
   REAL w;
 
   // Get normal vector components on face if needed
