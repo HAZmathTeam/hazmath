@@ -16,6 +16,7 @@ haz_docs/tex_docs/*.*
 \#*
 .\#*
 *.bak
+*.nb
 .DS_Store
 swig_files/
 cbc.block/
