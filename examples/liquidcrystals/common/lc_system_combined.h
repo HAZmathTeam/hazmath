@@ -222,22 +222,22 @@ void compute_LCelastic_energy(REAL* energy, REAL *u, block_fespace *FE, scomplex
  *
  *
  */
-void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fespace *FE, scomplex *sc, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, REAL *u_local,
+    simplex_local_data *elm_data, fe_local_data *fe_data,
+    void (*rhs)(REAL *,REAL *,REAL,void *),
+    void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
 
   // Loop indices
-  INT i, j, quad, test, trial;
+  INT i, j, d, quad, test, trial;
 
   // Mesh and FE data
-  INT dof_per_elm = 0;
-  for (i=0; i<FE->nspaces;i++)
-    dof_per_elm += FE->var_spaces[i]->dof_per_elm;
-  INT* local_dof_on_elm;
-  INT dim = sc->dim;
+  INT dof_per_elm = fe_data->n_dof;
+  INT dim = elm_data->dim;
 
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
+  REAL qx[dim];
 
   // Stiffness Matrix and RHS Entry
   REAL kij = 0.0;
@@ -247,11 +247,20 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
   INT local_row_index, local_col_index;
 
   // Stuff for previous solution
-  REAL* local_uprev = NULL;
   REAL nk1, nk2, nk3, lamk;
-  REAL* dnk1 = (REAL *) calloc(dim, sizeof(REAL));
-  REAL* dnk2 = (REAL *) calloc(dim, sizeof(REAL));
-  REAL* dnk3 = (REAL *) calloc(dim, sizeof(REAL));
+  REAL dnk1[dim];
+  REAL dnk2[dim];
+  REAL dnk3[dim];
+
+  // Compute offsets into u_local for each space
+  INT n1dofpelm = fe_data->n_dof_per_space[0];
+  INT n2dofpelm = fe_data->n_dof_per_space[1];
+  INT n3dofpelm = fe_data->n_dof_per_space[2];
+  INT lamdofpelm = fe_data->n_dof_per_space[3];
+  INT offset_n1 = 0;
+  INT offset_n2 = n1dofpelm;
+  INT offset_n3 = n1dofpelm + n2dofpelm;
+  INT offset_lam = n1dofpelm + n2dofpelm + n3dofpelm;
   REAL divnk, curlnk1, curlnk2, curlnk3, nkdotcurlnk;
   REAL znk11, znk12, znk13, znk21, znk22, znk23, znk31, znk32, znk33;
   REAL znk_curl_nk1, znk_curl_nk2, znk_curl_nk3;
@@ -272,40 +281,40 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
   REAL kappa = K2/K3;
 
   // Sum over quadrature points
-  for (quad=0;quad<cq->nq_per_elm;quad++) {
-    qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-    qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-    // If 3D mesh, get third component of quadrature
-    if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-    w = cq->w[elm*cq->nq_per_elm+quad];
+  for (quad=0;quad<elm_data->quad_local->nq;quad++) {
+    qx[0] = elm_data->quad_local->x[quad*dim];
+    qx[1] = elm_data->quad_local->x[quad*dim+1];
+    if(dim==3) qx[2] = elm_data->quad_local->x[quad*dim+2];
+    w = elm_data->quad_local->w[quad];
 
-    // Get the Basis Functions and previous solutions at each quadrature node
-    // nk1, n1, and v1
-    local_dof_on_elm = dof_on_elm;
-    local_uprev = old_sol->val;
-    FE_Interpolation(&nk1,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
-    FE_DerivativeInterpolation(dnk1,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
-    get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx,v_on_elm,local_dof_on_elm,sc,FE->var_spaces[0]);
+    // Get basis functions for all spaces
+    for(i=0;i<fe_data->nspaces;i++)
+      get_FEM_basis_at_quadpt(elm_data, fe_data, i, quad);
 
-    // nk2, n2, and v2
-    local_dof_on_elm += FE->var_spaces[0]->dof_per_elm;
-    local_uprev += FE->var_spaces[0]->ndof;
-    FE_Interpolation(&nk2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
-    FE_DerivativeInterpolation(dnk2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
-    get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx,v_on_elm,local_dof_on_elm,sc,FE->var_spaces[1]);
+    // Interpolate previous solution at quadrature point
+    nk1 = 0.0;
+    for(j=0;j<n1dofpelm;j++) nk1 += u_local[offset_n1+j] * fe_data->phi[0][j];
+    for(d=0;d<dim;d++) {
+      dnk1[d] = 0.0;
+      for(j=0;j<n1dofpelm;j++) dnk1[d] += u_local[offset_n1+j] * fe_data->dphi[0][j*dim+d];
+    }
 
-    // nk3, n3, and v3
-    local_dof_on_elm += FE->var_spaces[1]->dof_per_elm;
-    local_uprev+=FE->var_spaces[1]->ndof;
-    FE_Interpolation(&nk3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
-    FE_DerivativeInterpolation(dnk3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
-    get_FEM_basis(FE->var_spaces[2]->phi,FE->var_spaces[2]->dphi,qx,v_on_elm,local_dof_on_elm,sc,FE->var_spaces[2]);
+    nk2 = 0.0;
+    for(j=0;j<n2dofpelm;j++) nk2 += u_local[offset_n2+j] * fe_data->phi[1][j];
+    for(d=0;d<dim;d++) {
+      dnk2[d] = 0.0;
+      for(j=0;j<n2dofpelm;j++) dnk2[d] += u_local[offset_n2+j] * fe_data->dphi[1][j*dim+d];
+    }
 
-    // lamk, lam, gam
-    local_dof_on_elm += FE->var_spaces[2]->dof_per_elm;
-    local_uprev += FE->var_spaces[2]->ndof;
-    FE_Interpolation(&lamk,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[3],sc);
-    get_FEM_basis(FE->var_spaces[3]->phi,FE->var_spaces[3]->dphi,qx,v_on_elm,local_dof_on_elm,sc,FE->var_spaces[3]);
+    nk3 = 0.0;
+    for(j=0;j<n3dofpelm;j++) nk3 += u_local[offset_n3+j] * fe_data->phi[2][j];
+    for(d=0;d<dim;d++) {
+      dnk3[d] = 0.0;
+      for(j=0;j<n3dofpelm;j++) dnk3[d] += u_local[offset_n3+j] * fe_data->dphi[2][j*dim+d];
+    }
+
+    lamk = 0.0;
+    for(j=0;j<lamdofpelm;j++) lamk += u_local[offset_lam+j] * fe_data->phi[3][j];
 
     // Some precomputations
     nk1x = dnk1[0];
@@ -351,12 +360,12 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
     // v1 block row
     local_row_index = 0;
     // Loop over Test Functions (Rows)
-    for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++) {
-      v1 = FE->var_spaces[0]->phi[test];
-      v1x = FE->var_spaces[0]->dphi[test*dim];
-      v1y = FE->var_spaces[0]->dphi[test*dim+1];
+    for (test=0; test<fe_data->n_dof_per_space[0];test++) {
+      v1 = fe_data->phi[0][test];
+      v1x = fe_data->dphi[0][test*dim];
+      v1y = fe_data->dphi[0][test*dim+1];
       if(dim==3){
-        v1z = FE->var_spaces[0]->dphi[test*dim+2];
+        v1z = fe_data->dphi[0][test*dim+2];
       } else {
         v1z = 0.0;
       }
@@ -364,12 +373,12 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
       // n1 block column
       local_col_index = 0;
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++) {
-        n1 = FE->var_spaces[0]->phi[trial];
-        n1x = FE->var_spaces[0]->dphi[trial*dim];
-        n1y = FE->var_spaces[0]->dphi[trial*dim+1];
+      for (trial=0; trial<fe_data->n_dof_per_space[0];trial++) {
+        n1 = fe_data->phi[0][trial];
+        n1x = fe_data->dphi[0][trial*dim];
+        n1y = fe_data->dphi[0][trial*dim+1];
         if(dim==3){
-          n1z = FE->var_spaces[0]->dphi[trial*dim+2];
+          n1z = fe_data->dphi[0][trial*dim+2];
         } else {
           n1z = 0.0;
         }
@@ -383,14 +392,14 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
       }
 
       // n2 block column
-      local_col_index += FE->var_spaces[0]->dof_per_elm;
+      local_col_index += fe_data->n_dof_per_space[0];
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-        n2 = FE->var_spaces[1]->phi[trial];
-        n2x = FE->var_spaces[1]->dphi[trial*dim];
-        n2y = FE->var_spaces[1]->dphi[trial*dim+1];
+      for (trial=0; trial<fe_data->n_dof_per_space[1];trial++){
+        n2 = fe_data->phi[1][trial];
+        n2x = fe_data->dphi[1][trial*dim];
+        n2y = fe_data->dphi[1][trial*dim+1];
         if(dim==3){
-          n2z = FE->var_spaces[1]->dphi[trial*dim+2];
+          n2z = fe_data->dphi[1][trial*dim+2];
         } else {
           n2z = 0.0;
         }
@@ -403,14 +412,14 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
       }
 
       // n3 block column
-      local_col_index += FE->var_spaces[1]->dof_per_elm;
+      local_col_index += fe_data->n_dof_per_space[1];
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
-        n3 = FE->var_spaces[2]->phi[trial];
-        n3x = FE->var_spaces[2]->dphi[trial*dim];
-        n3y = FE->var_spaces[2]->dphi[trial*dim+1];
+      for (trial=0; trial<fe_data->n_dof_per_space[2];trial++){
+        n3 = fe_data->phi[2][trial];
+        n3x = fe_data->dphi[2][trial*dim];
+        n3y = fe_data->dphi[2][trial*dim+1];
         if(dim==3){
-          n3z = FE->var_spaces[2]->dphi[trial*dim+2];
+          n3z = fe_data->dphi[2][trial*dim+2];
         } else {
           n3z = 0.0;
         }
@@ -423,10 +432,10 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
       }
 
       // lam block column - done
-      local_col_index += FE->var_spaces[2]->dof_per_elm;
+      local_col_index += fe_data->n_dof_per_space[2];
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-        lam=FE->var_spaces[3]->phi[trial];
+      for (trial=0; trial<fe_data->n_dof_per_space[3];trial++){
+        lam=fe_data->phi[3][trial];
         kij = lam*nk1*v1;
         ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
@@ -438,14 +447,14 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
     }
 
     // v2 block row
-    local_row_index += FE->var_spaces[0]->dof_per_elm;
+    local_row_index += fe_data->n_dof_per_space[0];
     // Loop over Test Functions (Rows)
-    for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++) {
-      v2 = FE->var_spaces[1]->phi[test];
-      v2x = FE->var_spaces[1]->dphi[test*dim];
-      v2y = FE->var_spaces[1]->dphi[test*dim+1];
+    for (test=0; test<fe_data->n_dof_per_space[1];test++) {
+      v2 = fe_data->phi[1][test];
+      v2x = fe_data->dphi[1][test*dim];
+      v2y = fe_data->dphi[1][test*dim+1];
       if(dim==3){
-        v2z = FE->var_spaces[1]->dphi[test*dim+2];
+        v2z = fe_data->dphi[1][test*dim+2];
       } else {
         v2z = 0.0;
       }
@@ -453,12 +462,12 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
       // n1 block column
       local_col_index = 0;
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++) {
-        n1 = FE->var_spaces[0]->phi[trial];
-        n1x = FE->var_spaces[0]->dphi[trial*dim];
-        n1y = FE->var_spaces[0]->dphi[trial*dim+1];
+      for (trial=0; trial<fe_data->n_dof_per_space[0];trial++) {
+        n1 = fe_data->phi[0][trial];
+        n1x = fe_data->dphi[0][trial*dim];
+        n1y = fe_data->dphi[0][trial*dim+1];
         if(dim==3){
-          n1z = FE->var_spaces[0]->dphi[trial*dim+2];
+          n1z = fe_data->dphi[0][trial*dim+2];
         } else {
           n1z = 0.0;
         }
@@ -471,14 +480,14 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
       }
 
       // n2 block column
-      local_col_index += FE->var_spaces[0]->dof_per_elm;
+      local_col_index += fe_data->n_dof_per_space[0];
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-        n2 = FE->var_spaces[1]->phi[trial];
-        n2x = FE->var_spaces[1]->dphi[trial*dim];
-        n2y = FE->var_spaces[1]->dphi[trial*dim+1];
+      for (trial=0; trial<fe_data->n_dof_per_space[1];trial++){
+        n2 = fe_data->phi[1][trial];
+        n2x = fe_data->dphi[1][trial*dim];
+        n2y = fe_data->dphi[1][trial*dim+1];
         if(dim==3){
-          n2z = FE->var_spaces[1]->dphi[trial*dim+2];
+          n2z = fe_data->dphi[1][trial*dim+2];
         } else {
           n2z = 0.0;
         }
@@ -492,14 +501,14 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
       }
 
       // n3 block column
-      local_col_index += FE->var_spaces[1]->dof_per_elm;
+      local_col_index += fe_data->n_dof_per_space[1];
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
-        n3 = FE->var_spaces[2]->phi[trial];
-        n3x = FE->var_spaces[2]->dphi[trial*dim];
-        n3y = FE->var_spaces[2]->dphi[trial*dim+1];
+      for (trial=0; trial<fe_data->n_dof_per_space[2];trial++){
+        n3 = fe_data->phi[2][trial];
+        n3x = fe_data->dphi[2][trial*dim];
+        n3y = fe_data->dphi[2][trial*dim+1];
         if(dim==3){
-          n3z = FE->var_spaces[2]->dphi[trial*dim+2];
+          n3z = fe_data->dphi[2][trial*dim+2];
         } else {
           n3z = 0.0;
         }
@@ -512,10 +521,10 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
       }
 
       // lam block column
-      local_col_index += FE->var_spaces[2]->dof_per_elm;
+      local_col_index += fe_data->n_dof_per_space[2];
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-        lam=FE->var_spaces[3]->phi[trial];
+      for (trial=0; trial<fe_data->n_dof_per_space[3];trial++){
+        lam=fe_data->phi[3][trial];
         kij = lam*nk2*v2;
         ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
@@ -527,14 +536,14 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
     }
 
     // v3 block row
-    local_row_index += FE->var_spaces[1]->dof_per_elm;
+    local_row_index += fe_data->n_dof_per_space[1];
     // Loop over Test Functions (Rows)
-    for (test=0; test<FE->var_spaces[2]->dof_per_elm;test++) {
-      v3 = FE->var_spaces[2]->phi[test];
-      v3x = FE->var_spaces[2]->dphi[test*dim];
-      v3y = FE->var_spaces[2]->dphi[test*dim+1];
+    for (test=0; test<fe_data->n_dof_per_space[2];test++) {
+      v3 = fe_data->phi[2][test];
+      v3x = fe_data->dphi[2][test*dim];
+      v3y = fe_data->dphi[2][test*dim+1];
       if(dim==3){
-        v3z = FE->var_spaces[2]->dphi[test*dim+2];
+        v3z = fe_data->dphi[2][test*dim+2];
       } else {
         v3z = 0.0;
       }
@@ -542,12 +551,12 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
       // n1 block Columns
       local_col_index = 0;
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++) {
-        n1 = FE->var_spaces[0]->phi[trial];
-        n1x = FE->var_spaces[0]->dphi[trial*dim];
-        n1y = FE->var_spaces[0]->dphi[trial*dim+1];
+      for (trial=0; trial<fe_data->n_dof_per_space[0];trial++) {
+        n1 = fe_data->phi[0][trial];
+        n1x = fe_data->dphi[0][trial*dim];
+        n1y = fe_data->dphi[0][trial*dim+1];
         if(dim==3){
-          n1z = FE->var_spaces[0]->dphi[trial*dim+2];
+          n1z = fe_data->dphi[0][trial*dim+2];
         } else {
           n1z = 0.0;
         }
@@ -560,14 +569,14 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
       }
 
       // n2 block column
-      local_col_index += FE->var_spaces[0]->dof_per_elm;
+      local_col_index += fe_data->n_dof_per_space[0];
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-        n2 = FE->var_spaces[1]->phi[trial];
-        n2x = FE->var_spaces[1]->dphi[trial*dim];
-        n2y = FE->var_spaces[1]->dphi[trial*dim+1];
+      for (trial=0; trial<fe_data->n_dof_per_space[1];trial++){
+        n2 = fe_data->phi[1][trial];
+        n2x = fe_data->dphi[1][trial*dim];
+        n2y = fe_data->dphi[1][trial*dim+1];
         if(dim==3){
-          n2z = FE->var_spaces[1]->dphi[trial*dim+2];
+          n2z = fe_data->dphi[1][trial*dim+2];
         } else {
           n2z = 0.0;
         }
@@ -580,14 +589,14 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
       }
 
       // n3 block column
-      local_col_index += FE->var_spaces[1]->dof_per_elm;
+      local_col_index += fe_data->n_dof_per_space[1];
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
-        n3 = FE->var_spaces[2]->phi[trial];
-        n3x = FE->var_spaces[2]->dphi[trial*dim];
-        n3y = FE->var_spaces[2]->dphi[trial*dim+1];
+      for (trial=0; trial<fe_data->n_dof_per_space[2];trial++){
+        n3 = fe_data->phi[2][trial];
+        n3x = fe_data->dphi[2][trial*dim];
+        n3y = fe_data->dphi[2][trial*dim+1];
         if(dim==3){
-          n3z = FE->var_spaces[2]->dphi[trial*dim+2];
+          n3z = fe_data->dphi[2][trial*dim+2];
         } else {
           n3z = 0.0;
         }
@@ -601,10 +610,10 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
       }
 
       // lam block column
-      local_col_index += FE->var_spaces[2]->dof_per_elm;
+      local_col_index += fe_data->n_dof_per_space[2];
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-        lam=FE->var_spaces[3]->phi[trial];
+      for (trial=0; trial<fe_data->n_dof_per_space[3];trial++){
+        lam=fe_data->phi[3][trial];
         kij = lam*nk3*v3;
         ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
@@ -616,34 +625,34 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
     }
 
     // gam block row
-    local_row_index += FE->var_spaces[2]->dof_per_elm;
+    local_row_index += fe_data->n_dof_per_space[2];
     // Loop over Test Functions (Rows)
-    for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-      gam=FE->var_spaces[3]->phi[test];
+    for (test=0; test<fe_data->n_dof_per_space[3];test++){
+      gam=fe_data->phi[3][test];
 
       // n1 block Column
       local_col_index = 0;
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
-        n1=FE->var_spaces[0]->phi[trial];
+      for (trial=0; trial<fe_data->n_dof_per_space[0];trial++){
+        n1=fe_data->phi[0][trial];
         kij = gam*nk1*n1;
         ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
 
       // n2 block column
-      local_col_index += FE->var_spaces[0]->dof_per_elm;
+      local_col_index += fe_data->n_dof_per_space[0];
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-        n2=FE->var_spaces[1]->phi[trial];
+      for (trial=0; trial<fe_data->n_dof_per_space[1];trial++){
+        n2=fe_data->phi[1][trial];
         kij = gam*nk2*n2;
         ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
 
       // n3 block column
-      local_col_index += FE->var_spaces[1]->dof_per_elm;
+      local_col_index += fe_data->n_dof_per_space[1];
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
-        n3=FE->var_spaces[2]->phi[trial];
+      for (trial=0; trial<fe_data->n_dof_per_space[2];trial++){
+        n3=fe_data->phi[2][trial];
         kij = gam*nk3*n3;
         ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
@@ -655,11 +664,7 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
   }
 
   // Free stuff
-  if (qx) free(qx);
   if (K) free(K);
-  if(dnk1) free(dnk1);
-  if(dnk2) free(dnk2);
-  if(dnk3) free(dnk3);
 
   return;
 }

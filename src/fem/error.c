@@ -30,18 +30,31 @@
  */
 REAL L2norm(REAL *u,fespace *FE,scomplex *sc,qcoordinates *cq)
 {
-  sc_fem *fem = sc->fem;
-  INT dim = sc->dim;
-
   INT i,j,k;
   REAL sum = 0.0;
 
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = (dim + 1);
   INT local_size = dof_per_elm*dof_per_elm;
   REAL* MLoc = calloc(local_size,sizeof(REAL));
-  INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
-  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
+
+  // Create temporary 1-block fespace wrapper
+  block_fespace temp_bfe;
+  temp_bfe.nspaces = 1;
+  temp_bfe.nun = 1;
+  temp_bfe.nelm = FE->nelm;
+  temp_bfe.ndof = FE->ndof;
+  temp_bfe.nbdof = FE->nbdof;
+  temp_bfe.var_spaces = (fespace**)malloc(sizeof(fespace*));
+  temp_bfe.var_spaces[0] = FE;
+  temp_bfe.dirichlet = FE->dirichlet;
+  temp_bfe.dof_flag = FE->dof_flag;
+  temp_bfe.simplex_data = NULL;
+  temp_bfe.fe_data = NULL;
+  simplex_local_data elm_data;
+  fe_local_data fe_data;
+  memset(&elm_data, 0, sizeof(simplex_local_data));
+  memset(&fe_data, 0, sizeof(fe_local_data));
+  initialize_localdata_elm(&elm_data, &fe_data, sc, &temp_bfe, cq->nq1d);
 
   /* Loop over all Elements */
   for (i=0; i<FE->nelm; i++) {
@@ -49,25 +62,24 @@ REAL L2norm(REAL *u,fespace *FE,scomplex *sc,qcoordinates *cq)
     // Zero out local matrices
     for (j=0; j<local_size; j++) MLoc[j] = 0.0;
 
-    // Find DOF for given Element
-    get_incidence_row(i,FE->el_dof,dof_on_elm);
-
-    //Find Nodes for given Element if not H1 elements
-    get_incidence_row(i,fem->el_v,v_on_elm);
+    // Get local element and FE data
+    get_elmlocaldata(&elm_data, sc, i);
+    get_felocaldata_elm(&fe_data, &temp_bfe, NULL, i);
 
     // Compute Local Stiffness Matrix for given Element
-    assemble_mass_local(MLoc,FE,sc,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
+    assemble_mass_local(MLoc, NULL, NULL, &elm_data, &fe_data, NULL, constant_coeff_scal, 1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-        sum+=u[dof_on_elm[j]]*MLoc[j*dof_per_elm+k]*u[dof_on_elm[k]];
+        sum+=u[fe_data.local_dof[j]]*MLoc[j*dof_per_elm+k]*u[fe_data.local_dof[k]];
       }
     }
   }
 
   if(MLoc) free(MLoc);
-  if(dof_on_elm) free(dof_on_elm);
-  if(v_on_elm) free(v_on_elm);
+  free_simplexlocaldata(&elm_data);
+  free_felocaldata(&fe_data);
+  if(temp_bfe.var_spaces) free(temp_bfe.var_spaces);
 
   return sqrt(sum);
 }
@@ -120,17 +132,31 @@ void L2norm_block(REAL *norm,REAL *u,block_fespace *FE,scomplex *sc,qcoordinates
  */
 REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,scomplex *sc,qcoordinates *cq)
 {
-  sc_fem *fem = sc->fem;
-  INT dim = sc->dim;
   INT i,j,k;
   REAL sum = 0.0;
 
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = (dim + 1);
   INT local_size = dof_per_elm*dof_per_elm;
   REAL* MLoc = calloc(local_size,sizeof(REAL));
-  INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
-  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
+
+  // Create temporary 1-block fespace wrapper
+  block_fespace temp_bfe;
+  temp_bfe.nspaces = 1;
+  temp_bfe.nun = 1;
+  temp_bfe.nelm = FE->nelm;
+  temp_bfe.ndof = FE->ndof;
+  temp_bfe.nbdof = FE->nbdof;
+  temp_bfe.var_spaces = (fespace**)malloc(sizeof(fespace*));
+  temp_bfe.var_spaces[0] = FE;
+  temp_bfe.dirichlet = FE->dirichlet;
+  temp_bfe.dof_flag = FE->dof_flag;
+  temp_bfe.simplex_data = NULL;
+  temp_bfe.fe_data = NULL;
+  simplex_local_data elm_data;
+  fe_local_data fe_data;
+  memset(&elm_data, 0, sizeof(simplex_local_data));
+  memset(&fe_data, 0, sizeof(fe_local_data));
+  initialize_localdata_elm(&elm_data, &fe_data, sc, &temp_bfe, cq->nq1d);
 
   /* Loop over all Elements */
   for (i=0; i<FE->nelm; i++) {
@@ -138,25 +164,24 @@ REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,scomplex *sc,qcoordinates *cq)
     // Zero out local matrices
     for (j=0; j<local_size; j++) MLoc[j] = 0.0;
 
-    // Find DOF for given Element
-    get_incidence_row(i,FE->el_dof,dof_on_elm);
-
-    //Find Nodes for given Element if not H1 elements
-    get_incidence_row(i,fem->el_v,v_on_elm);
+    // Get local element and FE data
+    get_elmlocaldata(&elm_data, sc, i);
+    get_felocaldata_elm(&fe_data, &temp_bfe, NULL, i);
 
     // Compute Local Stiffness Matrix for given Element
-    assemble_mass_local(MLoc,FE,sc,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
+    assemble_mass_local(MLoc, NULL, NULL, &elm_data, &fe_data, NULL, constant_coeff_scal, 1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-        sum+=v[dof_on_elm[j]]*MLoc[j*dof_per_elm+k]*u[dof_on_elm[k]];
+        sum+=v[fe_data.local_dof[j]]*MLoc[j*dof_per_elm+k]*u[fe_data.local_dof[k]];
       }
     }
   }
 
   if(MLoc) free(MLoc);
-  if(dof_on_elm) free(dof_on_elm);
-  if(v_on_elm) free(v_on_elm);
+  free_simplexlocaldata(&elm_data);
+  free_felocaldata(&fe_data);
+  if(temp_bfe.var_spaces) free(temp_bfe.var_spaces);
 
   return sum;
 }
@@ -410,18 +435,32 @@ void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),
    */
 REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
-  sc_fem *fem = sc->fem;
-  INT dim = sc->dim;
   INT i,j,k;
   REAL sum = 0.0;
   REAL utk,utj,erk,erj;
 
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = (dim + 1);
   INT local_size = dof_per_elm*dof_per_elm;
   REAL* MLoc = calloc(local_size,sizeof(REAL));
-  INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
-  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
+
+  // Create temporary 1-block fespace wrapper
+  block_fespace temp_bfe;
+  temp_bfe.nspaces = 1;
+  temp_bfe.nun = 1;
+  temp_bfe.nelm = FE->nelm;
+  temp_bfe.ndof = FE->ndof;
+  temp_bfe.nbdof = FE->nbdof;
+  temp_bfe.var_spaces = (fespace**)malloc(sizeof(fespace*));
+  temp_bfe.var_spaces[0] = FE;
+  temp_bfe.dirichlet = FE->dirichlet;
+  temp_bfe.dof_flag = FE->dof_flag;
+  temp_bfe.simplex_data = NULL;
+  temp_bfe.fe_data = NULL;
+  simplex_local_data elm_data;
+  fe_local_data fe_data;
+  memset(&elm_data, 0, sizeof(simplex_local_data));
+  memset(&fe_data, 0, sizeof(fe_local_data));
+  initialize_localdata_elm(&elm_data, &fe_data, sc, &temp_bfe, cq->nq1d);
 
   /* Loop over all Elements */
   for (i=0; i<FE->nelm; i++) {
@@ -429,29 +468,28 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE
     // Zero out local matrices
     for (j=0; j<local_size; j++) MLoc[j] = 0.0;
 
-    // Find DOF for given Element
-    get_incidence_row(i,FE->el_dof,dof_on_elm);
-
-    //Find Nodes for given Element if not H1 elements
-    get_incidence_row(i,fem->el_v,v_on_elm);
+    // Get local element and FE data
+    get_elmlocaldata(&elm_data, sc, i);
+    get_felocaldata_elm(&fe_data, &temp_bfe, NULL, i);
 
     // Compute Local Stiffness Matrix for given Element
-    assemble_mass_local(MLoc,FE,sc,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
+    assemble_mass_local(MLoc, NULL, NULL, &elm_data, &fe_data, NULL, constant_coeff_scal, 1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-        utj = FE_Evaluate_DOF(truesol,FE,sc,time,dof_on_elm[j]);
-        utk = FE_Evaluate_DOF(truesol,FE,sc,time,dof_on_elm[k]);
-        erj = (utj - u[dof_on_elm[j]]);
-        erk = (utk - u[dof_on_elm[k]]);
+        utj = FE_Evaluate_DOF(truesol,FE,sc,time,fe_data.local_dof[j]);
+        utk = FE_Evaluate_DOF(truesol,FE,sc,time,fe_data.local_dof[k]);
+        erj = (utj - u[fe_data.local_dof[j]]);
+        erk = (utk - u[fe_data.local_dof[k]]);
         sum+=erj*MLoc[j*dof_per_elm+k]*erk;
       }
     }
   }
 
   if(MLoc) free(MLoc);
-  if(dof_on_elm) free(dof_on_elm);
-  if(v_on_elm) free(v_on_elm);
+  free_simplexlocaldata(&elm_data);
+  free_felocaldata(&fe_data);
+  if(temp_bfe.var_spaces) free(temp_bfe.var_spaces);
 
   return sqrt(ABS(sum));
 }
@@ -477,12 +515,8 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE
 void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
   sc_fem *fem = sc->fem;
-  INT dim = sc->dim;
   INT i,j,k,elm;
   REAL utk,utj,erk,erj;
-
-  INT v_per_elm = (dim + 1);
-  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
 
   INT local_size=0;
   INT u_dof = 0;
@@ -492,37 +526,56 @@ void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,vo
     err[i] = 0.0;
   }
 
+  // Create per-space temporary wrappers, local data, and MLoc arrays
+  block_fespace *temp_bfes = (block_fespace *)malloc(nspaces * sizeof(block_fespace));
+  simplex_local_data *elm_datas = (simplex_local_data *)malloc(nspaces * sizeof(simplex_local_data));
+  fe_local_data *fe_datas = (fe_local_data *)malloc(nspaces * sizeof(fe_local_data));
+  for(i=0;i<nspaces;i++) {
+    temp_bfes[i].nspaces = 1;
+    temp_bfes[i].nun = 1;
+    temp_bfes[i].nelm = FE->var_spaces[i]->nelm;
+    temp_bfes[i].ndof = FE->var_spaces[i]->ndof;
+    temp_bfes[i].nbdof = FE->var_spaces[i]->nbdof;
+    temp_bfes[i].var_spaces = (fespace**)malloc(sizeof(fespace*));
+    temp_bfes[i].var_spaces[0] = FE->var_spaces[i];
+    temp_bfes[i].dirichlet = FE->var_spaces[i]->dirichlet;
+    temp_bfes[i].dof_flag = FE->var_spaces[i]->dof_flag;
+    temp_bfes[i].simplex_data = NULL;
+    temp_bfes[i].fe_data = NULL;
+    memset(&elm_datas[i], 0, sizeof(simplex_local_data));
+    memset(&fe_datas[i], 0, sizeof(fe_local_data));
+    initialize_localdata_elm(&elm_datas[i], &fe_datas[i], sc, &temp_bfes[i], cq->nq1d);
+  }
+
   /* Loop over all Elements */
   for (elm=0; elm<fem->ns_leaf; elm++) {
-
-    // Find vertices for given Element
-    get_incidence_row(elm,fem->el_v,v_on_elm);
 
     // Get DOF and error on DOF for given element for each FE space
     u_dof=0;
     for(i=0;i<nspaces;i++) {
       local_size = FE->var_spaces[i]->dof_per_elm;
-      INT* dof_on_elm = (INT *) calloc(local_size,sizeof(INT));
-      get_incidence_row(elm,FE->var_spaces[i]->el_dof,dof_on_elm);
+
+      // Get local element and FE data
+      get_elmlocaldata(&elm_datas[i], sc, elm);
+      get_felocaldata_elm(&fe_datas[i], &temp_bfes[i], NULL, elm);
 
       REAL* MLoc = calloc(local_size*local_size,sizeof(REAL));
       for (j=0; j<local_size*local_size; j++) MLoc[j] = 0.0;
 
       // Compute Local Stiffness Matrix for given Element
-      assemble_mass_local(MLoc,FE->var_spaces[i],sc,cq,dof_on_elm,v_on_elm,elm,constant_coeff_scal,1.0);
+      assemble_mass_local(MLoc, NULL, NULL, &elm_datas[i], &fe_datas[i], NULL, constant_coeff_scal, 1.0);
 
       for(j=0;j<local_size;j++) {
         for(k=0;k<local_size;k++) {
-          utj = blockFE_Evaluate_DOF(truesol,FE,sc,time,i,dof_on_elm[j]);
-          utk = blockFE_Evaluate_DOF(truesol,FE,sc,time,i,dof_on_elm[k]);
-          erj = (utj - u[u_dof + dof_on_elm[j]]);
-          erk = (utk - u[u_dof + dof_on_elm[k]]);
+          utj = blockFE_Evaluate_DOF(truesol,FE,sc,time,i,fe_datas[i].local_dof[j]);
+          utk = blockFE_Evaluate_DOF(truesol,FE,sc,time,i,fe_datas[i].local_dof[k]);
+          erj = (utj - u[u_dof + fe_datas[i].local_dof[j]]);
+          erk = (utk - u[u_dof + fe_datas[i].local_dof[k]]);
           err[i]+=erj*MLoc[j*local_size+k]*erk;
         }
       }
       u_dof += FE->var_spaces[i]->ndof;
       if(MLoc) free(MLoc);
-      if(dof_on_elm) free(dof_on_elm);
     }
   }
 
@@ -530,7 +583,15 @@ void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,vo
     err[i] = sqrt(ABS(err[i]));
   }
 
-  if(v_on_elm) free(v_on_elm);
+  // Free local data and temporary wrappers
+  for(i=0;i<nspaces;i++) {
+    free_simplexlocaldata(&elm_datas[i]);
+    free_felocaldata(&fe_datas[i]);
+    if(temp_bfes[i].var_spaces) free(temp_bfes[i].var_spaces);
+  }
+  free(temp_bfes);
+  free(elm_datas);
+  free(fe_datas);
 
   return;
 }
@@ -558,46 +619,60 @@ void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,vo
  */
 REAL HDseminorm(REAL *u,fespace *FE,scomplex *sc,qcoordinates *cq)
 {
-  sc_fem *fem = sc->fem;
-  INT dim = sc->dim;
   INT i,j,k;
   REAL sum = 0.0;
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = (dim + 1);
   INT local_size = dof_per_elm*dof_per_elm;
   REAL* ALoc = calloc(local_size,sizeof(REAL));
-  INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
-  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
 
   if(FE->FEtype==0 || FE->FEtype==99) {
     sum=0.0;
   } else {
+    // Create temporary 1-block fespace wrapper
+    block_fespace temp_bfe;
+    temp_bfe.nspaces = 1;
+    temp_bfe.nun = 1;
+    temp_bfe.nelm = FE->nelm;
+    temp_bfe.ndof = FE->ndof;
+    temp_bfe.nbdof = FE->nbdof;
+    temp_bfe.var_spaces = (fespace**)malloc(sizeof(fespace*));
+    temp_bfe.var_spaces[0] = FE;
+    temp_bfe.dirichlet = FE->dirichlet;
+    temp_bfe.dof_flag = FE->dof_flag;
+    temp_bfe.simplex_data = NULL;
+    temp_bfe.fe_data = NULL;
+    simplex_local_data elm_data;
+    fe_local_data fe_data;
+    memset(&elm_data, 0, sizeof(simplex_local_data));
+    memset(&fe_data, 0, sizeof(fe_local_data));
+    initialize_localdata_elm(&elm_data, &fe_data, sc, &temp_bfe, cq->nq1d);
+
     /* Loop over all Elements */
     for (i=0; i<FE->nelm; i++) {
 
       // Zero out local matrices
       for (j=0; j<local_size; j++) ALoc[j] = 0.0;
 
-      // Find DOF for given Element
-      get_incidence_row(i,FE->el_dof,dof_on_elm);
-
-      //Find Nodes for given Element if not H1 elements
-      get_incidence_row(i,fem->el_v,v_on_elm);
+      // Get local element and FE data
+      get_elmlocaldata(&elm_data, sc, i);
+      get_felocaldata_elm(&fe_data, &temp_bfe, NULL, i);
 
       // Compute Local Stiffness Matrix for given Element
-      assemble_DuDv_local(ALoc,FE,sc,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
+      assemble_DuDv_local(ALoc, NULL, NULL, &elm_data, &fe_data, NULL, constant_coeff_scal, 1.0);
 
       for(j=0;j<dof_per_elm;j++) {
         for(k=0;k<dof_per_elm;k++) {
-          sum+=u[dof_on_elm[j]]*ALoc[j*dof_per_elm+k]*u[dof_on_elm[k]];
+          sum+=u[fe_data.local_dof[j]]*ALoc[j*dof_per_elm+k]*u[fe_data.local_dof[k]];
         }
       }
     }
+
+    free_simplexlocaldata(&elm_data);
+    free_felocaldata(&fe_data);
+    if(temp_bfe.var_spaces) free(temp_bfe.var_spaces);
   }
 
   if(ALoc) free(ALoc);
-  if(dof_on_elm) free(dof_on_elm);
-  if(v_on_elm) free(v_on_elm);
 
   if(sum<0.0) {
     printf("Your H1 Semi Norm Squared is negative (%25.16e)!  Taking ABS before squarerooting itself\n",sum);
@@ -887,18 +962,32 @@ void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,vo
  */
 REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
-  sc_fem *fem = sc->fem;
-  INT dim = sc->dim;
   INT i,j,k;
   REAL sum = 0.0;
   REAL utk,utj,erk,erj;
 
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = (dim + 1);
   INT local_size = dof_per_elm*dof_per_elm;
   REAL* ALoc = calloc(local_size,sizeof(REAL));
-  INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
-  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
+
+  // Create temporary 1-block fespace wrapper
+  block_fespace temp_bfe;
+  temp_bfe.nspaces = 1;
+  temp_bfe.nun = 1;
+  temp_bfe.nelm = FE->nelm;
+  temp_bfe.ndof = FE->ndof;
+  temp_bfe.nbdof = FE->nbdof;
+  temp_bfe.var_spaces = (fespace**)malloc(sizeof(fespace*));
+  temp_bfe.var_spaces[0] = FE;
+  temp_bfe.dirichlet = FE->dirichlet;
+  temp_bfe.dof_flag = FE->dof_flag;
+  temp_bfe.simplex_data = NULL;
+  temp_bfe.fe_data = NULL;
+  simplex_local_data elm_data;
+  fe_local_data fe_data;
+  memset(&elm_data, 0, sizeof(simplex_local_data));
+  memset(&fe_data, 0, sizeof(fe_local_data));
+  initialize_localdata_elm(&elm_data, &fe_data, sc, &temp_bfe, cq->nq1d);
 
   /* Loop over all Elements */
   for (i=0; i<FE->nelm; i++) {
@@ -906,29 +995,28 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespac
     // Zero out local matrices
     for (j=0; j<local_size; j++) ALoc[j] = 0.0;
 
-    // Find DOF for given Element
-    get_incidence_row(i,FE->el_dof,dof_on_elm);
-
-    //Find Nodes for given Element if not H1 elements
-    get_incidence_row(i,fem->el_v,v_on_elm);
+    // Get local element and FE data
+    get_elmlocaldata(&elm_data, sc, i);
+    get_felocaldata_elm(&fe_data, &temp_bfe, NULL, i);
 
     // Compute Local Stiffness Matrix for given Element
-    assemble_DuDv_local(ALoc,FE,sc,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
+    assemble_DuDv_local(ALoc, NULL, NULL, &elm_data, &fe_data, NULL, constant_coeff_scal, 1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-        utj = FE_Evaluate_DOF(truesol,FE,sc,time,dof_on_elm[j]);
-        utk = FE_Evaluate_DOF(truesol,FE,sc,time,dof_on_elm[k]);
-        erj = (utj - u[dof_on_elm[j]]);
-        erk = (utk - u[dof_on_elm[k]]);
+        utj = FE_Evaluate_DOF(truesol,FE,sc,time,fe_data.local_dof[j]);
+        utk = FE_Evaluate_DOF(truesol,FE,sc,time,fe_data.local_dof[k]);
+        erj = (utj - u[fe_data.local_dof[j]]);
+        erk = (utk - u[fe_data.local_dof[k]]);
         sum+=erj*ALoc[j*dof_per_elm+k]*erk;
       }
     }
   }
 
   if(ALoc) free(ALoc);
-  if(dof_on_elm) free(dof_on_elm);
-  if(v_on_elm) free(v_on_elm);
+  free_simplexlocaldata(&elm_data);
+  free_felocaldata(&fe_data);
+  if(temp_bfe.var_spaces) free(temp_bfe.var_spaces);
 
   return sqrt(ABS(sum));
 }
@@ -956,12 +1044,8 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespac
 void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
   sc_fem *fem = sc->fem;
-  INT dim = sc->dim;
   INT i,j,k,elm;
   REAL utk,utj,erk,erj;
-
-  INT v_per_elm = (dim + 1);
-  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
 
   INT local_size=0;
   INT u_dof = 0;
@@ -971,41 +1055,68 @@ void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,RE
     err[i] = 0.0;
   }
 
+  // Create per-space temporary wrappers and local data
+  block_fespace *temp_bfes = (block_fespace *)malloc(nspaces * sizeof(block_fespace));
+  simplex_local_data *elm_datas = (simplex_local_data *)malloc(nspaces * sizeof(simplex_local_data));
+  fe_local_data *fe_datas = (fe_local_data *)malloc(nspaces * sizeof(fe_local_data));
+  for(i=0;i<nspaces;i++) {
+    temp_bfes[i].nspaces = 1;
+    temp_bfes[i].nun = 1;
+    temp_bfes[i].nelm = FE->var_spaces[i]->nelm;
+    temp_bfes[i].ndof = FE->var_spaces[i]->ndof;
+    temp_bfes[i].nbdof = FE->var_spaces[i]->nbdof;
+    temp_bfes[i].var_spaces = (fespace**)malloc(sizeof(fespace*));
+    temp_bfes[i].var_spaces[0] = FE->var_spaces[i];
+    temp_bfes[i].dirichlet = FE->var_spaces[i]->dirichlet;
+    temp_bfes[i].dof_flag = FE->var_spaces[i]->dof_flag;
+    temp_bfes[i].simplex_data = NULL;
+    temp_bfes[i].fe_data = NULL;
+    memset(&elm_datas[i], 0, sizeof(simplex_local_data));
+    memset(&fe_datas[i], 0, sizeof(fe_local_data));
+    initialize_localdata_elm(&elm_datas[i], &fe_datas[i], sc, &temp_bfes[i], cq->nq1d);
+  }
+
   /* Loop over all Elements */
   for (elm=0; elm<fem->ns_leaf; elm++) {
-
-    // Find vertices for given Element
-    get_incidence_row(elm,fem->el_v,v_on_elm);
 
     // Get DOF and error on DOF for given element for each FE space
     u_dof=0;
     for(i=0;i<nspaces;i++) {
       local_size = FE->var_spaces[i]->dof_per_elm;
-      INT* dof_on_elm = (INT *) calloc(local_size,sizeof(INT));
-      get_incidence_row(elm,FE->var_spaces[i]->el_dof,dof_on_elm);
+
+      // Get local element and FE data
+      get_elmlocaldata(&elm_datas[i], sc, elm);
+      get_felocaldata_elm(&fe_datas[i], &temp_bfes[i], NULL, elm);
 
       REAL* ALoc = calloc(local_size*local_size,sizeof(REAL));
       for (j=0; j<local_size*local_size; j++) ALoc[j] = 0.0;
 
       // Compute Local Stiffness Matrix for given Element
-      assemble_DuDv_local(ALoc,FE->var_spaces[i],sc,cq,dof_on_elm,v_on_elm,elm,constant_coeff_scal,1.0);
+      assemble_DuDv_local(ALoc, NULL, NULL, &elm_datas[i], &fe_datas[i], NULL, constant_coeff_scal, 1.0);
 
       for(j=0;j<local_size;j++) {
         for(k=0;k<local_size;k++) {
-          utj = blockFE_Evaluate_DOF(truesol,FE,sc,time,i,dof_on_elm[j]);
-          utk = blockFE_Evaluate_DOF(truesol,FE,sc,time,i,dof_on_elm[k]);
-          erj = (utj - u[u_dof + dof_on_elm[j]]);
-          erk = (utk - u[u_dof + dof_on_elm[k]]);
+          utj = blockFE_Evaluate_DOF(truesol,FE,sc,time,i,fe_datas[i].local_dof[j]);
+          utk = blockFE_Evaluate_DOF(truesol,FE,sc,time,i,fe_datas[i].local_dof[k]);
+          erj = (utj - u[u_dof + fe_datas[i].local_dof[j]]);
+          erk = (utk - u[u_dof + fe_datas[i].local_dof[k]]);
           err[i]+=erj*ALoc[j*local_size+k]*erk;
         }
       }
       u_dof += FE->var_spaces[i]->ndof;
       if(ALoc) free(ALoc);
-      if(dof_on_elm) free(dof_on_elm);
     }
   }
 
-  if(v_on_elm) free(v_on_elm);
+  // Free local data and temporary wrappers
+  for(i=0;i<nspaces;i++) {
+    free_simplexlocaldata(&elm_datas[i]);
+    free_felocaldata(&fe_datas[i]);
+    if(temp_bfes[i].var_spaces) free(temp_bfes[i].var_spaces);
+  }
+  free(temp_bfes);
+  free(elm_datas);
+  free(fe_datas);
 
   for(i=0;i<nspaces;i++) {
     err[i] = sqrt(ABS(err[i]));

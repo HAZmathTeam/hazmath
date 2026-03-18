@@ -46,9 +46,6 @@ void P1_basis_ref(REAL *lam,REAL *dlam,REAL *x,INT dim)
   // Loop Counters
   INT idim,jdim;
 
-  // Allocate here
-  lam = (REAL *) calloc(dim+1,sizeof(REAL));
-  dlam = (REAL *) calloc((dim+1)*dim,sizeof(REAL));
   lam[0] = 1.0;
   for(idim=0;idim<dim;idim++) {
     lam[0] -= x[idim];
@@ -135,7 +132,7 @@ void P1_basis_physical(REAL *lam,REAL *dlam,REAL *x,simplex_local_data* elm_data
       dlam0val += binv[j*dim+i];
       dlam[(i+1)*dim+j] = binv[i*dim+j];
     }
-    dlam[i] = dlam0val;
+    dlam[i] = -dlam0val;
   }
 
   if(xr) free(xr);
@@ -239,7 +236,7 @@ void compute_refelm_mapping(REAL* ref_map,REAL* lamgrads,REAL *xv,INT dim)
   // Get B
   for(i=0;i<dim;i++) {
     for(j=0;j<dim;j++) {
-      ref_map[i*dim+j] = xv[(j+1)*dim+i]-xv[0];
+      ref_map[i*dim+j] = xv[(j+1)*dim+i]-xv[i];
     }
   }
 
@@ -258,7 +255,7 @@ void compute_refelm_mapping(REAL* ref_map,REAL* lamgrads,REAL *xv,INT dim)
       dlam0val += binv[j*dim+i];
       lamgrads[(i+1)*dim+j] = binv[i*dim+j];
     }
-    lamgrads[i] = dlam0val;
+    lamgrads[i] = -dlam0val;
   }
 
   if(binv) free(binv);

@@ -1534,9 +1534,9 @@ void ProjectOut_Grad(dvector* u, fespace* FE_H1, fespace* FE_Ned, scomplex* sc,
   sc_fem* fem = sc->fem;
   INT dim = sc->dim;
   // Construct the Laplacian using P1 elements: <grad p, grad v>
-  dCSRmat Alap;
-  assemble_global(&Alap, NULL, assemble_DuDv_local, FE_H1, sc, cq, NULL, NULL,
-                  0.0);
+  dCSRmat Alap = dcsr_create(0,0,0);
+  assemble_global_single(&Alap, NULL, FE_H1, sc, cq,
+                          local_assembly_DuDv, NULL, NULL, NULL, 0.0);
 
   // Construct RHS vector: <E,grad v>
   dvector b;

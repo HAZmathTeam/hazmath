@@ -561,12 +561,14 @@ void initialize_localdata_elm(simplex_local_data *simplex_data,fe_local_data *fe
 
   // Quadrature and reference mappings
   simplex_data->quad_local = alloc_quadrature(nq1d,1,dim);
-  // Fill in with reference element for now to get lambdas (overwite later for elm)
+  // Fill in with reference element for now to get lambdas (overwrite later for elm)
   quad_refelm(simplex_data->quad_local,nq1d,dim);
   INT nq = simplex_data->quad_local->nq;
   simplex_data->lams = (REAL *) calloc(nq*v_per_elm,sizeof(REAL));
+  simplex_data->ref_map = (REAL *) calloc(dim*dim,sizeof(REAL));
+  simplex_data->gradlams = (REAL *) calloc(nq*v_per_elm*dim,sizeof(REAL));
   // Lams are ordered for each quadrature point, lam0, lam1, etc.
-  // We fill in gradlams, knowing that this will be overwritten later anyway
+  // Fill in gradlams on reference element (will be overwritten per element)
   REAL* lam_at_q = simplex_data->lams;
   REAL* dlam_at_q = simplex_data->gradlams;
   REAL* qx = simplex_data->quad_local->x;
@@ -576,8 +578,6 @@ void initialize_localdata_elm(simplex_local_data *simplex_data,fe_local_data *fe
     dlam_at_q += (dim+1)*dim;
     qx += dim;
   }
-  simplex_data->ref_map = (REAL *) calloc(dim*dim,sizeof(REAL));
-  simplex_data->gradlams = (REAL *) calloc(nq*v_per_elm*dim,sizeof(REAL));
 
 
   // FE local data that is fixed
@@ -682,6 +682,54 @@ void get_elmlocaldata(simplex_local_data* elm_data,scomplex* sc,INT elm)
   // Quadrature and mappings (recall lamda at ref element already built)
   quad_elm_local(elm_data->quad_local,elm_data,elm_data->quad_local->nq1d);
   compute_refelm_mapping(elm_data->ref_map,elm_data->gradlams,elm_data->xv,dim);
+  // Replicate gradlams for all quadrature points (P1 gradients are constant on element)
+  INT nq = elm_data->quad_local->nq;
+  INT grad_size = v_per_elm * dim;
+  for(i=1;i<nq;i++) {
+    memcpy(elm_data->gradlams + i*grad_size, elm_data->gradlams, grad_size*sizeof(REAL));
+  }
+
+  return;
+}
+/******************************************************************************/
+
+/******************************************************************************/
+/*!
+* \fn void get_felocaldata_elm(fe_local_data *fe_data, block_fespace *FE, dvector *old_sol, INT elm)
+*
+* \brief On a given element, gather DOF indices and local solution values
+*        into fe_local_data. Assumes fe_data was initialized by
+*        initialize_localdata_elm.
+*
+* \param FE       Block FE space
+* \param old_sol  Previous solution (NULL for linear problems)
+* \param elm      Element index
+*
+* \return fe_data->local_dof   DOF indices on element
+* \return fe_data->u_local     Local solution values (if old_sol != NULL)
+*
+*/
+void get_felocaldata_elm(fe_local_data *fe_data, block_fespace *FE, dvector *old_sol, INT elm)
+{
+  INT i, j, k, rowa, rowb, jcntr, global_offset;
+  INT nspaces = fe_data->nspaces;
+
+  // Gather DOF for all spaces on this element
+  jcntr = 0;
+  global_offset = 0;
+  for (k = 0; k < nspaces; k++) {
+    rowa = FE->var_spaces[k]->el_dof->IA[elm];
+    rowb = FE->var_spaces[k]->el_dof->IA[elm + 1];
+    for (j = rowa; j < rowb; j++) {
+      fe_data->local_dof[jcntr] = FE->var_spaces[k]->el_dof->JA[j];
+      // Extract local solution if available
+      if (old_sol != NULL) {
+        fe_data->u_local[jcntr] = old_sol->val[fe_data->local_dof[jcntr] + global_offset];
+      }
+      jcntr++;
+    }
+    global_offset += FE->var_spaces[k]->ndof;
+  }
 
   return;
 }
