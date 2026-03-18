@@ -101,7 +101,7 @@ void fe_interpolation_to_quadpt(REAL* val, fe_local_data* fe_data,
   INT scal_or_vec = fe_data->scal_or_vec[space_index];
   INT dim = elm_data->dim;
   REAL* u = fe_data->u_local;
-  for (i = 0; i < space_index; i++) u += fe_data->n_dof_per_space[space_index];
+  for (i = 0; i < space_index; i++) u += fe_data->n_dof_per_space[i];
 
   // Spot to store data
   REAL coef[dim];
@@ -250,7 +250,7 @@ void fe_dinterp_to_quadpt(REAL* val, fe_local_data* fe_data,
   INT dim = elm_data->dim;
   INT fe_type = fe_data->fe_types[space_index];
   REAL* u = fe_data->u_local;
-  for (i = 0; i < space_index; i++) u += fe_data->n_dof_per_space[space_index];
+  for (i = 0; i < space_index; i++) u += fe_data->n_dof_per_space[i];
 
   // Spot to store data
   REAL coef[dim * dim];

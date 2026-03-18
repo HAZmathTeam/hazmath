@@ -238,70 +238,57 @@ void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,scomplex
  */
 REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
-  sc_fem *fem = sc->fem;
   INT dim = sc->dim;
-
-  // Quadrature Weights and Nodes
-  REAL w;
-  REAL* qx = (REAL *) calloc(sc->dim,sizeof(REAL));
-
-  // FE Stuff
-  //INT FEtype = FE->FEtype;
-  INT scal_or_vec = FE->scal_or_vec;
-  INT elm,quad,j;
+  INT elm, quad, j, k;
   REAL sum = 0.0;
+  REAL w;
+  INT scal_or_vec = FE->scal_or_vec;
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = (dim + 1);
-  INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
-  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
+  INT ncomp = (scal_or_vec == 0) ? 1 : dim;
+  REAL val_true[ncomp];
+  REAL val_sol[ncomp];
 
-  // True Solution and FE Solution at Quadrature Nodes
-  INT ncomp = 0;
-  if(scal_or_vec==0) { // Lagrange Elements (i.e., Scalar elements)
-    ncomp = 1;
-  } else { // Vector Elements
-    ncomp = dim;
-  }
-  REAL* val_true = (REAL *) calloc(ncomp,sizeof(REAL));
-  REAL* val_sol = (REAL *) calloc(ncomp,sizeof(REAL));
+  // Set up local data
+  block_fespace temp_bfe;
+  temp_bfe.nspaces = 1; temp_bfe.nun = 1; temp_bfe.nelm = FE->nelm;
+  temp_bfe.ndof = FE->ndof; temp_bfe.nbdof = FE->nbdof;
+  temp_bfe.var_spaces = (fespace**)malloc(sizeof(fespace*));
+  temp_bfe.var_spaces[0] = FE;
+  temp_bfe.dirichlet = FE->dirichlet; temp_bfe.dof_flag = FE->dof_flag;
+  temp_bfe.simplex_data = NULL; temp_bfe.fe_data = NULL;
+  simplex_local_data elm_data;
+  fe_local_data fe_data;
+  memset(&elm_data, 0, sizeof(simplex_local_data));
+  memset(&fe_data, 0, sizeof(fe_local_data));
+  initialize_localdata_elm(&elm_data, &fe_data, sc, &temp_bfe, cq->nq1d);
 
-  /* Loop over all Elements */
-  for (elm=0; elm<FE->nelm; elm++) {
+  for (elm = 0; elm < FE->nelm; elm++) {
+    get_elmlocaldata(&elm_data, sc, elm);
+    // Populate u_local with solution values for this element
+    get_felocaldata_elm(&fe_data, &temp_bfe, NULL, elm);
+    for (k = 0; k < dof_per_elm; k++)
+      fe_data.u_local[k] = u[fe_data.local_dof[k]];
 
-    // Find DOF for given Element
-    get_incidence_row(elm,FE->el_dof,dof_on_elm);
+    INT nq = elm_data.quad_local->nq;
+    for (quad = 0; quad < nq; quad++) {
+      REAL *qx = elm_data.quad_local->x + quad * dim;
+      w = elm_data.quad_local->w[quad];
 
-    // Find Vertices for given Element if not H1 elements
-    get_incidence_row(elm,fem->el_v,v_on_elm);
+      (*truesol)(val_true, qx, time, &elm_data.flag);
 
-    // Loop over quadrature nodes on element
-    for (quad=0;quad<cq->nq_per_elm;quad++) {
-      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      if(sc->dim==2 || sc->dim==3)
-        qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(sc->dim==3)
-        qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-      w = cq->w[elm*cq->nq_per_elm+quad];
+      // Interpolate FE solution using precomputed basis
+      fe_interpolation_to_quadpt(val_sol, &fe_data, &elm_data, 0, quad);
 
-      // Get True Solution at Quadrature Nodes
-      (*truesol)(val_true,qx,time,&(fem->el_flag[elm]));
-
-      // Interpolate FE solution to quadrature point
-      FE_Interpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,sc);
-
-      // Compute Error on Element
-      for(j=0;j<ncomp;j++) {
-        sum+=w*(ABS(val_sol[j] - val_true[j]))*(ABS(val_sol[j] - val_true[j]));
+      for (j = 0; j < ncomp; j++) {
+        REAL diff = val_sol[j] - val_true[j];
+        sum += w * diff * diff;
       }
     }
   }
 
-
-  if(dof_on_elm) free(dof_on_elm);
-  if(v_on_elm) free(v_on_elm);
-  if(qx) free(qx);
-  if(val_true) free(val_true);
-  if(val_sol) free(val_sol);
+  free_simplexlocaldata(&elm_data);
+  free_felocaldata(&fe_data);
+  if (temp_bfe.var_spaces) free(temp_bfe.var_spaces);
 
   return sqrt(sum);
 }
@@ -739,79 +726,68 @@ void HDseminorm_block(REAL *norm,REAL *u,block_fespace *FE,scomplex *sc,qcoordin
  */
 REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *FE,scomplex *sc,qcoordinates *cq,REAL time)
 {
-  sc_fem *fem = sc->fem;
   INT dim = sc->dim;
-
-  // Quadrature Weights and Nodes
-  REAL w;
-  REAL* qx = (REAL *) calloc(sc->dim,sizeof(REAL));
-
-  // FE Stuff
   INT FEtype = FE->FEtype;
   INT scal_or_vec = FE->scal_or_vec;
-  INT elm,quad,j;
+  INT elm, quad, j, k;
   REAL sum = 0.0;
+  REAL w;
   INT dof_per_elm = FE->dof_per_elm;
-  INT v_per_elm = (dim + 1);
-  INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
-  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
 
-  // Derivative of True Solution and FE Solution at Quadrature Nodes
+  // Derivative component count
   INT ncomp = 0;
-  if(scal_or_vec==0) { // Scalar Elements; derivatives are gradient vectors
+  if (scal_or_vec == 0) {
     ncomp = dim;
-    if(FEtype==0 || FEtype==99) { // P0 Elements or Constraint element
+    if (FEtype == 0 || FEtype == 99) {
       printf("\nHAZmath Warning: You are using elements that don't have a derivative.  Evaluation of H1semi norm of approximation is 0.\n");
     }
-  } else { // Vector Elements
-    if(FEtype>=20 && FEtype<30 && dim==3) { // Nedelec Elements in 3D -> Curl is a Vector
-      ncomp = dim;
-    } else { // 2D Nedelec -> Curl is a scalar or RT -> Div is a scalar
-      ncomp = 1;
-    }
-  } 
+  } else {
+    if (FEtype >= 20 && FEtype < 30 && dim == 3) ncomp = dim;
+    else ncomp = 1;
+  }
+  REAL val_true[ncomp];
+  REAL val_sol[ncomp];
 
-  REAL* val_true = (REAL *) calloc(ncomp,sizeof(REAL));
-  REAL* val_sol = (REAL *) calloc(ncomp,sizeof(REAL));
+  // Set up local data
+  block_fespace temp_bfe;
+  temp_bfe.nspaces = 1; temp_bfe.nun = 1; temp_bfe.nelm = FE->nelm;
+  temp_bfe.ndof = FE->ndof; temp_bfe.nbdof = FE->nbdof;
+  temp_bfe.var_spaces = (fespace**)malloc(sizeof(fespace*));
+  temp_bfe.var_spaces[0] = FE;
+  temp_bfe.dirichlet = FE->dirichlet; temp_bfe.dof_flag = FE->dof_flag;
+  temp_bfe.simplex_data = NULL; temp_bfe.fe_data = NULL;
+  simplex_local_data elm_data;
+  fe_local_data fe_data;
+  memset(&elm_data, 0, sizeof(simplex_local_data));
+  memset(&fe_data, 0, sizeof(fe_local_data));
+  initialize_localdata_elm(&elm_data, &fe_data, sc, &temp_bfe, cq->nq1d);
 
-  /* Loop over all Elements */
-  for (elm=0; elm<FE->nelm; elm++) {
+  for (elm = 0; elm < FE->nelm; elm++) {
+    get_elmlocaldata(&elm_data, sc, elm);
+    get_felocaldata_elm(&fe_data, &temp_bfe, NULL, elm);
+    for (k = 0; k < dof_per_elm; k++)
+      fe_data.u_local[k] = u[fe_data.local_dof[k]];
 
-    // Find DOF for given Element
-    get_incidence_row(elm,FE->el_dof,dof_on_elm);
+    INT nq = elm_data.quad_local->nq;
+    for (quad = 0; quad < nq; quad++) {
+      REAL *qx = elm_data.quad_local->x + quad * dim;
+      w = elm_data.quad_local->w[quad];
 
-    //Find Vertices for given Element if not H1 elements
-    get_incidence_row(elm,fem->el_v,v_on_elm);
+      (*D_truesol)(val_true, qx, time, &elm_data.flag);
 
-    // Loop over quadrature nodes on element
+      // Interpolate derivative of FE solution using precomputed basis
+      fe_dinterp_to_quadpt(val_sol, &fe_data, &elm_data, 0, quad);
 
-    for (quad=0;quad<cq->nq_per_elm;quad++) {
-      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      if(sc->dim==2 || sc->dim==3)
-        qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(sc->dim==3)
-        qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-      w = cq->w[elm*cq->nq_per_elm+quad];
-
-      // Get True Solution at Quadrature Nodes
-      (*D_truesol)(val_true,qx,time,&(fem->el_flag[elm]));
-
-      // Interpolate FE solution to quadrature point
-      FE_DerivativeInterpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,sc);
-
-      // Compute Error on Element
-      for(j=0;j<ncomp;j++) {
-        sum+=w*(ABS(val_sol[j] - val_true[j]))*(ABS(val_sol[j] - val_true[j]));
+      for (j = 0; j < ncomp; j++) {
+        REAL diff = val_sol[j] - val_true[j];
+        sum += w * diff * diff;
       }
     }
   }
 
-
-  if(dof_on_elm) free(dof_on_elm);
-  if(v_on_elm) free(v_on_elm);
-  if(qx) free(qx);
-  if(val_true) free(val_true);
-  if(val_sol) free(val_sol);
+  free_simplexlocaldata(&elm_data);
+  free_felocaldata(&fe_data);
+  if (temp_bfe.var_spaces) free(temp_bfe.var_spaces);
 
   return sqrt(sum);
 }
