@@ -13,7 +13,7 @@
 */
 
 /*!
-* \fn void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+* \fn void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,scomplex *sc,qcoordinates *cq)
 *
 * \brief Compute the error estimator for each element
 *        Th_T^2 = hT^2 ||−K1 grad(div(n)) + K3 curl(Z(n)curl(n)) + (K2 − K3)(n*curl(n))curl(n) + 2 K2 q0 curl(n)) + lam*n||_0,T^2
@@ -22,13 +22,13 @@
 *
 * \param u 	        FE Approximation
 * \param FE          FE Space
-* \param mesh        Mesh Data
+* \param sc          Simplicial Complex
 * \param cq          Quadrature
 *
 * \return est        error estimator on each element as array
 *
 */
-void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq) {
+void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,scomplex *sc,qcoordinates *cq) {
 
   // Counters
   INT elm,neighborelm,quad,i,j,rowa,rowb,jcntr,face,iface;
@@ -36,17 +36,17 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,mesh_struct *mesh,qco
   REAL est_on_elm = 0.0;
 
   // Mesh Stuff
-  INT dim = mesh->dim;
+  INT dim = sc->dim;
   INT twoders = 3*(dim-1); // uxx, uxy, uyy, uxz, uyz, uzz
-  INT v_per_elm = mesh->v_per_elm;
+  INT v_per_elm = dim+1;
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
   INT* v_on_elm_neighbor = (INT *) calloc(v_per_elm,sizeof(INT));
-  INT f_per_elm = mesh->f_per_elm;
+  INT f_per_elm = dim+1;
   INT* f_on_elm = (INT *) calloc(f_per_elm,sizeof(INT));
   REAL hT; // Element diamter
   REAL hF; // Face diameter
   iCSRmat* f_el = (iCSRmat *)malloc(1*sizeof(iCSRmat)); // face_to_element;
-  icsr_trans(mesh->el_f,f_el);
+  icsr_trans(sc->fem->el_f,f_el);
 
   // Quadrature Weights and Nodes
   REAL w, wface;
@@ -112,11 +112,11 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,mesh_struct *mesh,qco
   REAL onemkap = 1.0 - kap;
 
   /* Loop over all Elements */
-  for (elm=0; elm<mesh->nelm; elm++) {
+  for (elm=0; elm<sc->fem->ns_leaf; elm++) {
     est_on_elm = 0.0;
 
     // Get cell diameter
-    hT = pow(dim*(dim-1)*mesh->el_vol[elm],1.0/dim);
+    hT = pow(dim*(dim-1)*sc->fem->el_vol[elm],1.0/dim);
 
     // Find DOF for given Element
     // Note this is "local" ordering for the given FE space of the block
@@ -132,15 +132,15 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,mesh_struct *mesh,qco
     }
 
     // Find Vertices for given Element if not H1 elements
-    get_incidence_row(elm,mesh->el_v,v_on_elm);
+    get_incidence_row(elm,sc->fem->el_v,v_on_elm);
 
     // Interior calculations first
     // Loop over quadrature nodes on element
     for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==2 || mesh->dim==3)
+      if(sc->dim==2 || sc->dim==3)
       qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==3)
+      if(sc->dim==3)
       qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
 
@@ -148,26 +148,26 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,mesh_struct *mesh,qco
       //  Get the Basis Functions and previous solutions at each quadrature node
       // n
       local_uprev = u;
-      FE_Interpolation(&n1,local_uprev,qx,dof_on_elm,v_on_elm,FE->var_spaces[0],mesh);
-      FE_DerivativeInterpolation(dn1,local_uprev,qx,dof_on_elm,v_on_elm,FE->var_spaces[0],mesh);
-      P2_2ndDerivativeInterpolation(ddn1,local_uprev,qx,dof_on_elm,FE->var_spaces[0],mesh);
+      FE_Interpolation(&n1,local_uprev,qx,dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
+      FE_DerivativeInterpolation(dn1,local_uprev,qx,dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
+      P2_2ndDerivativeInterpolation(ddn1,local_uprev,qx,dof_on_elm,FE->var_spaces[0],sc);
       local_dof_on_elm = dof_on_elm + FE->var_spaces[0]->dof_per_elm;
       local_uprev+=FE->var_spaces[0]->ndof;
 
-      FE_Interpolation(&n2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],mesh);
-      FE_DerivativeInterpolation(dn2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],mesh);
-      P2_2ndDerivativeInterpolation(ddn2,local_uprev,qx,dof_on_elm,FE->var_spaces[1],mesh);
+      FE_Interpolation(&n2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
+      FE_DerivativeInterpolation(dn2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
+      P2_2ndDerivativeInterpolation(ddn2,local_uprev,qx,dof_on_elm,FE->var_spaces[1],sc);
       local_dof_on_elm += FE->var_spaces[1]->dof_per_elm;
       local_uprev+=FE->var_spaces[1]->ndof;
 
-      FE_Interpolation(&n3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],mesh);
-      FE_DerivativeInterpolation(dn3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],mesh);
-      P2_2ndDerivativeInterpolation(ddn3,local_uprev,qx,dof_on_elm,FE->var_spaces[2],mesh);
+      FE_Interpolation(&n3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
+      FE_DerivativeInterpolation(dn3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
+      P2_2ndDerivativeInterpolation(ddn3,local_uprev,qx,dof_on_elm,FE->var_spaces[2],sc);
       local_dof_on_elm += FE->var_spaces[2]->dof_per_elm;
       local_uprev+=FE->var_spaces[2]->ndof;
 
       // lambda
-      FE_Interpolation(&lam,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[3],mesh);
+      FE_Interpolation(&lam,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[3],sc);
 
       // Compute divs and curls
       divn = dn1[0] + dn2[1];
@@ -251,18 +251,18 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,mesh_struct *mesh,qco
 
     // Face terms
     // Find Faces for given Element
-    get_incidence_row(elm,mesh->el_f,f_on_elm);
+    get_incidence_row(elm,sc->fem->el_f,f_on_elm);
 
     // Loop over each face and integrate
     for(iface=0;iface<f_per_elm;iface++) {
       face = f_on_elm[iface];
 
       // Get face diamter (length in 2D, sqrt(area/2) in 3D)
-      hF = mesh->f_area[face];
+      hF = sc->fem->f_area[face];
       if(dim==3) hF = sqrt(2.0*hF);
 
       // Get quadrature on face
-      quad_face(cq_face,mesh,cq->nq1d,face);
+      quad_face(cq_face,sc,cq->nq1d,face);
 
       // Need to find connecting elements on face if not on boundary
       rowa = f_el->IA[face];
@@ -294,15 +294,15 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,mesh_struct *mesh,qco
         }
 
         // Find Vertices for neighbor element
-        get_incidence_row(neighborelm,mesh->el_v,v_on_elm_neighbor);
+        get_incidence_row(neighborelm,sc->fem->el_v,v_on_elm_neighbor);
       }
 
       // Loop over quadrature on face
       for (quad=0;quad<cq_face->nq_per_elm;quad++) {
         qxf[0] = cq_face->x[quad];
-        if(mesh->dim==2 || mesh->dim==3)
+        if(sc->dim==2 || sc->dim==3)
         qxf[1] = cq_face->y[quad];
-        if(mesh->dim==3)
+        if(sc->dim==3)
         qxf[2] = cq_face->z[quad];
         wface = cq->w[quad];
 
@@ -310,32 +310,32 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,mesh_struct *mesh,qco
         //  Get current solutions at each quadrature node
         // n
         local_uprev = u;
-        FE_Interpolation(&n1,local_uprev,qxf,dof_on_elm,v_on_elm,FE->var_spaces[0],mesh);
-        FE_DerivativeInterpolation(dn1,local_uprev,qxf,dof_on_elm,v_on_elm,FE->var_spaces[0],mesh);
+        FE_Interpolation(&n1,local_uprev,qxf,dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
+        FE_DerivativeInterpolation(dn1,local_uprev,qxf,dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
         local_dof_on_elm = dof_on_elm + FE->var_spaces[0]->dof_per_elm;
         if(haveneighbor) {
-          FE_Interpolation(&n1neigh,local_uprev,qxf,dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[0],mesh);
-          FE_DerivativeInterpolation(dn1neigh,local_uprev,qxf,dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[0],mesh);
+          FE_Interpolation(&n1neigh,local_uprev,qxf,dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[0],sc);
+          FE_DerivativeInterpolation(dn1neigh,local_uprev,qxf,dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[0],sc);
           local_dof_on_elm_neighbor = dof_on_elm_neighbor + FE->var_spaces[0]->dof_per_elm;
         }
         local_uprev+=FE->var_spaces[0]->ndof;
 
-        FE_Interpolation(&n2,local_uprev,qxf,local_dof_on_elm,v_on_elm,FE->var_spaces[1],mesh);
-        FE_DerivativeInterpolation(dn2,local_uprev,qxf,local_dof_on_elm,v_on_elm,FE->var_spaces[1],mesh);
+        FE_Interpolation(&n2,local_uprev,qxf,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
+        FE_DerivativeInterpolation(dn2,local_uprev,qxf,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
         local_dof_on_elm += FE->var_spaces[1]->dof_per_elm;
         if(haveneighbor) {
-          FE_Interpolation(&n2neigh,local_uprev,qxf,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[1],mesh);
-          FE_DerivativeInterpolation(dn2neigh,local_uprev,qxf,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[1],mesh);
+          FE_Interpolation(&n2neigh,local_uprev,qxf,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[1],sc);
+          FE_DerivativeInterpolation(dn2neigh,local_uprev,qxf,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[1],sc);
           local_dof_on_elm_neighbor += FE->var_spaces[1]->dof_per_elm;
         }
         local_uprev+=FE->var_spaces[1]->ndof;
 
-        FE_Interpolation(&n3,local_uprev,qxf,local_dof_on_elm,v_on_elm,FE->var_spaces[2],mesh);
-        FE_DerivativeInterpolation(dn3,local_uprev,qxf,local_dof_on_elm,v_on_elm,FE->var_spaces[2],mesh);
+        FE_Interpolation(&n3,local_uprev,qxf,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
+        FE_DerivativeInterpolation(dn3,local_uprev,qxf,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
         local_dof_on_elm += FE->var_spaces[2]->dof_per_elm;
         if(haveneighbor) {
-          FE_Interpolation(&n3neigh,local_uprev,qxf,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[2],mesh);
-          FE_DerivativeInterpolation(dn3neigh,local_uprev,qxf,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[2],mesh);
+          FE_Interpolation(&n3neigh,local_uprev,qxf,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[2],sc);
+          FE_DerivativeInterpolation(dn3neigh,local_uprev,qxf,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[2],sc);
           local_dof_on_elm_neighbor += FE->var_spaces[2]->dof_per_elm;
         }
         local_uprev+=FE->var_spaces[2]->ndof;
@@ -388,13 +388,13 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,mesh_struct *mesh,qco
 
         // Computing face estimator
         // hF || [[K1 div(n)norm(f) + K3 (Z*curl(n))xnorm(f)]]||_f^2
-        term2[0] = K1*divn*mesh->f_norm[face*dim+0] + K3*(Zcurln[1]*mesh->f_norm[face*dim+2] - Zcurln[2]*mesh->f_norm[face*dim+1]);
-        term2[1] = K1*divn*mesh->f_norm[face*dim+1] + K3*(Zcurln[2]*mesh->f_norm[face*dim+0] - Zcurln[0]*mesh->f_norm[face*dim+2]);
-        term2[2] = K1*divn*mesh->f_norm[face*dim+2] + K3*(Zcurln[0]*mesh->f_norm[face*dim+1] - Zcurln[1]*mesh->f_norm[face*dim+0]);
+        term2[0] = K1*divn*sc->fem->f_norm[face*dim+0] + K3*(Zcurln[1]*sc->fem->f_norm[face*dim+2] - Zcurln[2]*sc->fem->f_norm[face*dim+1]);
+        term2[1] = K1*divn*sc->fem->f_norm[face*dim+1] + K3*(Zcurln[2]*sc->fem->f_norm[face*dim+0] - Zcurln[0]*sc->fem->f_norm[face*dim+2]);
+        term2[2] = K1*divn*sc->fem->f_norm[face*dim+2] + K3*(Zcurln[0]*sc->fem->f_norm[face*dim+1] - Zcurln[1]*sc->fem->f_norm[face*dim+0]);
         if(haveneighbor) {
-          term2[0] += -(K1*divnneigh*mesh->f_norm[face*dim+0] + K3*(Zcurlnneigh[1]*mesh->f_norm[face*dim+2] - Zcurlnneigh[2]*mesh->f_norm[face*dim+1]));
-          term2[1] += -(K1*divnneigh*mesh->f_norm[face*dim+1] + K3*(Zcurlnneigh[2]*mesh->f_norm[face*dim+0] - Zcurlnneigh[0]*mesh->f_norm[face*dim+2]));
-          term2[2] += -(K1*divnneigh*mesh->f_norm[face*dim+2] + K3*(Zcurlnneigh[0]*mesh->f_norm[face*dim+1] - Zcurlnneigh[1]*mesh->f_norm[face*dim+0]));
+          term2[0] += -(K1*divnneigh*sc->fem->f_norm[face*dim+0] + K3*(Zcurlnneigh[1]*sc->fem->f_norm[face*dim+2] - Zcurlnneigh[2]*sc->fem->f_norm[face*dim+1]));
+          term2[1] += -(K1*divnneigh*sc->fem->f_norm[face*dim+1] + K3*(Zcurlnneigh[2]*sc->fem->f_norm[face*dim+0] - Zcurlnneigh[0]*sc->fem->f_norm[face*dim+2]));
+          term2[2] += -(K1*divnneigh*sc->fem->f_norm[face*dim+2] + K3*(Zcurlnneigh[0]*sc->fem->f_norm[face*dim+1] - Zcurlnneigh[1]*sc->fem->f_norm[face*dim+0]));
         } else {
           term2[0] = 0.0;
           term2[1] = 0.0;

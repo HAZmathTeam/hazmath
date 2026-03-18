@@ -65,16 +65,16 @@ int main (int argc, char* argv[])
 
   // Use HAZMATH built in functions for an initial uniform mesh in 2D or 3D
   // Make sure to save the simplicial complex for adaptive refinement and marking
-  mesh_struct mesh;
+  scomplex *sc;
   INT dim = inparam.spatial_dim;                 // dimension of computational domain
   INT mesh_ref_levels = inparam.refinement_levels; // refinement levels of initial (coarsest uniform) mesh
   INT mesh_ref_type = inparam.refinement_type;     // refinement type (>10 uniform or <10 other)
   INT set_bndry_codes = inparam.boundary_codes;    // set flags for the boundary DoF (1-16 are Dirichlet) (this isn't used??)
-  mesh=make_uniform_mesh(dim,mesh_ref_levels,mesh_ref_type,set_bndry_codes);
+  sc = make_uniform_mesh(dim,mesh_ref_levels,mesh_ref_type,set_bndry_codes);
 
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; /* Quadrature points per dimension */
-  qcoordinates *cq = get_quadrature(&mesh,nq1d);
+  qcoordinates *cq = get_quadrature(sc,nq1d);
 
   // Get info for and create FEM spaces
   // Order of elements: 0 - P0; 1 - P1; 2 - P2; 20 - Nedlec; 30 - Raviart-Thomas
@@ -83,13 +83,13 @@ int main (int argc, char* argv[])
 
   // Need Spaces for each component of the director plus lambda
   fespace FE_nx; // Director in x direction
-  create_fespace(&FE_nx,&mesh,order_n);
+  create_fespace(&FE_nx,sc,order_n);
   fespace FE_ny; // Director in y direction
-  create_fespace(&FE_ny,&mesh,order_n);
+  create_fespace(&FE_ny,sc,order_n);
   fespace FE_nz; // Director in z direction
-  create_fespace(&FE_nz,&mesh,order_n);
+  create_fespace(&FE_nz,sc,order_n);
   fespace FE_lam; // Lagrange multiplier, lambda
-  create_fespace(&FE_lam,&mesh,order_lam);
+  create_fespace(&FE_lam,sc,order_lam);
 
   // Decide whether you want Dirichlet or Periodic boundary conditions.
   // periodic_flag = 1 means it's periodic bc
@@ -102,13 +102,13 @@ int main (int argc, char* argv[])
     dirichlet_flag = 1;
   }
   // Lambda has Neumann boundaries regardless
-  set_dirichlet_bdry(&FE_lam,&mesh,-10,-10);
+  set_dirichlet_bdry(&FE_lam,sc,-10,-10);
 
   // Dirichlet Boundaries (Dirichlet all around for n)
   if (dirichlet_flag == 1){
-    set_dirichlet_bdry(&FE_nx,&mesh,1,6);
-    set_dirichlet_bdry(&FE_ny,&mesh,1,6);
-    set_dirichlet_bdry(&FE_nz,&mesh,1,6);
+    set_dirichlet_bdry(&FE_nx,sc,1,6);
+    set_dirichlet_bdry(&FE_ny,sc,1,6);
+    set_dirichlet_bdry(&FE_nz,sc,1,6);
   }
 
   // Periodic Boundaries
@@ -124,25 +124,25 @@ int main (int argc, char* argv[])
 
     if(dim==2) {
       // For 2D, the y bounds are Dirichlet while x is periodic.
-      set_periodic_bdry(&FE_nx,&mesh,0.0,1.0,0.0,0.0,0.0,0.0);
-      set_periodic_bdry(&FE_ny,&mesh,0.0,1.0,0.0,0.0,0.0,0.0);
-      set_periodic_bdry(&FE_nz,&mesh,0.0,1.0,0.0,0.0,0.0,0.0);
-      set_periodic_bdry(&FE_lam,&mesh,0.0,1.0,0.0,0.0,0.0,0.0);
+      set_periodic_bdry(&FE_nx,sc,0.0,1.0,0.0,0.0,0.0,0.0);
+      set_periodic_bdry(&FE_ny,sc,0.0,1.0,0.0,0.0,0.0,0.0);
+      set_periodic_bdry(&FE_nz,sc,0.0,1.0,0.0,0.0,0.0,0.0);
+      set_periodic_bdry(&FE_lam,sc,0.0,1.0,0.0,0.0,0.0,0.0);
 
-      set_dirichlet_bdry(&FE_nx,&mesh,3,4);
-      set_dirichlet_bdry(&FE_ny,&mesh,3,4);
-      set_dirichlet_bdry(&FE_nz,&mesh,3,4);
+      set_dirichlet_bdry(&FE_nx,sc,3,4);
+      set_dirichlet_bdry(&FE_ny,sc,3,4);
+      set_dirichlet_bdry(&FE_nz,sc,3,4);
     } else if(dim==3) {
       // For 3D, the z bounds are Dirichlet while x & y are periodic
-      set_periodic_bdry(&FE_nx,&mesh,0.0,1.0,0.0,1.0,0.0,0.0);
-      set_periodic_bdry(&FE_ny,&mesh,0.0,1.0,0.0,1.0,0.0,0.0);
-      set_periodic_bdry(&FE_nz,&mesh,0.0,1.0,0.0,1.0,0.0,0.0);
-      set_periodic_bdry(&FE_lam,&mesh,0.0,1.0,0.0,1.0,0.0,0.0);
+      set_periodic_bdry(&FE_nx,sc,0.0,1.0,0.0,1.0,0.0,0.0);
+      set_periodic_bdry(&FE_ny,sc,0.0,1.0,0.0,1.0,0.0,0.0);
+      set_periodic_bdry(&FE_nz,sc,0.0,1.0,0.0,1.0,0.0,0.0);
+      set_periodic_bdry(&FE_lam,sc,0.0,1.0,0.0,1.0,0.0,0.0);
 
       // Setting Dirichlet boundary conditions
-      set_dirichlet_bdry(&FE_nx,&mesh,5,6);
-      set_dirichlet_bdry(&FE_ny,&mesh,5,6);
-      set_dirichlet_bdry(&FE_nz,&mesh,5,6);
+      set_dirichlet_bdry(&FE_nx,sc,5,6);
+      set_dirichlet_bdry(&FE_ny,sc,5,6);
+      set_dirichlet_bdry(&FE_nz,sc,5,6);
     } else {
       check_error(ERROR_DIM, __FUNCTION__);
     }
@@ -156,14 +156,14 @@ int main (int argc, char* argv[])
   INT nun = 4;
   // Get Global FE Space
   block_fespace FE;
-  initialize_fesystem(&FE,nspaces,nun,ndof,mesh.nelm);
+  initialize_fesystem(&FE,nspaces,nun,ndof,sc->fem->ns_leaf);
   FE.var_spaces[0] = &FE_nx;
   FE.var_spaces[1] = &FE_ny;
   FE.var_spaces[2] = &FE_nz;
   FE.var_spaces[3] = &FE_lam;
 
   // Set Dirichlet Boundaries
-  set_dirichlet_bdry_block(&FE,&mesh);
+  set_dirichlet_bdry_block(&FE,sc);
 
   // Set Periodic Boundaries
   block_dCSRmat P_periodic;
@@ -177,12 +177,12 @@ int main (int argc, char* argv[])
   /*******************************************************************************/
 
   printf("***********************************************************************************\n");
-  printf("%d Dimensional Problem\n",mesh.dim);
-  printf("Number of Elements = %d\tOrder of Quadrature = %d\n",mesh.nelm,2*nq1d-1);
+  printf("%lld Dimensional Problem\n",(long long)sc->dim);
+  printf("Number of Elements = %lld\tOrder of Quadrature = %d\n",(long long)sc->fem->ns_leaf,2*nq1d-1);
   printf("\n\t--- Element Type ---\n");
   printf("Director Element Type = %d\tLagrange Multiplier Element Type = %d\n",order_n,order_lam);
   printf("\n\t--- Degrees of Freedom ---\n");
-  printf("Vertices: %-7d\tEdges: %-7d\tFaces: %-7d",mesh.nv,mesh.nedge,mesh.nface);
+  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld",(long long)sc->nv,(long long)sc->fem->nedge,(long long)sc->fem->nface);
   printf("\t--> DOF: %d\n",FE.ndof);
   printf("***********************************************************************************\n\n");
 
@@ -204,18 +204,18 @@ int main (int argc, char* argv[])
 
   // Allocate the Initial Guess
   srand(803087000);
-  blockFE_Evaluate(n_it.sol->val,initial_guess,&FE,&mesh,0.0);
+  blockFE_Evaluate(n_it.sol->val,initial_guess,&FE,sc,0.0);
 
   // Error Estimator Stuff
-  REAL* errest = (REAL *) calloc(mesh.nelm,sizeof(REAL));
+  REAL* errest = (REAL *) calloc(sc->fem->ns_leaf,sizeof(REAL));
   // Plotting stuff
   char estout[40];
   char** estname = malloc(50*sizeof(char *));
   estname[0] = "err_est";
   fespace FE_est; // P0 space to store estimator for plotting
-  create_fespace(&FE_est,&mesh,0);
+  create_fespace(&FE_est,sc,0);
   // Get estimate of initial guess
-  LCerror_estimator(errest,n_it.sol->val,&FE,&mesh,cq);
+  LCerror_estimator(errest,n_it.sol->val,&FE,sc,cq);
 
 
   // Dump Initial Guess
@@ -227,16 +227,16 @@ int main (int argc, char* argv[])
   varname[3] = "lambda";
   if (inparam.print_level > 3) {
     sprintf(solout,"output/solution_newt000.vtu");
-    dump_blocksol_vtk(solout,varname,&mesh,&FE,n_it.sol->val);
+    dump_blocksol_vtk(solout,varname,sc,&FE,n_it.sol->val);
     // Dump estimator into vtk
     sprintf(estout,"output/errest_newt000.vtu");
-    dump_sol_vtk(estout,estname[0],&mesh,&FE_est,errest);
+    dump_sol_vtk(estout,estname[0],sc,&FE_est,errest);
   }
 
   // Perform initial Jacobian assembly
-  assemble_global_Jacobian(n_it.Jac_block,n_it.rhs,n_it.sol,local_assembly_LCelastic,&FE,&mesh,cq,NULL,0.0);
+  assemble_global_system(n_it.Jac_block,n_it.rhs,&FE,sc,cq,local_assembly_LCelastic,n_it.sol,NULL,NULL,0.0);
   // Eliminate Dirichlet boundary conditions in matrix and rhs
-  eliminate_DirichletBC_blockFE_blockA(bc,&FE,&mesh,n_it.rhs,n_it.Jac_block,0.0);
+  eliminate_DirichletBC_blockFE_blockA(bc,&FE,sc,n_it.rhs,n_it.Jac_block,0.0);
 
   // Deal with Periodic Boundary conditions, but not mess up n_it.Jac_block
   block_dCSRmat Jac_per;
@@ -275,9 +275,9 @@ int main (int argc, char* argv[])
 
   // Compute Initial Energy and Length of Director
   REAL* energy = (REAL *) calloc(4,sizeof(REAL));
-  compute_LCelastic_energy(energy,n_it.sol->val,&FE,&mesh,cq);
+  compute_LCelastic_energy(energy,n_it.sol->val,&FE,sc,cq);
   REAL unitlength=0.0;
-  compute_LCelastic_unitlength(&unitlength,n_it.sol->val,&FE,&mesh,cq);
+  compute_LCelastic_unitlength(&unitlength,n_it.sol->val,&FE,sc,cq);
   printf("\nInitial Energies & Length of Director:\nTotal Energy: %25.16e\n",energy[0]);
   printf("Splay:        %25.16e\nTwist:        %25.16e\nBend:         %25.16e\n\n",energy[1],energy[2],energy[3]);
   printf("L2 norm of n: %25.16e\n\n",unitlength);
@@ -328,13 +328,13 @@ int main (int argc, char* argv[])
     update_sol_newton(&n_it);
 
     // Get norm of update
-    get_blockupdate_norm(&n_it,&FE,&mesh,cq);
+    get_blockupdate_norm(&n_it,&FE,sc,cq);
 
     // Update Jacobian and nonlinear residual with new solution
-    assemble_global_Jacobian(n_it.Jac_block,n_it.rhs,n_it.sol,local_assembly_LCelastic,&FE,&mesh,cq,NULL,0.0);
+    assemble_global_system(n_it.Jac_block,n_it.rhs,&FE,sc,cq,local_assembly_LCelastic,n_it.sol,NULL,NULL,0.0);
 
     // Eliminate Dirichlet boundary conditions in matrix and rhs
-    eliminate_DirichletBC_blockFE_blockA(bc,&FE,&mesh,n_it.rhs,n_it.Jac_block,0.0);
+    eliminate_DirichletBC_blockFE_blockA(bc,&FE,sc,n_it.rhs,n_it.Jac_block,0.0);
     // Eliminate Periodic boundary CONDITIONS
     if (periodic_flag == 1) {
       eliminate_PeriodicBC_blockFE_nonoverwrite(&P_periodic, n_it.Jac_block, n_it.rhs, &Jac_per, &rhs_per);
@@ -347,10 +347,10 @@ int main (int argc, char* argv[])
     res_norm_scaled = n_it.res_norm/sqrt(n_it.rhs->row);
 
     // Compute Energies
-    compute_LCelastic_energy(energy,n_it.sol->val,&FE,&mesh,cq);
+    compute_LCelastic_energy(energy,n_it.sol->val,&FE,sc,cq);
 
     // Checking Unit Length Constraint
-    compute_LCelastic_unitlength(&unitlength,n_it.sol->val,&FE,&mesh,cq);
+    compute_LCelastic_unitlength(&unitlength,n_it.sol->val,&FE,sc,cq);
 
     // Print Data
     printf("Residuals:\nl2-norm of Nonlinear Residual = %25.16e\n",n_it.res_norm);
@@ -364,15 +364,15 @@ int main (int argc, char* argv[])
     newton_stop = check_newton_convergence(&n_it);
 
     // Compute estimator
-    LCerror_estimator(errest,n_it.sol->val,&FE,&mesh,cq);
+    LCerror_estimator(errest,n_it.sol->val,&FE,sc,cq);
 
     if (inparam.print_level > 3) {
       // Solution at each timestep
       sprintf(solout,"output/solution_newt%03d.vtu",n_it.current_step);
-      dump_blocksol_vtk(solout,varname,&mesh,&FE,n_it.sol->val);
+      dump_blocksol_vtk(solout,varname,sc,&FE,n_it.sol->val);
       // Dump estimator into vtk
       sprintf(estout,"output/errest_newt%03d.vtu",n_it.current_step);
-      dump_sol_vtk(estout,estname[0],&mesh,&FE_est,errest);
+      dump_sol_vtk(estout,estname[0],sc,&FE_est,errest);
     }
   }
 
@@ -405,7 +405,7 @@ int main (int argc, char* argv[])
   }
 
   // Mesh
-  free_mesh(&mesh);
+  haz_scomplex_free(sc);
 
   // Strings
   if(varname) free(varname);

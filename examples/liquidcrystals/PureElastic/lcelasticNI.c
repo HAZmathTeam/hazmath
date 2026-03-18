@@ -65,7 +65,7 @@ int main (int argc, char* argv[])
 
   // Use HAZMATH built in functions for an initial uniform mesh in 2D or 3D
   // We will also create the nested iteration struct here which will contain the simplicial complex for adaptive refinement and marking
-  mesh_struct mesh;
+  scomplex *sc;
   nested_it ni;
   dvector sol; // Solution on next level mesh
   initialize_ni(&ni);
@@ -74,7 +74,7 @@ int main (int argc, char* argv[])
   INT mesh_ref_type = inparam.refinement_type;     // refinement type (>10 uniform or <10 other)
   INT set_bndry_codes = inparam.boundary_codes;    // set flags for the boundary DoF (1-16 are Dirichlet) (this isn't used??)
   get_initial_mesh_ni(&ni,dim,init_ref_levels);
-  mesh = ni.mesh[0];
+  sc = ni.sc;
 
   // Decide whether you want Dirichlet or Periodic boundary conditions.
   // periodic_flag = 1 means it's periodic bc
@@ -91,12 +91,12 @@ int main (int argc, char* argv[])
   char meshout[40];
   if (inparam.print_level > 3) {
     sprintf(meshout,"output/mesh00.vtu");
-    dump_mesh_vtk(meshout,&mesh);
+    dump_mesh_vtk(meshout,sc);
   }
 
   // Get Quadrature Nodes for the initial Mesh
   INT nq1d = inparam.nquad; /* Quadrature points per dimension */
-  qcoordinates *cq = get_quadrature(&mesh,nq1d);
+  qcoordinates *cq = get_quadrature(sc,nq1d);
   ni.cq = cq;
 
   // Get info for and create FEM spaces
@@ -109,7 +109,7 @@ int main (int argc, char* argv[])
   fespace FE_lam; // Lagrange multiplier, lambda
   block_fespace FE; // Global block FE space
   block_dCSRmat P_periodic; // Periodic Boundary Matrix (if needed)
-  setup_FEspaces(order_n,order_lam,&FE_nx,&FE_ny,&FE_nz,&FE_lam,&FE,&P_periodic,&mesh,dim);
+  setup_FEspaces(order_n,order_lam,&FE_nx,&FE_ny,&FE_nz,&FE_lam,&FE,&P_periodic,sc,dim);
   INT ndof = FE.ndof; // Number of degrees of freedom
   INT nspaces = FE.nspaces; // Number of spaces in the block FE space
   INT nun = FE.nun; // Number of unknowns in the block FE space
@@ -121,12 +121,12 @@ int main (int argc, char* argv[])
   /*******************************************************************************/
 
   printf("***********************************************************************************\n");
-  printf("%d Dimensional Problem\n",mesh.dim);
-  printf("Number of Elements = %d\tOrder of Quadrature = %d\n",mesh.nelm,2*nq1d-1);
+  printf("%lld Dimensional Problem\n",(long long)sc->dim);
+  printf("Number of Elements = %lld\tOrder of Quadrature = %d\n",(long long)sc->fem->ns_leaf,2*nq1d-1);
   printf("\n\t--- Element Type ---\n");
   printf("Director Element Type = %d\tLagrange Multiplier Element Type = %d\n",order_n,order_lam);
   printf("\n\t--- Degrees of Freedom ---\n");
-  printf("Vertices: %-7d\tEdges: %-7d\tFaces: %-7d",mesh.nv,mesh.nedge,mesh.nface);
+  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld",(long long)sc->nv,(long long)sc->fem->nedge,(long long)sc->fem->nface);
   printf("\t--> DOF: %d\n",FE.ndof);
   printf("***********************************************************************************\n\n");
 
@@ -148,18 +148,18 @@ int main (int argc, char* argv[])
 
   // Allocate the Initial Guess
   srand(803087000);
-  blockFE_Evaluate(newt.sol->val,initial_guess,&FE,&mesh,0.0);
+  blockFE_Evaluate(newt.sol->val,initial_guess,&FE,sc,0.0);
 
   // Error Estimator Stuff
-  REAL* errest = (REAL *) calloc(mesh.nelm,sizeof(REAL));
+  REAL* errest = (REAL *) calloc(sc->fem->ns_leaf,sizeof(REAL));
   // Plotting stuff
   char estout[40];
   char** estname = malloc(50*sizeof(char *));
   estname[0] = "err_est";
   fespace FE_est; // P0 space to store estimator for plotting
-  create_fespace(&FE_est,&mesh,0);
+  create_fespace(&FE_est,sc,0);
   // Get estimate of initial guess
-  LCerror_estimator(errest,newt.sol->val,&FE,&mesh,cq);
+  LCerror_estimator(errest,newt.sol->val,&FE,sc,cq);
 
 
   // Dump Initial Guess
@@ -171,16 +171,16 @@ int main (int argc, char* argv[])
   varname[3] = "lambda";
   if (inparam.print_level > 3) {
     sprintf(solout,"output/solution_newt000.vtu");
-    dump_blocksol_vtk(solout,varname,&mesh,&FE,newt.sol->val);
+    dump_blocksol_vtk(solout,varname,sc,&FE,newt.sol->val);
     // Dump estimator into vtk
     sprintf(estout,"output/errest_newt000.vtu");
-    dump_sol_vtk(estout,estname[0],&mesh,&FE_est,errest);
+    dump_sol_vtk(estout,estname[0],sc,&FE_est,errest);
   }
 
   // Perform initial Jacobian assembly
-  assemble_global_Jacobian(newt.Jac_block,newt.rhs,newt.sol,local_assembly_LCelastic,&FE,&mesh,cq,NULL,0.0);
+  assemble_global_system(newt.Jac_block,newt.rhs,&FE,sc,cq,local_assembly_LCelastic,newt.sol,NULL,NULL,0.0);
   // Eliminate Dirichlet boundary conditions in matrix and rhs
-  eliminate_DirichletBC_blockFE_blockA(bc,&FE,&mesh,newt.rhs,newt.Jac_block,0.0);
+  eliminate_DirichletBC_blockFE_blockA(bc,&FE,sc,newt.rhs,newt.Jac_block,0.0);
 
   // Deal with Periodic Boundary conditions, but not mess up newt.Jac_block
   block_dCSRmat Jac_per;
@@ -219,9 +219,9 @@ int main (int argc, char* argv[])
 
   // Compute Initial Energy and Length of Director
   REAL* energy = (REAL *) calloc(4,sizeof(REAL));
-  compute_LCelastic_energy(energy,newt.sol->val,&FE,&mesh,cq);
+  compute_LCelastic_energy(energy,newt.sol->val,&FE,sc,cq);
   REAL unitlength=0.0;
-  compute_LCelastic_unitlength(&unitlength,newt.sol->val,&FE,&mesh,cq);
+  compute_LCelastic_unitlength(&unitlength,newt.sol->val,&FE,sc,cq);
   printf("\nInitial Energies & Length of Director:\nTotal Energy: %25.16e\n",energy[0]);
   printf("Splay:        %25.16e\nTwist:        %25.16e\nBend:         %25.16e\n\n",energy[1],energy[2],energy[3]);
   printf("L2 norm of n: %25.16e\n\n",unitlength);
@@ -272,13 +272,13 @@ int main (int argc, char* argv[])
     update_sol_newton(&newt);
 
     // Get norm of update
-    get_blockupdate_norm(&newt,&FE,&mesh,cq);
+    get_blockupdate_norm(&newt,&FE,sc,cq);
 
     // Update Jacobian and nonlinear residual with new solution
-    assemble_global_Jacobian(newt.Jac_block,newt.rhs,newt.sol,local_assembly_LCelastic,&FE,&mesh,cq,NULL,0.0);
+    assemble_global_system(newt.Jac_block,newt.rhs,&FE,sc,cq,local_assembly_LCelastic,newt.sol,NULL,NULL,0.0);
 
     // Eliminate Dirichlet boundary conditions in matrix and rhs
-    eliminate_DirichletBC_blockFE_blockA(bc,&FE,&mesh,newt.rhs,newt.Jac_block,0.0);
+    eliminate_DirichletBC_blockFE_blockA(bc,&FE,sc,newt.rhs,newt.Jac_block,0.0);
     // Eliminate Periodic boundary CONDITIONS
     if (periodic_flag == 1) {
       eliminate_PeriodicBC_blockFE_nonoverwrite(&P_periodic, newt.Jac_block, newt.rhs, &Jac_per, &rhs_per);
@@ -291,10 +291,10 @@ int main (int argc, char* argv[])
     res_norm_scaled = newt.res_norm/sqrt(newt.rhs->row);
 
     // Compute Energies
-    compute_LCelastic_energy(energy,newt.sol->val,&FE,&mesh,cq);
+    compute_LCelastic_energy(energy,newt.sol->val,&FE,sc,cq);
 
     // Checking Unit Length Constraint
-    compute_LCelastic_unitlength(&unitlength,newt.sol->val,&FE,&mesh,cq);
+    compute_LCelastic_unitlength(&unitlength,newt.sol->val,&FE,sc,cq);
 
     // Print Data
     printf("Residuals:\nl2-norm of Nonlinear Residual = %25.16e\n",newt.res_norm);
@@ -308,15 +308,15 @@ int main (int argc, char* argv[])
     newton_stop = check_newton_convergence(&newt);
 
     // Compute estimator
-    LCerror_estimator(errest,newt.sol->val,&FE,&mesh,cq);
+    LCerror_estimator(errest,newt.sol->val,&FE,sc,cq);
 
     if (inparam.print_level > 3) {
       // Solution at each timestep
       sprintf(solout,"output/solution_newt%03d.vtu",newt.current_step);
-      dump_blocksol_vtk(solout,varname,&mesh,&FE,newt.sol->val);
+      dump_blocksol_vtk(solout,varname,sc,&FE,newt.sol->val);
       // Dump estimator into vtk
       sprintf(estout,"output/errest_newt%03d.vtu",newt.current_step);
-      dump_sol_vtk(estout,estname[0],&mesh,&FE_est,errest);
+      dump_sol_vtk(estout,estname[0],sc,&FE_est,errest);
     }
   }
 
@@ -341,22 +341,22 @@ int main (int argc, char* argv[])
   // Dump Mesh for plotting
   if (inparam.print_level > 3) {
     sprintf(meshout,"output/mesh%02d.vtu",1);
-    dump_mesh_vtk(meshout,ni.mesh);
+    dump_mesh_vtk(meshout,ni.sc);
   }
 
   // Update FE Spaces on new mesh
   // This is problem dependent so must be done by user
-  setup_FEspaces(order_n,order_lam,&FE_nx,&FE_ny,&FE_nz,&FE_lam,&FE,&P_periodic,&mesh,dim);
+  setup_FEspaces(order_n,order_lam,&FE_nx,&FE_ny,&FE_nz,&FE_lam,&FE,&P_periodic,sc,dim);
   dvec_alloc(FE.ndof,&sol);
 
   // icsr_print_matlab(stdout,ni.sc_all[0]->parent_v);
   // // old vertices come first ALWAYS
 
   // Update solution on new mesh
-  next_update_sol(&ni,newt.sol,&sol,&FE,&mesh);
+  next_update_sol(&ni,newt.sol,&sol,&FE,sc);
 
   // Update Local Variables to current data
-  mesh = ni.mesh[0];
+  sc = ni.sc;
   cq = ni.cq;
   ndof = FE.ndof; // Number of degrees of freedom
   nspaces = FE.nspaces; // Number of spaces in the block FE space
@@ -390,7 +390,7 @@ int main (int argc, char* argv[])
   // }
 
   // // Mesh
-  // free_mesh(&mesh);
+  // haz_scomplex_free(sc);
 
   // Strings
   if(varname) free(varname);

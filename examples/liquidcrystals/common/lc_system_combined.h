@@ -12,25 +12,25 @@
  // Compute Unit Length Constraint
  /**********************************/
  /*!
-  * \fn void compute_LCelastic_unitlength(REAL* unitlength,REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+  * \fn void compute_LCelastic_unitlength(REAL* unitlength,REAL *u,block_fespace *FE,scomplex *sc,qcoordinates *cq)
   *
   * \brief Compute the unit length constraint for an LC simulation
   *        unitlength = ||n||_L2
   *
   * \param u 	         FE Approximation
   * \param FE          FE Space
-  * \param mesh        Mesh Data
+  * \param sc          Simplicial Complex
   *
   * \return unitlength L2 norm of n
   *
   */
- void compute_LCelastic_unitlength(REAL* unitlength, REAL *u, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq) {
+ void compute_LCelastic_unitlength(REAL* unitlength, REAL *u, block_fespace *FE, scomplex *sc, qcoordinates *cq) {
   INT i;
 
   // Get L2 norm of entire solution
   // 3 director components, 1 Lagrange multiplier
   REAL* solnormL2 = (REAL *) calloc(4, sizeof(REAL));
-  L2norm_block(solnormL2,u,FE,mesh,cq);
+  L2norm_block(solnormL2,u,FE,sc,cq);
 
   // Grab just director portion
   REAL sum = 0;
@@ -39,9 +39,9 @@
   // Grab each element and calculate the volume and add them up
   REAL vol = 0;
   INT elm;
-  for (elm=0; elm<mesh->nelm; elm++) {
+  for (elm=0; elm<sc->fem->ns_leaf; elm++) {
     // add element volume to total
-    vol += mesh->el_vol[elm];
+    vol += sc->fem->el_vol[elm];
   }
   *unitlength = sum/vol;
 
@@ -52,19 +52,19 @@
 // Compute Energy
 /**********************************/
 /*!
- * \fn void compute_LCelastic_energy(REAL* energy,REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq)
+ * \fn void compute_LCelastic_energy(REAL* energy,REAL *u,block_fespace *FE,scomplex *sc,qcoordinates *cq)
  *
  * \brief Compute the elastic energy for an LC simulation
  *        E(n) = 1/2 K1*||div n||^2 + 1/2 K3*<Z(n)*curl n,curl n>
  *
  * \param u 	      FE Approximation
  * \param FE          FE Space
- * \param mesh        Mesh Data
+ * \param sc          Simplicial Complex
  *
  * \return energy     Energy Value
  *
  */
-void compute_LCelastic_energy(REAL* energy, REAL *u, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq) {
+void compute_LCelastic_energy(REAL* energy, REAL *u, block_fespace *FE, scomplex *sc, qcoordinates *cq) {
 
   // Counters
   INT elm, quad, i, j, rowa, rowb, jcntr;
@@ -73,8 +73,8 @@ void compute_LCelastic_energy(REAL* energy, REAL *u, block_fespace *FE, mesh_str
   REAL bend = 0.0;
 
   // Mesh Stuff
-  INT dim = mesh->dim;
-  INT* v_on_elm = (INT *) calloc(mesh->v_per_elm, sizeof(INT));
+  INT dim = sc->dim;
+  INT* v_on_elm = (INT *) calloc(sc->dim+1, sizeof(INT));
 
   // Quadrature Weights and Nodes
   REAL w;
@@ -110,7 +110,7 @@ void compute_LCelastic_energy(REAL* energy, REAL *u, block_fespace *FE, mesh_str
   REAL kap = K2/K3;
 
   /* Loop over all Elements */
-  for (elm=0; elm<mesh->nelm; elm++) {
+  for (elm=0; elm<sc->fem->ns_leaf; elm++) {
     // Find DOF for given Element
     // Note this is "local" ordering for the given FE space of the block
     // Not global ordering of all DOF
@@ -125,14 +125,14 @@ void compute_LCelastic_energy(REAL* energy, REAL *u, block_fespace *FE, mesh_str
     }
 
     // Find Vertices for given Element if not H1 elements
-    get_incidence_row(elm,mesh->el_v,v_on_elm);
+    get_incidence_row(elm,sc->fem->el_v,v_on_elm);
 
     // Loop over quadrature nodes on element
     for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==2 || mesh->dim==3)
+      if(sc->dim==2 || sc->dim==3)
         qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==3)
+      if(sc->dim==3)
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
 
@@ -140,18 +140,18 @@ void compute_LCelastic_energy(REAL* energy, REAL *u, block_fespace *FE, mesh_str
       // Get the Basis Functions and previous solutions at each quadrature node
       // n
       local_uprev = u;
-      FE_Interpolation(&n1,local_uprev,qx,dof_on_elm,v_on_elm,FE->var_spaces[0],mesh);
-      FE_DerivativeInterpolation(dn1,local_uprev,qx,dof_on_elm,v_on_elm,FE->var_spaces[0],mesh);
+      FE_Interpolation(&n1,local_uprev,qx,dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
+      FE_DerivativeInterpolation(dn1,local_uprev,qx,dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
       local_dof_on_elm = dof_on_elm + FE->var_spaces[0]->dof_per_elm;
       local_uprev+=FE->var_spaces[0]->ndof;
 
-      FE_Interpolation(&n2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],mesh);
-      FE_DerivativeInterpolation(dn2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],mesh);
+      FE_Interpolation(&n2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
+      FE_DerivativeInterpolation(dn2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
       local_dof_on_elm += FE->var_spaces[1]->dof_per_elm;
       local_uprev+=FE->var_spaces[1]->ndof;
 
-      FE_Interpolation(&n3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],mesh);
-      FE_DerivativeInterpolation(dn3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],mesh);
+      FE_Interpolation(&n3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
+      FE_DerivativeInterpolation(dn3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
 
       divn     = dn1[0] + dn2[1];
       curln[0] = dn3[1];
@@ -190,7 +190,7 @@ void compute_LCelastic_energy(REAL* energy, REAL *u, block_fespace *FE, mesh_str
 }
 
 /*!
- * \fn void local_assembly_LCelastic(REAL *ALoc,REAL *bLoc, dvector *old_sol, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ * \fn void local_assembly_LCelastic(REAL *ALoc,REAL *bLoc, dvector *old_sol, block_fespace *FE, scomplex *sc, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the local stiffness matrix for the LC Elastic system.
  *        For this problem we compute LHS of:
@@ -209,7 +209,7 @@ void compute_LCelastic_energy(REAL* energy, REAL *u, block_fespace *FE, mesh_str
  *
  * \param old_sol       FE approximation of previous Newton step
  * \param FE            Block FE Space
- * \param mesh          Mesh Data
+ * \param sc            Simplicial Complex
  * \param cq            Quadrature Nodes
  * \param dof_on_elm    Specific DOF on element
  * \param v_on_elm      Specific vertices on element
@@ -222,7 +222,7 @@ void compute_LCelastic_energy(REAL* energy, REAL *u, block_fespace *FE, mesh_str
  *
  *
  */
-void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fespace *FE, scomplex *sc, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
 
   // Loop indices
@@ -233,7 +233,7 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
   for (i=0; i<FE->nspaces;i++)
     dof_per_elm += FE->var_spaces[i]->dof_per_elm;
   INT* local_dof_on_elm;
-  INT dim = mesh->dim;
+  INT dim = sc->dim;
 
   // Quadrature Weights and Nodes
   REAL w;
@@ -283,29 +283,29 @@ void local_assembly_LCelastic(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fes
     // nk1, n1, and v1
     local_dof_on_elm = dof_on_elm;
     local_uprev = old_sol->val;
-    FE_Interpolation(&nk1,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[0],mesh);
-    FE_DerivativeInterpolation(dnk1,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[0],mesh);
-    get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[0]);
+    FE_Interpolation(&nk1,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
+    FE_DerivativeInterpolation(dnk1,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
+    get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx,v_on_elm,local_dof_on_elm,sc,FE->var_spaces[0]);
 
     // nk2, n2, and v2
     local_dof_on_elm += FE->var_spaces[0]->dof_per_elm;
     local_uprev += FE->var_spaces[0]->ndof;
-    FE_Interpolation(&nk2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],mesh);
-    FE_DerivativeInterpolation(dnk2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],mesh);
-    get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[1]);
+    FE_Interpolation(&nk2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
+    FE_DerivativeInterpolation(dnk2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
+    get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx,v_on_elm,local_dof_on_elm,sc,FE->var_spaces[1]);
 
     // nk3, n3, and v3
     local_dof_on_elm += FE->var_spaces[1]->dof_per_elm;
     local_uprev+=FE->var_spaces[1]->ndof;
-    FE_Interpolation(&nk3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],mesh);
-    FE_DerivativeInterpolation(dnk3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],mesh);
-    get_FEM_basis(FE->var_spaces[2]->phi,FE->var_spaces[2]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[2]);
+    FE_Interpolation(&nk3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
+    FE_DerivativeInterpolation(dnk3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
+    get_FEM_basis(FE->var_spaces[2]->phi,FE->var_spaces[2]->dphi,qx,v_on_elm,local_dof_on_elm,sc,FE->var_spaces[2]);
 
     // lamk, lam, gam
     local_dof_on_elm += FE->var_spaces[2]->dof_per_elm;
     local_uprev += FE->var_spaces[2]->ndof;
-    FE_Interpolation(&lamk,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[3],mesh);
-    get_FEM_basis(FE->var_spaces[3]->phi,FE->var_spaces[3]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[3]);
+    FE_Interpolation(&lamk,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[3],sc);
+    get_FEM_basis(FE->var_spaces[3]->phi,FE->var_spaces[3]->dphi,qx,v_on_elm,local_dof_on_elm,sc,FE->var_spaces[3]);
 
     // Some precomputations
     nk1x = dnk1[0];
@@ -700,13 +700,13 @@ void relabel_boundary(fespace* FE, INT dim) {
 }
 
 // Set up FE spaces for the LC Elasticity problem
-void setup_FEspaces(INT order_n, INT order_lam,fespace* FE_nx, fespace* FE_ny, fespace* FE_nz, fespace* FE_lam, block_fespace *FE,block_dCSRmat *P_periodic,mesh_struct* mesh,INT dim) {
+void setup_FEspaces(INT order_n, INT order_lam,fespace* FE_nx, fespace* FE_ny, fespace* FE_nz, fespace* FE_lam, block_fespace *FE,block_dCSRmat *P_periodic,scomplex* sc,INT dim) {
 
   // Need Spaces for each component of the director plus lambda
-  create_fespace(FE_nx,mesh,order_n);
-  create_fespace(FE_ny,mesh,order_n);
-  create_fespace(FE_nz,mesh,order_n);
-  create_fespace(FE_lam,mesh,order_lam);
+  create_fespace(FE_nx,sc,order_n);
+  create_fespace(FE_ny,sc,order_n);
+  create_fespace(FE_nz,sc,order_n);
+  create_fespace(FE_lam,sc,order_lam);
 
   // Relabel boundary flags for FE space to distinguish between different boundaries
   // Boundary codes
@@ -728,36 +728,36 @@ void setup_FEspaces(INT order_n, INT order_lam,fespace* FE_nx, fespace* FE_ny, f
   }
 
   // Lambda has Neumann boundaries regardless
-  set_dirichlet_bdry(FE_lam,mesh,-10,-10);
+  set_dirichlet_bdry(FE_lam,sc,-10,-10);
 
   // Dirichlet Boundaries (Dirichlet all around for n)
   if (dirichlet_flag == 1){
-    set_dirichlet_bdry(FE_nx,mesh,1,6);
-    set_dirichlet_bdry(FE_ny,mesh,1,6);
-    set_dirichlet_bdry(FE_nz,mesh,1,6);
+    set_dirichlet_bdry(FE_nx,sc,1,6);
+    set_dirichlet_bdry(FE_ny,sc,1,6);
+    set_dirichlet_bdry(FE_nz,sc,1,6);
   }
 
   // Periodic Boundaries on right-left; Dirichelt on top-bottom
   if (periodic_flag == 1){
     if(dim==2) {
       // For 2D, the y bounds are Dirichlet while x is periodic.
-      set_periodic_bdry(FE_nx,mesh,0.0,1.0,0.0,0.0,0.0,0.0);
-      set_periodic_bdry(FE_ny,mesh,0.0,1.0,0.0,0.0,0.0,0.0);
-      set_periodic_bdry(FE_nz,mesh,0.0,1.0,0.0,0.0,0.0,0.0);
-      set_periodic_bdry(FE_lam,mesh,0.0,1.0,0.0,0.0,0.0,0.0);
-      set_dirichlet_bdry(FE_nx,mesh,3,4);
-      set_dirichlet_bdry(FE_ny,mesh,3,4);
-      set_dirichlet_bdry(FE_nz,mesh,3,4);
+      set_periodic_bdry(FE_nx,sc,0.0,1.0,0.0,0.0,0.0,0.0);
+      set_periodic_bdry(FE_ny,sc,0.0,1.0,0.0,0.0,0.0,0.0);
+      set_periodic_bdry(FE_nz,sc,0.0,1.0,0.0,0.0,0.0,0.0);
+      set_periodic_bdry(FE_lam,sc,0.0,1.0,0.0,0.0,0.0,0.0);
+      set_dirichlet_bdry(FE_nx,sc,3,4);
+      set_dirichlet_bdry(FE_ny,sc,3,4);
+      set_dirichlet_bdry(FE_nz,sc,3,4);
     } else if(dim==3) {
       // For 3D, the z bounds are Dirichlet while x & y are periodic
-      set_periodic_bdry(FE_nx,mesh,0.0,1.0,0.0,1.0,0.0,0.0);
-      set_periodic_bdry(FE_ny,mesh,0.0,1.0,0.0,1.0,0.0,0.0);
-      set_periodic_bdry(FE_nz,mesh,0.0,1.0,0.0,1.0,0.0,0.0);
-      set_periodic_bdry(FE_lam,mesh,0.0,1.0,0.0,1.0,0.0,0.0);
+      set_periodic_bdry(FE_nx,sc,0.0,1.0,0.0,1.0,0.0,0.0);
+      set_periodic_bdry(FE_ny,sc,0.0,1.0,0.0,1.0,0.0,0.0);
+      set_periodic_bdry(FE_nz,sc,0.0,1.0,0.0,1.0,0.0,0.0);
+      set_periodic_bdry(FE_lam,sc,0.0,1.0,0.0,1.0,0.0,0.0);
       // Setting Dirichlet boundary conditions
-      set_dirichlet_bdry(FE_nx,mesh,5,6);
-      set_dirichlet_bdry(FE_ny,mesh,5,6);
-      set_dirichlet_bdry(FE_nz,mesh,5,6);
+      set_dirichlet_bdry(FE_nx,sc,5,6);
+      set_dirichlet_bdry(FE_ny,sc,5,6);
+      set_dirichlet_bdry(FE_nz,sc,5,6);
     } else {
       check_error(ERROR_DIM, __FUNCTION__);
     }
@@ -768,14 +768,14 @@ void setup_FEspaces(INT order_n, INT order_lam,fespace* FE_nx, fespace* FE_ny, f
   INT nspaces = 4;
   INT nun = 4;
   // Get Global FE Space
-  initialize_fesystem(FE,nspaces,nun,ndof,mesh->nelm);
+  initialize_fesystem(FE,nspaces,nun,ndof,sc->fem->ns_leaf);
   FE->var_spaces[0] = FE_nx;
   FE->var_spaces[1] = FE_ny;
   FE->var_spaces[2] = FE_nz;
   FE->var_spaces[3] = FE_lam;
 
   // Set Dirichlet Boundaries
-  set_dirichlet_bdry_block(FE,mesh);
+  set_dirichlet_bdry_block(FE,sc);
 
   // Set Periodic Boundaries
   
