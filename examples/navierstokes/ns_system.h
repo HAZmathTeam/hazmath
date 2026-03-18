@@ -10,7 +10,7 @@
 */
 
 /*!
-* \fn void local_assembly_NS(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
+* \fn void local_assembly_NS(REAL* ALoc, REAL *bLoc, dvector *old_sol, block_fespace *FE, scomplex *sc, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, void (*rhs)(...), void (*coeff)(...), REAL time)
 *
 * \brief Computes the local stiffness matrix for the linearized Navier-Stokes system.
 *  
@@ -42,14 +42,14 @@
 *
 *
 */
-void local_assembly_NS(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+void local_assembly_NS(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fespace *FE, scomplex *sc, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
 
   // Loop indices
   INT i,j,idim,quad,test,trial;
 
   // Mesh and FE data
-  INT dim = mesh->dim;
+  INT dim = sc->dim;
   INT nspaces = FE->nspaces;
 
   // Space indices
@@ -115,37 +115,37 @@ void local_assembly_NS(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fespace *F
   for (quad=0;quad<cq->nq_per_elm;quad++) {
     qx[0] = cq->x[elm*cq->nq_per_elm+quad];
     qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-    if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+    if(sc->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
     w = cq->w[elm*cq->nq_per_elm+quad];
-    (*rhs)(rhs_val,qx,time,&(mesh->el_flag[elm]));
+    (*rhs)(rhs_val,qx,time,&(sc->flags[elm]));
 
     //  Get the Basis Functions at each quadrature node and previous solutions
     // u = (u1,u2,u3,p) and v = (v1,v2,v3,q)
     local_dof_on_elm = dof_on_elm;
     local_uprev = old_sol->val;
-    FE_Interpolation(&u1_prev,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[iu1],mesh);
-    FE_DerivativeInterpolation(du1_prev,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[iu1],mesh);
-    get_FEM_basis(FE->var_spaces[iu1]->phi,FE->var_spaces[iu1]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[iu1]);
+    FE_Interpolation(&u1_prev,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[iu1],sc);
+    FE_DerivativeInterpolation(du1_prev,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[iu1],sc);
+    get_FEM_basis(FE->var_spaces[iu1]->phi,FE->var_spaces[iu1]->dphi,qx,v_on_elm,local_dof_on_elm,sc,FE->var_spaces[iu1]);
     local_dof_on_elm += u1dofpelm;
     local_uprev += u1dof;
 
-    FE_Interpolation(&u2_prev,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[iu2],mesh);
-    FE_DerivativeInterpolation(du2_prev,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[iu2],mesh);
-    get_FEM_basis(FE->var_spaces[iu2]->phi,FE->var_spaces[iu2]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[iu2]);
+    FE_Interpolation(&u2_prev,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[iu2],sc);
+    FE_DerivativeInterpolation(du2_prev,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[iu2],sc);
+    get_FEM_basis(FE->var_spaces[iu2]->phi,FE->var_spaces[iu2]->dphi,qx,v_on_elm,local_dof_on_elm,sc,FE->var_spaces[iu2]);
     local_dof_on_elm += u2dofpelm;
     local_uprev += u2dof;
 
     if(dim==3) {
-      FE_Interpolation(&u3_prev,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[iu3],mesh);
-      FE_DerivativeInterpolation(du3_prev,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[iu3],mesh);
-      get_FEM_basis(FE->var_spaces[iu3]->phi,FE->var_spaces[iu3]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[iu3]);
+      FE_Interpolation(&u3_prev,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[iu3],sc);
+      FE_DerivativeInterpolation(du3_prev,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[iu3],sc);
+      get_FEM_basis(FE->var_spaces[iu3]->phi,FE->var_spaces[iu3]->dphi,qx,v_on_elm,local_dof_on_elm,sc,FE->var_spaces[iu3]);
       local_dof_on_elm += u3dofpelm;
       local_uprev += u3dof;
     }
 
     // p
-    FE_Interpolation(&p_prev,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[ip],mesh);
-    get_FEM_basis(FE->var_spaces[ip]->phi,FE->var_spaces[ip]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[ip]);
+    FE_Interpolation(&p_prev,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[ip],sc);
+    get_FEM_basis(FE->var_spaces[ip]->phi,FE->var_spaces[ip]->dphi,qx,v_on_elm,local_dof_on_elm,sc,FE->var_spaces[ip]);
     local_dof_on_elm += pdofpelm;
     local_uprev += pdof;
 
@@ -417,7 +417,7 @@ void local_assembly_NS(REAL *ALoc,REAL* bLoc, dvector *old_sol, block_fespace *F
 * \return A, b        Modified system
 *
 */
-void meanzero_pressure(block_dCSRmat* A, dvector* b,mesh_struct* mesh,fespace* FEp,qcoordinates* cq)
+void meanzero_pressure(block_dCSRmat* A, dvector* b,scomplex* sc,fespace* FEp,qcoordinates* cq)
 {
 
   INT ndof = FEp->ndof;
@@ -442,17 +442,18 @@ void meanzero_pressure(block_dCSRmat* A, dvector* b,mesh_struct* mesh,fespace* F
   // Reallocate matrix
   // In P0 -> Add el_vol for each entry
   if(FEp->FEtype==0) {
-    bdcsr_extend(A,mesh->el_vol,mesh->el_vol,mesh->dim,1.0,1.0);
+    bdcsr_extend(A,sc->fem->el_vol,sc->fem->el_vol,sc->dim,1.0,1.0);
   } else {
     // In P1 or higher, the extra row is Mp*1, where Mp is the mass matrix for
     // the pressure space and 1 is the vector of ones.
-    dCSRmat Mp;
-    assemble_global(&Mp,NULL,assemble_mass_local,FEp,mesh,cq,NULL,one_coeff_scal,0.0);
+    dCSRmat Mp = dcsr_create(0,0,0);
+    assemble_global_single(&Mp, NULL, FEp, sc, cq,
+                           local_assembly_mass, NULL, NULL, one_coeff_scal, 0.0);
     dvector* ones = dvec_create_p(ndof);
     dvec_set(ndof,ones,1.0);
     REAL* constraint = (REAL *) calloc(ndof,sizeof(REAL));
     dcsr_mxv(&Mp,ones->val,constraint);
-    bdcsr_extend(A,constraint,constraint,mesh->dim,1.0,1.0);
+    bdcsr_extend(A,constraint,constraint,sc->dim,1.0,1.0);
 
     dcsr_free(&Mp);
     if(ones) free(ones);

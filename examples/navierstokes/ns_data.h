@@ -153,47 +153,47 @@ void relabel_boundary(fespace* FE, INT dim) {
 
 // To be safe we should relabel all the mesh flags as well.
 // 1: x=0  2: x=1   3: y=0    4: y=1    5: z = 0  6: z = 1  
-void relabel_mesh(mesh_struct* mesh) {
+void relabel_mesh(scomplex* sc) {
 
   INT i,j;
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
 
-  INT dim = mesh->dim;
-
-    // Vertices
-    for(i=0;i<mesh->nv;i++) {
-      if(mesh->v_flag[i]!=0) {
+    // Vertices (sc->x is row-major: x[i*dim+d])
+    for(i=0;i<sc->nv;i++) {
+      if(sc->bndry[i]!=0) {
         for(j=0;j<dim;j++) {
-          if(mesh->cv->x[j*mesh->nv+i]==0.0) {
-            mesh->v_flag[i] = 2*j+1;
+          if(sc->x[i*dim+j]==0.0) {
+            sc->bndry[i] = 2*j+1;
           }
-          if(mesh->cv->x[j*mesh->nv+i]==1.0) {
-            mesh->v_flag[i] = 2*j+2;
+          if(sc->x[i*dim+j]==1.0) {
+            sc->bndry[i] = 2*j+2;
           }
         }
       }
     }
     // Edges
-    for(i=0;i<mesh->nedge;i++) {
-      if(mesh->ed_flag[i]!=0) {
+    for(i=0;i<fem->nedge;i++) {
+      if(fem->ed_flag[i]!=0) {
         for(j=0;j<dim;j++) {
-          if(mesh->ed_mid[i*dim+j]==0.0) {
-            mesh->ed_flag[i] = 2*j+1;
+          if(fem->ed_mid[i*dim+j]==0.0) {
+            fem->ed_flag[i] = 2*j+1;
           }
-          if(mesh->ed_mid[i*dim+j]==1.0) {
-            mesh->ed_flag[i] = 2*j+2;
+          if(fem->ed_mid[i*dim+j]==1.0) {
+            fem->ed_flag[i] = 2*j+2;
           }
         }
       }
     }
     // Faces
-    for(i=0;i<mesh->nface;i++) {
-      if(mesh->f_flag[i]!=0) {
+    for(i=0;i<fem->nface;i++) {
+      if(fem->f_flag[i]!=0) {
         for(j=0;j<dim;j++) {
-          if(mesh->f_mid[i*dim+j]==0.0) {
-            mesh->f_flag[i] = 2*j+1;
+          if(fem->f_mid[i*dim+j]==0.0) {
+            fem->f_flag[i] = 2*j+1;
           }
-          if(mesh->f_mid[i*dim+j]==1.0) {
-            mesh->f_flag[i] = 2*j+2;
+          if(fem->f_mid[i*dim+j]==1.0) {
+            fem->f_flag[i] = 2*j+2;
           }
         }
       }

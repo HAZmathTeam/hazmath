@@ -57,17 +57,16 @@ int main (int argc, char* argv[])
   printf("\nCreating mesh and FEM spaces:\n");
 
   // Use HAZMATH built in functions for a uniform mesh in 2D or 3D
-  mesh_struct mesh;
   INT dim = inparam.spatial_dim;                 // dimension of computational domain
   INT mesh_ref_levels=inparam.refinement_levels; // refinement levels
   INT mesh_ref_type=inparam.refinement_type;     // refinement type (>10 uniform or <10 other)
   INT set_bndry_codes=inparam.boundary_codes;    // set flags for the boundary DoF (1-16 are Dirichlet)
-  mesh=make_uniform_mesh(dim,mesh_ref_levels,mesh_ref_type,set_bndry_codes);
-  relabel_mesh(&mesh); // relabel the mesh so that boundary flags are user-defined in ns_data.h
+  scomplex *sc = make_uniform_mesh(dim,mesh_ref_levels,mesh_ref_type,set_bndry_codes);
+  relabel_mesh(sc); // relabel the mesh so that boundary flags are user-defined in ns_data.h
 
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; /* Quadrature points per dimension */
-  qcoordinates *cq = get_quadrature(&mesh,nq1d);
+  qcoordinates *cq = get_quadrature(sc,nq1d);
 
   // Get info for and create FEM spaces
   // Order of elements: 0 - P0; 1 - P1; 2 - P2; 20 - Nedlec; 30 - Raviart-Thomas
@@ -76,13 +75,13 @@ int main (int argc, char* argv[])
 
   // Need Spaces for each component of the velocity plus pressure
   fespace FE_ux; // Velocity in x direction
-  create_fespace(&FE_ux,&mesh,order_u);
+  create_fespace(&FE_ux,sc,order_u);
   fespace FE_uy; // Velocity in y direction
-  create_fespace(&FE_uy,&mesh,order_u);
+  create_fespace(&FE_uy,sc,order_u);
   fespace FE_uz; // Velocity in z direction
-  if(dim==3) create_fespace(&FE_uz,&mesh,order_u);
+  if(dim==3) create_fespace(&FE_uz,sc,order_u);
   fespace FE_p; // Pressure
-  create_fespace(&FE_p,&mesh,order_p);
+  create_fespace(&FE_p,sc,order_p);
   // Relabel boundary flags as defined in ns_data.h
   relabel_boundary(&FE_ux,dim);
   relabel_boundary(&FE_uy,dim);
@@ -90,14 +89,10 @@ int main (int argc, char* argv[])
   relabel_boundary(&FE_p,dim);
 
   // Set Dirichlet Boundaries
-  // u = g on all boundaries
-  // p is Neumann on all boundaries except on one boundary to eliminate the null space
-  // The mesh is set up so that flag values 1-16 are Dirichlet and 17-32 are Neumann
-  // For now mesh marks all physical boundaries as set_bndry_codes value
-  set_dirichlet_bdry(&FE_ux,&mesh,1,16);
-  set_dirichlet_bdry(&FE_uy,&mesh,1,16);
-  if(dim==3) set_dirichlet_bdry(&FE_uz,&mesh,1,16);
-  set_dirichlet_bdry(&FE_p,&mesh,-1,-1); 
+  set_dirichlet_bdry(&FE_ux,sc,1,16);
+  set_dirichlet_bdry(&FE_uy,sc,1,16);
+  if(dim==3) set_dirichlet_bdry(&FE_uz,sc,1,16);
+  set_dirichlet_bdry(&FE_p,sc,-1,-1);
 
   // Create Block System with ordering (u,p)
   INT udof = FE_ux.ndof + FE_uy.ndof; // Total DoF for u
@@ -108,14 +103,14 @@ int main (int argc, char* argv[])
   INT nun = dim+1; // Number of unkonwns (scalar quantities)
   // Get Global FE Space
   block_fespace FE;
-  initialize_fesystem(&FE,nspaces,nun,ndof,mesh.nelm);
+  initialize_fesystem(&FE,nspaces,nun,ndof,sc->fem->ns_leaf);
   FE.var_spaces[0] = &FE_ux;
   FE.var_spaces[1] = &FE_uy;
   if(dim==3) FE.var_spaces[2] = &FE_uz;
   FE.var_spaces[dim] = &FE_p;
 
   // Set Dirichlet Boundaries and DoF flags
-  set_dirichlet_bdry_block(&FE,&mesh);
+  set_dirichlet_bdry_block(&FE,sc);
 
   clock_t clk_mesh_end = clock(); // End of timing for mesh and FE setup
   printf(" --> elapsed CPU time for mesh and FEM space construction = %f seconds.\n\n",
@@ -125,11 +120,11 @@ int main (int argc, char* argv[])
   // Summarize Setup
   printf("***********************************************************************************\n");
   printf("\t--- %lld-dimensional grid ---\n",(long long )dim);
-  printf("Number of Elements = %lld\tOrder of Quadrature = %lld\n",(long long )mesh.nelm,2*(long long )nq1d-1);
+  printf("Number of Elements = %lld\tOrder of Quadrature = %lld\n",(long long )sc->fem->ns_leaf,2*(long long )nq1d-1);
   printf("\n\t--- Element Type ---\n");
   printf("Velocity Element Type = %lld\tPressure Element Type = %lld\n",(long long )order_u,(long long )order_p);
   printf("\n\t--- Degrees of Freedom ---\n");
-  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld",(long long )mesh.nv,(long long )mesh.nedge,(long long )mesh.nface);
+  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld",(long long )sc->nv,(long long )sc->fem->nedge,(long long )sc->fem->nface);
   printf("\t--> DOF: %lld\n",(long long )FE.ndof);
   printf("***********************************************************************************\n\n");
 
@@ -157,7 +152,7 @@ int main (int argc, char* argv[])
   n_it.step_length = 1.0;
 
   // Set initial guess for Newton
-  blockFE_Evaluate(n_it.sol->val,initial_guess,&FE,&mesh,0.0);
+  blockFE_Evaluate(n_it.sol->val,initial_guess,&FE,sc,0.0);
 
   // Dump Initial Guess
   char solout[40];
@@ -169,14 +164,14 @@ int main (int argc, char* argv[])
   varname[dim] = "p";
   if (inparam.print_level > 3) {
     sprintf(solout,"output/solution_newt000.vtu");
-    dump_blocksol_vtk(solout,varname,&mesh,&FE,n_it.sol->val);
+    dump_blocksol_vtk(solout,varname,sc,&FE,n_it.sol->val);
   }
 
   // Perform initial Jacobian assembly
-  assemble_global_Jacobian(n_it.Jac_block,n_it.rhs,n_it.sol,local_assembly_NS,&FE,&mesh,cq,sourcerhs,0.0);
+  assemble_global_system(n_it.Jac_block,n_it.rhs,&FE,sc,cq,local_assembly_NS,n_it.sol,sourcerhs,NULL,0.0);
 
   // Eliminate Dirichlet boundary conditions in matrix and rhs
-  eliminate_DirichletBC_blockFE_blockA(bc,&FE,&mesh,n_it.rhs,n_it.Jac_block,0.0);
+  eliminate_DirichletBC_blockFE_blockA(bc,&FE,sc,n_it.rhs,n_it.Jac_block,0.0);
 
  // Compute Initial Nonlinear Residual + scale for size
   get_residual_norm(&n_it);
@@ -214,8 +209,9 @@ int main (int argc, char* argv[])
   A_diag = (dCSRmat *)calloc(nun, sizeof(dCSRmat));
 
   // Get Mass Matrix for p
-  dCSRmat Mp;
-  assemble_global(&Mp,NULL,assemble_mass_local,&FE_p,&mesh,cq,NULL,one_coeff_scal,0.0);
+  dCSRmat Mp = dcsr_create(0,0,0);
+  assemble_global_single(&Mp, NULL, &FE_p, sc, cq,
+                         local_assembly_mass, NULL, NULL, one_coeff_scal, 0.0);
   dcsr_alloc(Mp.row, Mp.col, Mp.nnz, &A_diag[dim]);
   dcsr_cp(&Mp, &A_diag[dim]);
   /*******************************************************************************************/
@@ -264,15 +260,15 @@ int main (int argc, char* argv[])
 
     printf("updatenorm = %f\n",n_it.update_norm);
     // Get norm of update
-    get_blockupdate_norm(&n_it,&FE,&mesh,cq);
+    get_blockupdate_norm(&n_it,&FE,sc,cq);
     printf("updatenorm = %f\n",n_it.update_norm);
 
 
     // Update Jacobian and nonlinear residual with new solution
-    assemble_global_Jacobian(n_it.Jac_block,n_it.rhs,n_it.sol,local_assembly_NS,&FE,&mesh,cq,sourcerhs,0.0);
+    assemble_global_system(n_it.Jac_block,n_it.rhs,&FE,sc,cq,local_assembly_NS,n_it.sol,sourcerhs,NULL,0.0);
 
     // Eliminate Dirichlet boundary conditions in matrix and rhs
-    eliminate_DirichletBC_blockFE_blockA(bc,&FE,&mesh,n_it.rhs,n_it.Jac_block,0.0);
+    eliminate_DirichletBC_blockFE_blockA(bc,&FE,sc,n_it.rhs,n_it.Jac_block,0.0);
 
     // Compute Nonlinear Residual and scaled version
     get_residual_norm(&n_it);
@@ -289,7 +285,7 @@ int main (int argc, char* argv[])
     if (inparam.print_level > 3) {
       // Solution at each timestep
       sprintf(solout,"output/solution_newt%03d.vtu",n_it.current_step);
-      dump_blocksol_vtk(solout,varname,&mesh,&FE,n_it.sol->val);
+      dump_blocksol_vtk(solout,varname,sc,&FE,n_it.sol->val);
     }
   }
 
@@ -304,11 +300,11 @@ int main (int argc, char* argv[])
   REAL* solerrL2 = (REAL *) calloc(nspaces, sizeof(REAL));
   REAL* solerrH1 = (REAL *) calloc(nspaces, sizeof(REAL)); // Note: No H1 error for P0 elements
   if(dim==2){
-    L2error_block(solerrL2, n_it.sol->val, exact_sol2D, &FE, &mesh, cq, 0.0);
-    HDerror_block(solerrH1, n_it.sol->val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, 0.0);
+    L2error_block(solerrL2, n_it.sol->val, exact_sol2D, &FE, sc, cq, 0.0);
+    HDerror_block(solerrH1, n_it.sol->val, exact_sol2D, Dexact_sol2D, &FE, sc, cq, 0.0);
   } else if(dim==3){
-    L2error_block(solerrL2, n_it.sol->val, exact_sol3D, &FE, &mesh, cq, 0.0);
-    HDerror_block(solerrH1, n_it.sol->val, exact_sol3D, Dexact_sol3D, &FE, &mesh, cq, 0.0);
+    L2error_block(solerrL2, n_it.sol->val, exact_sol3D, &FE, sc, cq, 0.0);
+    HDerror_block(solerrH1, n_it.sol->val, exact_sol3D, Dexact_sol3D, &FE, sc, cq, 0.0);
   }
 
   REAL uerrL2 = 0;
@@ -367,7 +363,7 @@ int main (int argc, char* argv[])
   }
 
   // Mesh
-  free_mesh(&mesh);
+  haz_scomplex_free(sc);
 
   // Strings
   if(varname) free(varname);
