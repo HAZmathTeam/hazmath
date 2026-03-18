@@ -1,0 +1,107 @@
+    // BILINEAR FORMS
+    
+    // Divergence
+    ////////////////////////////////
+    // (n1x + n2y + n3z) * (v1x + v2y + v3z) = 
+    // n1x*v1x + n1x*v2y + n1x*v3z + n2y*v1x + n2y*v2y + n2y*v3z + n3z*v1x + n3z*v2y + n3z*v3z
+
+    // (Z(n_k) curl n) dot curl v
+    ////////////////////////////////
+    // (Z(n_k) [(n3y - n2z), (n1z - n3x), (n2x - n1y)]^T) dot [(v3y - v2z), (v1z - v3x), (v2x - v1y)]^T = 
+    // [znk11 * (n3y - n2z) + znk12 * (n1z - n3x) + znk13 *  (n2x - n1y),
+    //  znk21 * (n3y - n2z) + znk22 * (n1z - n3x) + znk23 *  (n2x - n1y),
+    //  znk31 * (n3y - n2z) + znk32 * (n1z - n3x) + znk33 *  (n2x - n1y)]^T
+    //                                        dot [(v3y - v2z), (v1z - v3x), (v2x - v1y)]^T = 
+    // (v3y - v2z)*(znk11 * (n3y - n2z) + znk12 * (n1z - n3x) + znk13 *  (n2x - n1y)) + 
+    // (v1z - v3x)*(znk21 * (n3y - n2z) + znk22 * (n1z - n3x) + znk23 *  (n2x - n1y)) + 
+    // (v2x - v1y)*(znk31 * (n3y - n2z) + znk32 * (n1z - n3x) + znk33 *  (n2x - n1y)) =
+
+    // (v3y - v2z)*(znk11*n3y - znk11*n2z + znk12*n1z - znk12*n3x + znk13*n2x - znk13*n1y) +
+    // (v1z - v3x)*(znk21*n3y - znk21*n2z + znk22*n1z - znk22*n3x + znk23*n2x - znk23*n1y) +
+    // (v2x - v1y)*(znk31*n3y - znk31*n2z + znk32*n1z - znk32*n3x + znk33*n2x - znk33*n1y) =
+    
+    // v3y*znk11*n3y - v3y*znk11*n2z + v3y*znk12*n1z - v3y*znk12*n3x + v3y*znk13*n2x - v3y*znk13*n1y -
+    // v2z*znk11*n3y + v2z*znk11*n2z - v2z*znk12*n1z + v2z*znk12*n3x - v2z*znk13*n2x + v2z*znk13*n1y +
+    // v1z*znk21*n3y - v1z*znk21*n2z + v1z*znk22*n1z - v1z*znk22*n3x + v1z*znk23*n2x - v1z*znk23*n1y -
+    // v3x*znk21*n3y + v3x*znk21*n2z - v3x*znk22*n1z + v3x*znk22*n3x - v3x*znk23*n2x + v3x*znk23*n1y +
+    // v2x*znk31*n3y - v2x*znk31*n2z + v2x*znk32*n1z - v2x*znk32*n3x + v2x*znk33*n2x - v2x*znk33*n1y -
+    // v1y*znk31*n3y + v1y*znk31*n2z - v1y*znk32*n1z + v1y*znk32*n3x - v1y*znk33*n2x + v1y*znk33*n1y
+
+    // (n_k dot curl n_k) dot (n dot curl v)
+    ////////////////////////////////
+    // nkdotcurlnk * (n1 * (v3y - v2z) + n2 * (v1z - v3x) + n3 * (v2x - v1y)) = 
+    // nkdotcurlnk * (n1*v3y - n1*v2z + n2*v1z - n2*v3x + n3*v2x - n3*v1y) =
+    // nkdotcurlnk*n1*v3y - nkdotcurlnk*n1*v2z + nkdotcurlnk*n2*v1z - 
+    //          nkdotcurlnk*n2*v3x + nkdotcurlnk*n3*v2x - nkdotcurlnk*n3*v1y
+
+    // (n_k dot curl n_k) dot (v dot curl n)
+    ////////////////////////////////
+    // nkdotcurlnk * (v1 * (n3y - n2z) + v2 * (n1z - n3x) + v3 * (n2x - n1y)) = 
+    // nkdotcurlnk * (v1*n3y - v1*n2z + v2*n1z - v2*n3x + v3*n2x - v3*n1y) = 
+    // nkdotcurlnk*v1*n3y - nkdotcurlnk*v1*n2z + nkdotcurlnk*v2*n1z - 
+    //          nkdotcurlnk*v2*n3x + nkdotcurlnk*v3*n2x - nkdotcurlnk*v3*n1y
+
+    // (n_k dot curl v) dot (n dot curl n_k)
+    ////////////////////////////////
+    // (nk1*(v3y - v2z) + nk2*(v1z - v3x) + nk3*(v2x - v1y))*(n1*curlnk1 + n2*curlnk2 + n3*curlnk3) =
+    // (nk1*v3y - nk1*v2z + nk2*v1z - nk2*v3x + nk3*v2x - nk3*v1y)*(n1*curlnk1 + n2*curlnk2 + n3*curlnk3) =
+    // nk1*v3y*n1*curlnk1 + nk1*v3y*n2*curlnk2 + nk1*v3y*n3*curlnk3 - 
+    // nk1*v2z*n1*curlnk1 - nk1*v2z*n2*curlnk2 - nk1*v2z*n3*curlnk3 +
+    // nk2*v1z*n1*curlnk1 + nk2*v1z*n2*curlnk2 + nk2*v1z*n3*curlnk3 -
+    // nk2*v3x*n1*curlnk1 - nk2*v3x*n2*curlnk2 - nk2*v3x*n3*curlnk3 +
+    // nk3*v2x*n1*curlnk1 + nk3*v2x*n2*curlnk2 + nk3*v2x*n3*curlnk3 -
+    // nk3*v1y*n1*curlnk1 - nk3*v1y*n2*curlnk2 - nk3*v1y*n3*curlnk3
+
+    // (n_k dot curl n) dot (v dot curl n_k)
+    ////////////////////////////////
+    // (nk1 * (n3y - n2z) + nk2 * (n1z - n3x) + nk3 *(n2x - n1y))*(v1*curlnk1 + v2*curlnk2 + v3*curlnk3) = 
+    // (nk1*n3y - nk1*n2z + nk2*n1z - nk2*n3x + nk3*n2x - nk3*n1y)*(v1*curlnk1 + v2*curlnk2 + v3*curlnk3) =
+    // nk1*n3y*v1*curlnk1 + nk1*n3y*v2*curlnk2 + nk1*n3y*v3*curlnk3 -
+    // nk1*n2z*v1*curlnk1 - nk1*n2z*v2*curlnk2 - nk1*n2z*v3*curlnk3 +
+    // nk2*n1z*v1*curlnk1 + nk2*n1z*v2*curlnk2 + nk2*n1z*v3*curlnk3 -
+    // nk2*n3x*v1*curlnk1 - nk2*n3x*v2*curlnk2 - nk2*n3x*v3*curlnk3 +
+    // nk3*n2x*v1*curlnk1 + nk3*n2x*v2*curlnk2 + nk3*n2x*v3*curlnk3 -
+    // nk3*n1y*v1*curlnk1 - nk3*n1y*v2*curlnk2 - nk3*n1y*v3*curlnk3
+
+    // (n dot curl n_k) dot (v dot curl n_k)
+    ////////////////////////////////
+    // (n1 * curlnk1 + n2 * curlnk2 + n3 * curlnk3)*(v1 * curlnk1 + v2 * curlnk2 + v3 * curlnk3) =
+    // n1*curlnk1*v1*curlnk1 + n1*curlnk1*v2*curlnk2 + n1*curlnk1*v3*curlnk3 +
+    // n2*curlnk2*v1*curlnk1 + n2*curlnk2*v2*curlnk2 + n2*curlnk2*v3*curlnk3 +
+    // n3*curlnk3*v1*curlnk1 + n3*curlnk3*v2*curlnk2 + n3*curlnk3*v3*curlnk3
+
+    // lambda_k dot n dot v
+    ////////////////////////////////
+    // lamk * (n1*v1 + n2*v2 + n3*v3) = lamk*n1*v1 + lamk*n2*v2 + lamk*n3*v3)
+
+    // lambda dot n_k dot v
+    ////////////////////////////////
+    // lam * (nk1*v1 + nk2*v2 + nk3*v3) = lam*nk1*v1 + lam*nk2*v2 + lam*nk3*v3
+
+    // gamma dot n_k dot n
+    ////////////////////////////////
+    // gam * (nk1*n1 + nk2*n2 + nk3*n3) = gam*nk1*n1 + gam*nk2*n2 + gam*nk3*n3
+
+
+    // RHS
+
+    // Divergence
+    ////////////////////////////////
+    // div nk dot div v
+    // divnk*(v1x+v2y+v3z) = divnk*v1x + divnk*v2y + divnk*v3z)
+
+    // (Z(n_k) * curl n_k) dot curl V
+    ////////////////////////////////
+    // (Z(n_k) [(nk3y - nk2z), (nk1z - nk3x), (nk2x - nk1y)]^T) dot [(v3y - v2z), (v1z - v3x), (v2x - v1y)]^T = 
+    // znk_curl_nk1*(v3y - v2z) + znk_curl_nk2*(v1z - v3x) + znk_curl_nk3*(v2x - v1y) =
+    // znk_curl_nk1*v3y - znk_curl_nk1*v2z + znk_curl_nk2*v1z - znk_curl_nk2*v3x + znk_curl_nk3*v2x - znk_curl_nk3*v1y
+
+    // (n_k dot curl nk) dot (v dot curl n_k)
+    ////////////////////////////////
+    // nkdotcurlnk * (v1*curlnk1 + v2*curlnk2 + v3*curlnk3)
+    // (nkdotcurlnk*v1*curlnk1 + nkdotcurlnk*v2*curlnk2 + nkdotcurlnk*v3*curlnk3)
+
+    // lambda_k dot (n_k dot v)
+    ////////////////////////////////
+    // lamk * (nk1*v1 + nk2*v2 + nk3*v3)
+    // lamk*nk1*v1 + lamk*nk2*v2 + lamk*nk3*v3
