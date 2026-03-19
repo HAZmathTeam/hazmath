@@ -1,5 +1,5 @@
 #####################################################
-# Last Modified 2019-06-10 --jha
+# Last Modified 2026-03-19
 ####################################################
 
 # SRC File name
@@ -22,3 +22,13 @@ WITH_SUITESPARSE=1
 WITH_LAPACK=1
 
 sinclude ../examples.mk
+
+# Additional target: test_msh_roundtrip
+test_msh_roundtrip.$(EXTENSION): test_msh_roundtrip.o
+	+$(LINKER) $(CFLAGS) $(ExtraFLAGS) test_msh_roundtrip.o $(RPATH) -o $@ $(LIBS)
+
+all: test_msh_roundtrip.$(EXTENSION)
+
+clean: clean_roundtrip
+clean_roundtrip:
+	rm -f test_msh_roundtrip.$(EXTENSION) test_msh_roundtrip.o

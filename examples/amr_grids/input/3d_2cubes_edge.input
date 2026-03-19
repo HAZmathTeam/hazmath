@@ -115,22 +115,42 @@ data_macroelements{
 	6 7 8 9 10 11 12 13  2
 	       }
 
-num_macrofaces{8}
+num_macrofaces{12}
 
 % any face which needs a code (for example boundary faces: face
 % number. If a face is not included here and is a boundary face then
 % its code is set to Dirichlet (i.e. 1...16). Internal faces not found
 % here have a code 0. Faces given here and not found in the
 % macroelement list are ignored.
+%
+% Distinct codes on each boundary face for testing mesh I/O round-trip:
+% Cube 1 faces:
+%   (0,1,2,3) x=-1   -> code 1
+%   (0,4,1,5) y=-1   -> code 2
+%   (4,7,5,6) x=+1   -> code 3
+%   (2,6,3,7) y=+1   -> code 4
+%   (0,4,2,6) z=-1   -> code 5
+%   (1,5,7,3) z=+1   -> code 6
+% Cube 2 faces:
+%   (6,7,8,9) y=+1   -> code 7
+%   (8,12,9,13) y=+3  -> code 8
+%   (10,12,11,13) x=+3 -> code 9
+%   (6,10,8,12) z=-1  -> code 10
+%   (7,11,9,13) z=+1  -> code 11
+%   (6,10,7,11) x=+1  -> code 12
 
 data_macrofaces{0 1 2 3 1
-		0 4 1 5 3
-		4 7 5 6 2
+		0 4 1 5 2
+		4 7 5 6 3
 		2 6 3 7 4
-		0 4 2 6 12
-		1 5 7 3 17
-		6 7 8 9 -1
-		8 12 9 13 -3
+		0 4 2 6 5
+		1 5 7 3 6
+		6 7 8 9 7
+		8 12 9 13 8
+		10 12 11 13 9
+		6 10 8 12 10
+		7 11 9 13 11
+		6 10 7 11 12
 		   }
 
 %%%%%%%%%%%%%%AMR %%%%%%%%%%%%%%%%%%%%%%%%%%%%

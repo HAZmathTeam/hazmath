@@ -628,77 +628,91 @@ void scfinalize_nofree(scomplex* sc, const INT set_bndry_codes) {
   // sc->parent_v=NULL;
   return;
 }
-// OLDER VERSION
 /*!
- * \fn void scfinalize(scomplex *sc,const INT set_bndry_codes)
+ * \fn void scfinalize(scomplex *sc, scomplex *sc_leaf, const INT set_bndry_codes)
  *
- * \brief Removes all hierachy and make sc to represent only the final
- *        grid. computes connected components and connected components
- *        on the boundary.
+ * \brief Extract the leaf (finest) mesh from a simplicial complex hierarchy.
  *
- * \param sc: simplicial complex
- * \param set_bndry_codes: if 0 then create the sparse matrix for all vertices;
+ *        If sc_leaf is NULL: modifies sc in-place to contain only the leaf
+ *        elements (current behavior — hierarchy is destroyed).
  *
- * \return
+ *        If sc_leaf is not NULL: copies leaf elements into sc_leaf, leaving
+ *        sc with the full hierarchy intact.
  *
- * \note
+ * \param sc              Simplicial complex (possibly with hierarchy)
+ * \param sc_leaf         Output leaf-only scomplex (NULL to modify sc in-place)
+ * \param set_bndry_codes If nonzero, compute boundary codes
  *
  * \author ludmil (20151010)
  * \modified ludmil (20210831)
  * \modified ludmil (20211121)
+ * \modified 20260319 (added sc_leaf parameter)
  *
  */
-void scfinalize(scomplex* sc, const INT set_bndry_codes) {
-  // INT n=sc->n;
-  INT ns, j = -10, k = -10;
+void scfinalize(scomplex* sc, scomplex* sc_leaf, const INT set_bndry_codes) {
+  INT ns, j, k;
   INT n1 = sc->dim + 1;
-  /*
-      store the finest mesh in sc structure.
-      on input sc has all the hierarchy, on return sc only has the final mesh.
-  */
-  //  free(sc->parent_v->val);  sc->parent_v->val=NULL;
+
+  /* Count leaf elements */
   ns = 0;
   for (j = 0; j < sc->ns; j++) {
-    /*
-      On the last grid are all simplices that were not refined, so
-      these are the ones for which child0 and childn are not set.
-    */
-    if (sc->child0[j] < 0 || sc->childn[j] < 0) {
-      for (k = 0; k < n1; k++) {
-        sc->nodes[ns * n1 + k] = sc->nodes[j * n1 + k];
-      }
-      sc->child0[ns] = -1;
-      sc->childn[ns] = -1;
-      sc->gen[ns] = sc->gen[j];
-      sc->flags[ns] = sc->flags[j];
-      ns++;
-    }
+    if (sc->child0[j] < 0 || sc->childn[j] < 0) ns++;
   }
-  sc->ns = ns;
-  sc->nodes = realloc(sc->nodes, n1 * sc->ns * sizeof(INT));
-  sc->nbr = realloc(sc->nbr, n1 * sc->ns * sizeof(INT));
-  sc->vols = realloc(sc->vols, sc->ns * sizeof(REAL));
-  sc->child0 = realloc(sc->child0, sc->ns * sizeof(INT));
-  sc->childn = realloc(sc->childn, sc->ns * sizeof(INT));
-  sc->gen = realloc(sc->gen, sc->ns * sizeof(INT));
-  sc->flags = realloc(sc->flags, sc->ns * sizeof(INT));
-  find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
-  // this also can be called separately
-  // set_bndry_codes should always be set to 1.
-  //  set_bndry_codes=1;
-  find_cc_bndry_cc(sc, (INT)1);
-  // if(set_bndry_codes){
-  //   for(j=0;j<sc->nv;++j){
-  //      if(sc->bndry[j]>128) sc->bndry[j]-=128;
-  //    }
-  //  }
-  // clean up: // This below should be removed?
-  icsr_free(sc->bndry_v);
-  free(sc->bndry_v);
-  sc->bndry_v = NULL;
-  icsr_free(sc->parent_v);
-  free(sc->parent_v);
-  sc->parent_v = NULL;
+
+  if (sc_leaf != NULL) {
+    /* Copy leaf elements into sc_leaf, keep sc intact */
+    scomplex* leaf = haz_scomplex_init(sc->dim, ns, sc->nv, sc->nbig);
+    /* Copy vertex data */
+    memcpy(leaf->x, sc->x, sc->nv * sc->nbig * sizeof(REAL));
+    memcpy(leaf->bndry, sc->bndry, sc->nv * sizeof(INT));
+    /* Copy leaf element connectivity and flags */
+    INT idx = 0;
+    for (j = 0; j < sc->ns; j++) {
+      if (sc->child0[j] < 0 || sc->childn[j] < 0) {
+        memcpy(leaf->nodes + idx * n1, sc->nodes + j * n1, n1 * sizeof(INT));
+        leaf->child0[idx] = -1;
+        leaf->childn[idx] = -1;
+        leaf->gen[idx] = sc->gen[j];
+        leaf->flags[idx] = sc->flags[j];
+        idx++;
+      }
+    }
+    /* Build connectivity and boundary info on leaf mesh */
+    find_nbr(leaf->ns, leaf->nv, leaf->dim, leaf->nodes, leaf->nbr);
+    find_cc_bndry_cc(leaf, (INT)1);
+    /* Copy result to caller's struct */
+    *sc_leaf = *leaf;
+    /* Free the wrapper (but not its contents, which are now in *sc_leaf) */
+    free(leaf);
+  } else {
+    /* In-place: compact sc to leaves only (destroy hierarchy) */
+    INT idx = 0;
+    for (j = 0; j < sc->ns; j++) {
+      if (sc->child0[j] < 0 || sc->childn[j] < 0) {
+        for (k = 0; k < n1; k++) {
+          sc->nodes[idx * n1 + k] = sc->nodes[j * n1 + k];
+        }
+        sc->child0[idx] = -1;
+        sc->childn[idx] = -1;
+        sc->gen[idx] = sc->gen[j];
+        sc->flags[idx] = sc->flags[j];
+        idx++;
+      }
+    }
+    sc->ns = ns;
+    sc->nodes = realloc(sc->nodes, n1 * ns * sizeof(INT));
+    sc->nbr = realloc(sc->nbr, n1 * ns * sizeof(INT));
+    sc->vols = realloc(sc->vols, ns * sizeof(REAL));
+    sc->child0 = realloc(sc->child0, ns * sizeof(INT));
+    sc->childn = realloc(sc->childn, ns * sizeof(INT));
+    sc->gen = realloc(sc->gen, ns * sizeof(INT));
+    sc->flags = realloc(sc->flags, ns * sizeof(INT));
+    find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
+    find_cc_bndry_cc(sc, (INT)1);
+    /* Free hierarchy data */
+    if (sc->bndry_v) { icsr_free(sc->bndry_v); free(sc->bndry_v); sc->bndry_v = NULL; }
+    if (sc->parent_v) { icsr_free(sc->parent_v); free(sc->parent_v); sc->parent_v = NULL; }
+  }
   return;
 }
 /**********************************************************************/
@@ -1560,7 +1574,7 @@ void vtu_data_free(vtu_data* vdata) {
 }
 /**********************************************************************************/
 /*!
- * \fn void vtkw(const char *namevtk, vtu_data *vdata)
+ * \fn void sc_write_vtk(const char *namevtk, vtu_data *vdata)
  *
  * \brief Write a simplicial complex to a unstructured grid vtk
  *        file. The vtk format is describd in the (c) Kitware vtk
@@ -1573,7 +1587,7 @@ void vtu_data_free(vtu_data* vdata) {
  *
  */
 /**********************************************************************************/
-void vtkw(const char* namevtk, vtu_data* vdata) {
+void sc_write_vtk(const char* namevtk, vtu_data* vdata) {
   scomplex* sc = vdata->sc;
   INT shift = vdata->shift;
   //  REAL zscale=vdata->zscale;

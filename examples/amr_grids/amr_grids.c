@@ -170,7 +170,7 @@ INT main(INT argc, char* argv[]) {
     free(all);
   }
   /*  MAKE sc to be the finest grid only */
-  scfinalize(sc, (INT)1);
+  scfinalize(sc, NULL, (INT)1);
   /* conformity check */
   {
     INT nerr = sc_conformity_check(sc);
@@ -184,14 +184,13 @@ INT main(INT argc, char* argv[]) {
    * g->fvtu already has .vtu appended */
   {
     char fname[MAXFILENAMESIZE];
-    snprintf(fname, sizeof(fname), "%s.haz", g->fgrid);
-    hazw(fname, sc, 0);
+    /* hazw(fname, sc, 0); -- commented out, use sc_write_gmsh */
     snprintf(fname, sizeof(fname), "%s.msh", g->fgrid);
-    mshw(fname, sc, 0);
+    sc_write_gmsh(fname, sc, 0);
     if (dim < 4) {
       vtu_data vdata;
       vtu_data_init(sc, &vdata);
-      vtkw(g->fvtu, &vdata);
+      sc_write_vtk(g->fvtu, &vdata);
       vtu_data_free(&vdata);
     }
   }

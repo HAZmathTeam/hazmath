@@ -121,7 +121,7 @@ scomplex** mesh_cube_init(const INT dim, const INT ndiv, const INT ref_type) {
   else
     sc_all[0]->ref_type = ref_type;
   //////////////////////////////////////////////////////
-  //  if (dim < 4) vtkw(g->fvtu, sc, 0, 1.);
+  //  if (dim < 4) sc_write_vtk(g->fvtu, sc, 0, 1.);
   //  haz_scomplex_print(sc_all[0], 0, "XXX"); fflush(stdout);
   //
   return sc_all;

@@ -1716,91 +1716,10 @@ scomplex *hazr(char *namein)
  * Routines to save to file the mesh in different formats. uses the
  * simplicial complex data structure (scomplex *sc)
 */
+/* hazw moved to io_commented_out.c — use sc_write_gmsh instead */
 /********************************************************************************/
 /*!
- * \fn void hazw(char *nameout,scomplex *sc, const INT shift)
- *
- * \brief Write a simplicial complex to a file in a "hazmath" format.
- *
- * \param nameout   File name
- * \param sc        Pointer to a simplicial complex
- * \param shift     integer added to the elements of arrays such as sc->nodes.
- *
- * \note The data is organized as follows:
- *
- * 0. num_simplices,num_vertices,dimension,connected_components(bndry)-1;
- *
- * 1. As every simplex has (dim+1) vertices, the next
- *    (dim+1)*num_simplices integers are: 1st vertex for each simplex
- *    (num_simplices integers); 2nd vertex for every simplex, etc.
- *
- * 2. num_simplices integers are the flags (tags) associated with
- *    every element: could be something characterizing the element.
- *
- * 3. (dim)*num_vertices REALs (coordinates of the vertices) e.g.:
- *    num_vertices REALs with 1st coordinate, num_vertices REALs with
- *    2nd coordinate,...
- *
- * 4. num_vertices integers with tages (boundary codes) for every vertex.
- *
- */
-/********************************************************************************/
-void hazw(char *nameout,scomplex *sc, const INT shift)
-{
-  // WRITING in HAZMATH format.
-  FILE *fmesh;
-  INT n=sc->nv,ns=sc->ns, dim=sc->dim,ndl=sc->dim+1;
-  INT *je = sc->nodes, *ib=sc->bndry;
-  REAL *x = sc->x;
-  INT k=-10,j=-10,kndl=-10;
-  fmesh=HAZ_fopen(nameout,"w");
-  /* *******************************************
-     HAZMAT way of writing mesh file. sc->bndry_cc is the number of
-     connected components on the boundary. sc->cc is the number of
-     connected components domains.
-     * TODO add sc->cc to the reading.
-     */
-  fprintf(fmesh,"%lld %lld %lld %lld\n",(long long )ns,(long long )n,(long long )dim,(long long )(sc->bndry_cc-1)); /* this is the
-							       number of
-							       holes;*/
-  /* fprintf(stdout,"%lld %lld %lld\n",(long long )n,(long long )ns,(long long )sizeof(ib)/sizeof(INT)); */
-  for (j=0;j<ndl;j++) {
-    for (k=0;k<ns;k++){
-      kndl=ndl*k+j;
-      /* shift if needed */
-      fprintf(fmesh," %lld ",(long long )(je[kndl]+shift));
-    }
-    fprintf(fmesh,"\n");
-  }
-  for (k=0;k<ns;k++){
-    fprintf(fmesh," %lld ", (long long )sc->flags[k]);
-  }
-  fprintf(fmesh,"\n");
-  for(j=0;j<dim;j++){
-    for(k=0;k<n;k++){
-      fprintf(fmesh," %23.16g ",x[k*dim+j]);
-      /*      fprintf(stdout," (%i,%i) %23.16g ",k,j,x[k*dim+j]); */
-    }
-    fprintf(fmesh,"\n");
-  }
-  for(k=0;k<n;k++){
-    fprintf(fmesh," %lld ", (long long )ib[k]);
-  }
-  fprintf(fmesh,"\n");
-  //NOT USED: write a function value
-  /* if(sc->fval){ */
-  /*   for(k=0;k<n;k++){ */
-  /*     fprintf(fmesh," %23.16g ", sc->fval[k]); */
-  /*   } */
-  /*   fprintf(fmesh,"\n"); */
-  /* } */
-  fprintf(stdout,"\n%%Output (hazmath) written on:%s\n",nameout);
-  fclose(fmesh);
-  return;
-}
-/********************************************************************************/
-/*!
- * \fn void mshw(char *namemsh,scomplex *sc, const INT shift0)
+ * \fn void sc_write_gmsh(char *namemsh,scomplex *sc, const INT shift0)
  *
  * \brief Write a simplicial complex to a file in a ".msh" format. No
  *        boundary information is written. The data is organized as
@@ -1813,7 +1732,7 @@ void hazw(char *nameout,scomplex *sc, const INT shift)
  *
  */
 /********************************************************************************/
-void mshw(char *namemsh,scomplex *sc, const INT shift0)
+void sc_write_gmsh(char *namemsh,scomplex *sc, const INT shift0)
 {
   // WRITING in .msh format.
   INT shift=shift0;// this is fake because shift must be 1 below, nno zero node nnumbers:
@@ -1902,22 +1821,259 @@ void mshw(char *namemsh,scomplex *sc, const INT shift0)
   return;
 }
 /*******************************************************************************/
+/*!
+ * \fn scomplex* sc_read_gmsh(const char *namemsh)
+ *
+ * \brief Read a Gmsh .msh v2 ASCII file and return a simplicial complex.
+ *        Reads nodes, volume elements (simplices), and boundary face elements.
+ *        Element types: line(1)=1D, triangle(2)=2D, tetrahedron(4)=3D.
+ *        Boundary faces are stored in sc->bndry via vertex boundary codes.
+ *
+ * \param namemsh   File name
+ *
+ * \return sc       Pointer to a simplicial complex
+ *
+ * \note Gmsh .msh v2 format reference:
+ *       https://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format
+ */
 /*******************************************************************************/
-void matlw(scomplex *sc, char *namematl)
+scomplex* sc_read_gmsh(const char *namemsh)
+{
+  FILE *fmesh = HAZ_fopen(namemsh, "r");
+  char line[1024];
+  INT i, j, k;
+
+  /* 1. Skip $MeshFormat ... $EndMeshFormat */
+  while (fgets(line, sizeof(line), fmesh)) {
+    if (strstr(line, "$EndMeshFormat")) break;
+  }
+
+  /* 2. Read $Nodes */
+  while (fgets(line, sizeof(line), fmesh)) {
+    if (strstr(line, "$Nodes")) break;
+  }
+  INT nv = 0;
+  fscanf(fmesh, "%lld", (long long*)&nv);
+
+  /* Read node coordinates — count coordinates per line to detect dim */
+  REAL *x_tmp = (REAL*)calloc(3 * nv, sizeof(REAL));
+  INT *node_id = (INT*)calloc(nv, sizeof(INT));
+  INT coords_per_node = 0;
+  for (i = 0; i < nv; i++) {
+    long long id;
+    fscanf(fmesh, "%lld", &id);
+    node_id[i] = (INT)id;
+    x_tmp[3*i] = 0.0; x_tmp[3*i+1] = 0.0; x_tmp[3*i+2] = 0.0;
+    /* Read rest of line to get coordinates */
+    if (fgets(line, sizeof(line), fmesh)) {
+      INT nc = sscanf(line, "%lg %lg %lg", &x_tmp[3*i], &x_tmp[3*i+1], &x_tmp[3*i+2]);
+      if (i == 0) coords_per_node = nc;
+    }
+  }
+  while (fgets(line, sizeof(line), fmesh)) {
+    if (strstr(line, "$EndNodes")) break;
+  }
+
+  /* 3. Read $Elements */
+  while (fgets(line, sizeof(line), fmesh)) {
+    if (strstr(line, "$Elements")) break;
+  }
+  INT nel_total = 0;
+  fscanf(fmesh, "%lld", (long long*)&nel_total);
+
+  /* First pass: count volume elements and boundary faces to determine dim */
+  /* Store all element data temporarily */
+  INT *el_id = (INT*)calloc(nel_total, sizeof(INT));
+  INT *el_type = (INT*)calloc(nel_total, sizeof(INT));
+  INT *el_ntags = (INT*)calloc(nel_total, sizeof(INT));
+  INT **el_tags = (INT**)calloc(nel_total, sizeof(INT*));
+  INT **el_nodes = (INT**)calloc(nel_total, sizeof(INT*));
+  INT *el_nnodes = (INT*)calloc(nel_total, sizeof(INT));
+
+  for (i = 0; i < nel_total; i++) {
+    long long eid, etype, ntags;
+    fscanf(fmesh, "%lld %lld %lld", &eid, &etype, &ntags);
+    el_id[i] = (INT)eid;
+    el_type[i] = (INT)etype;
+    el_ntags[i] = (INT)ntags;
+    el_tags[i] = (INT*)calloc(ntags, sizeof(INT));
+    for (j = 0; j < (INT)ntags; j++) {
+      long long tag;
+      fscanf(fmesh, "%lld", &tag);
+      el_tags[i][j] = (INT)tag;
+    }
+    /* Determine number of nodes per element type */
+    INT nn = 0;
+    switch (el_type[i]) {
+      case 15: nn = 1; break; /* point */
+      case 1:  nn = 2; break; /* 2-node line */
+      case 2:  nn = 3; break; /* 3-node triangle */
+      case 4:  nn = 4; break; /* 4-node tetrahedron */
+      default: nn = el_type[i] - 50 + 1; break; /* custom */
+    }
+    el_nnodes[i] = nn;
+    el_nodes[i] = (INT*)calloc(nn, sizeof(INT));
+    for (j = 0; j < nn; j++) {
+      long long nid;
+      fscanf(fmesh, "%lld", &nid);
+      el_nodes[i][j] = (INT)nid;
+    }
+  }
+  fclose(fmesh);
+
+  /* 4. Determine dimension from element types */
+  /* Volume elements: line(1)->dim=1, tri(2)->dim=2, tet(4)->dim=3 */
+  INT dim = 0;
+  for (i = 0; i < nel_total; i++) {
+    INT d = 0;
+    switch (el_type[i]) {
+      case 1:  d = 1; break;
+      case 2:  d = 2; break;
+      case 4:  d = 3; break;
+      default: if (el_type[i] > 50) d = el_type[i] - 50; break;
+    }
+    if (d > dim) dim = d;
+  }
+  INT n1 = dim + 1;
+
+  /* Determine which element type is the volume element */
+  INT vol_type = 0;
+  switch (dim) {
+    case 1: vol_type = 1; break;
+    case 2: vol_type = 2; break;
+    case 3: vol_type = 4; break;
+    default: vol_type = 50 + dim; break;
+  }
+
+  /* 5. Count volume elements and boundary face elements */
+  INT ns = 0;      /* volume elements */
+  INT nbf = 0;     /* boundary face elements */
+  INT face_type = 0;
+  switch (dim) {
+    case 1: face_type = 15; break; /* point */
+    case 2: face_type = 1;  break; /* line */
+    case 3: face_type = 2;  break; /* triangle */
+  }
+  for (i = 0; i < nel_total; i++) {
+    if (el_type[i] == vol_type) ns++;
+    else if (el_type[i] == face_type) nbf++;
+  }
+
+  /* 6. Create scomplex */
+  scomplex *sc = haz_scomplex_init(dim, ns, nv, dim);
+
+  /* 7. Fill coordinates (Gmsh is 1-indexed, sc is 0-indexed) */
+  /* Determine minimum node id for shift */
+  INT min_id = node_id[0];
+  for (i = 1; i < nv; i++)
+    if (node_id[i] < min_id) min_id = node_id[i];
+
+  for (i = 0; i < nv; i++) {
+    INT idx = node_id[i] - min_id;
+    for (j = 0; j < dim; j++)
+      sc->x[idx * dim + j] = x_tmp[3 * i + j];
+  }
+
+  /* 8. Fill element connectivity and flags */
+  INT vol_idx = 0;
+  for (i = 0; i < nel_total; i++) {
+    if (el_type[i] == vol_type) {
+      for (j = 0; j < n1; j++)
+        sc->nodes[vol_idx * n1 + j] = el_nodes[i][j] - min_id;
+      sc->flags[vol_idx] = (el_ntags[i] > 0) ? el_tags[i][0] : 0;
+      vol_idx++;
+    }
+  }
+
+  /* 9. Build bndry_f2v from boundary face elements */
+  if (nbf > 0) {
+    INT vpf = dim;  /* vertices per boundary face */
+    INT nnzf = nbf * vpf;
+    sc->bndry_f2v = (iCSRmat*)malloc(sizeof(iCSRmat));
+    sc->bndry_f2v[0] = icsr_create(nbf, nv, nnzf);
+    INT bf_idx = 0;
+    INT jj = 0;
+    sc->bndry_f2v->IA[0] = 0;
+    for (i = 0; i < nel_total; i++) {
+      if (el_type[i] == face_type) {
+        INT fcode = (el_ntags[i] > 0) ? el_tags[i][0] : 1;
+        for (j = 0; j < el_nnodes[i]; j++) {
+          sc->bndry_f2v->JA[jj] = el_nodes[i][j] - min_id;
+          sc->bndry_f2v->val[jj] = fcode;
+          jj++;
+        }
+        bf_idx++;
+        sc->bndry_f2v->IA[bf_idx] = jj;
+      }
+    }
+    /* Build bndry_v (vertex-to-boundary-face) by transposing bndry_f2v,
+       carrying face codes. Then derive sc->bndry as min code per vertex. */
+    sc->bndry_v = (iCSRmat*)malloc(sizeof(iCSRmat));
+    icsr_trans(sc->bndry_f2v, sc->bndry_v);
+    /* Copy face codes into bndry_v->val: for each entry in bndry_v
+       (vertex v belongs to face f), store the code of face f */
+    for (i = 0; i < sc->bndry_v->row; i++) {
+      for (j = sc->bndry_v->IA[i]; j < sc->bndry_v->IA[i + 1]; j++) {
+        INT face_idx = sc->bndry_v->JA[j];
+        /* Get the code from bndry_f2v for this face */
+        INT fa = sc->bndry_f2v->IA[face_idx];
+        sc->bndry_v->val[j] = sc->bndry_f2v->val[fa];
+      }
+    }
+    /* Derive vertex boundary codes: minimum code per vertex */
+    for (i = 0; i < sc->bndry_v->row; i++) {
+      INT ia = sc->bndry_v->IA[i];
+      INT ib = sc->bndry_v->IA[i + 1];
+      if (ia >= ib) continue;
+      INT mincode = sc->bndry_v->val[ia];
+      for (j = ia + 1; j < ib; j++) {
+        if (sc->bndry_v->val[j] < mincode)
+          mincode = sc->bndry_v->val[j];
+      }
+      if (i < nv) sc->bndry[i] = mincode;
+    }
+  }
+
+  /* 10. Set connected components */
+  sc->cc = 1;
+  sc->bndry_cc = 1;
+
+  /* 11. Free temporary data */
+  for (i = 0; i < nel_total; i++) {
+    if (el_tags[i]) free(el_tags[i]);
+    if (el_nodes[i]) free(el_nodes[i]);
+  }
+  free(el_id); free(el_type); free(el_ntags);
+  free(el_tags); free(el_nodes); free(el_nnodes);
+  free(x_tmp); free(node_id);
+
+  fprintf(stdout, "\n%%Input (MSH) read from: %s (dim=%lld, ns=%lld, nv=%lld)\n",
+          namemsh, (long long)dim, (long long)ns, (long long)nv);
+
+  return sc;
+}
+/*******************************************************************************/
+/*******************************************************************************/
+/*!
+ * \fn void sc_matlab_write(scomplex *sc, char *namematl)
+ *
+ * \brief Write a simplicial complex to a MATLAB .m file for visualization.
+ *        Outputs t (connectivity, 1-indexed) and x (coordinates) arrays,
+ *        plus a triplot/tetramesh command.
+ *
+ * \param sc         Pointer to a simplicial complex
+ * \param namematl   Output file name
+ */
+void sc_matlab_write(scomplex *sc, char *namematl)
 {
   FILE *fp;
   INT ns=sc->ns,nv=sc->nv,dim=sc->dim,n1=dim+1,j=-10,k=-10;
   INT *nodes=sc->nodes;
   REAL *x=sc->x;
   fp=HAZ_fopen(namematl,"w");
-  //  if(!fp) fp=stdout;
   if(!fp) fp=stdout;
-  fprintf(stdout,"\n%lld %lld %lld\n",(long long )ns,(long long )nv,(long long )dim);
-  fflush(stdout);
   fprintf(fp,"\nt=[");
-  fflush(fp);
   for (j=0;j<ns;j++){
-    /*  for (j=0;j<ns;j++){*/
     for (k=0;k<n1;k++) {
       fprintf(fp,"%lld ",(long long )nodes[j*n1+k]+(long long )1);
     }

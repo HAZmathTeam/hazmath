@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
     // Mesh
     vtu_data vdata;
     vtu_data_init(sc, &vdata);
-    vtkw("output/mesh.vtu", &vdata);
+    sc_write_vtk("output/mesh.vtu", &vdata);
     vtu_data_free(&vdata);
   }
 

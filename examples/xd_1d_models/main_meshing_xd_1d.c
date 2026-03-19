@@ -47,7 +47,7 @@ INT main(int argc, char* argv[]) {
   /*   fprintf(fp,"\n"); */
   /* } */
   /* fclose(fp); */
-  // mshw("1d_graph.msh",sc_dim,0); //
+  // sc_write_gmsh("1d_graph.msh",sc_dim,0); //
   /* WRITE THE OUTPUT vtu file for paraview:    */
   vtu_data vdata;
   vtu_data_init(sc_dim, &vdata);
@@ -59,7 +59,7 @@ INT main(int argc, char* argv[]) {
   // write the 1d vtu:
   char* fvtu = strdup(g.fvtu_1d);
   g.fvtu_1d = str_add_dim(max_nodes_in, fvtu, ".vtu"); free(fvtu);
-  vtkw(g.fvtu_1d, &vdata);
+  sc_write_vtk(g.fvtu_1d, &vdata);
   //free the vdata with variable names etc
   vtu_data_free(&vdata);
   // free 1d data;
@@ -121,7 +121,7 @@ INT main(int argc, char* argv[]) {
   free(all);
   /*  MAKE sc to be the finest grid only */
   //  icsr_write_icoo("parent_v.zcoo",sc_dimbig->parent_v);
-  scfinalize(sc_dimbig, (INT)1);
+  scfinalize(sc_dimbig, NULL, (INT)1);
   //
   clock_t clk_3dmesh_end = clock();
   //
@@ -130,7 +130,7 @@ INT main(int argc, char* argv[]) {
   g.fvtu_3d = str_add_dim(max_nodes_in, fvtu, ".vtu"); free(fvtu);
   //fvtu = strdup(g.fvtu_1d);
   //g.fvtu_1d = str_add_dim(max_nodes,fvtu,".vtu"); free(fvtu);
-  vtkw(g.fvtu_3d, &vdata);
+  sc_write_vtk(g.fvtu_3d, &vdata);
   vtu_data_free(&vdata);
   /*FREE: the input grid is freed here, because it has the filenames in it*/
   //  input_grid_free(g3d);

@@ -79,13 +79,12 @@ int main(int argc, char* argv[]) {
   INT set_bndry_codes = inparam.boundary_codes;    // set flags for the boundary DoF ([1:16] are Dirichlet, [17:32] are Neumann, etc)
 
   if (read_mesh_from_file) {
-    // Reading from file
-    FILE* gfid = HAZ_fopen(inparam.gridfile, "r");
-    // File types possible are 0 - HAZ format; 1 - VTK format (not implemented)
-    INT mesh_type = 0;
+    // Reading from .msh (Gmsh) file
     printf(" --> loading grid from file: %s\n", inparam.gridfile);
-    sc = creategrid_fread(gfid, mesh_type);
-    fclose(gfid);
+    sc = sc_read_gmsh(inparam.gridfile);
+    find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
+    sc_vols(sc);
+    sc_build_fem_data(sc);
   } else {
     // Use HAZMATH built in functions for a uniform mesh in 2D or 3D
     sc = make_uniform_mesh(dim, mesh_ref_levels, mesh_ref_type, set_bndry_codes);
@@ -135,9 +134,9 @@ int main(int argc, char* argv[]) {
     // Mesh
     vtu_data vdata;
     vtu_data_init(sc, &vdata);
-    vtkw("output/mesh.vtu", &vdata);
+    sc_write_vtk("output/mesh.vtu", &vdata);
     vtu_data_free(&vdata);
-    hazw("output/mesh.haz", sc, 0);
+    sc_write_gmsh("output/mesh.msh", sc, 1);
   }
 
   clock_t clk_mesh_end = clock(); // End of timing for mesh and FE setup

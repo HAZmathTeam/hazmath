@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
   /* Write VTU if dim <= 3 */
   if (dim <= 3) {
     /* (debug removed) */
-    scfinalize(sc, (INT)1);
+    scfinalize(sc, NULL, (INT)1);
     {
       INT nerr2 = sc_conformity_check(sc);
       if (nerr2)
@@ -111,7 +111,7 @@ int main(int argc, char* argv[]) {
     snprintf(fname, sizeof(fname), "output/dgs_adaptive_%dd.vtu", (int)dim);
     vtu_data vdata;
     vtu_data_init(sc, &vdata);
-    vtkw(fname, &vdata);
+    sc_write_vtk(fname, &vdata);
     vtu_data_free(&vdata);
     fprintf(stdout, "%% VTU written to %s\n", fname);
   }

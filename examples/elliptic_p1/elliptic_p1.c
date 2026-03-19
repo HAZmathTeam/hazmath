@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
   fprintf(stdout, "\nElements = Simplexes = %12lld;\nDoF      = Vertices  = %12lld\n", (long long)sc_all[0]->ns, (long long)sc_all[0]->nv); fflush(stdout);
   /**/
   sc = sc_all[0];
-  scfinalize(sc, (INT)1);
+  scfinalize(sc, NULL, (INT)1);
   sc_vols(sc);
   clock_t clk_mesh_end = clock();
   /* Assemble */

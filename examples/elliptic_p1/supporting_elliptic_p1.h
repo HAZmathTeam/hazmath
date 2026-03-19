@@ -825,12 +825,12 @@ static void draw_grids(const SHORT todraw, scomplex* sc, dvector* sol) {
     break;
   case 3:
     vtu_data_init(sc, &vdata);
-    vtkw("output/3d.vtu", &vdata);
+    sc_write_vtk("output/3d.vtu", &vdata);
     did_vtu = 1;
     break;
   default:
     vtu_data_init(sc, &vdata);
-    vtkw("output/2d.vtu", &vdata);
+    sc_write_vtk("output/2d.vtu", &vdata);
     did_vtu = 1;
   }
   if (did_vtu) vtu_data_free(&vdata);

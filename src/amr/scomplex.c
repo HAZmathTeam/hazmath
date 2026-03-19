@@ -394,62 +394,7 @@ void vol_simplex(INT dim, REAL fact, REAL* xf, REAL* volt, void* wrk) {
     *volt = fabs(*volt) / fact;
   return;
 }
-/**********************************************************************/
-/*!
- * \fn scomplex *haz_scomplex_read(FILE *fp)
- *
- * \brief
- *
- * \param
- *
- * \return
- *
- * \note
- *
- */
-scomplex* haz_scomplex_read(FILE* fp, INT print_level) {
-  INT i, j, k;
-  long long ns_, nv_, n_, nholes_;
-  fscanf(fp, "%lld %lld %lld %lld", &ns_, &nv_, &n_, &nholes_);
-  INT ns = (INT)ns_, nv = (INT)nv_, n = (INT)n_, nholes = (INT)nholes_;
-  INT n1 = n + 1;
-  INT nbig = n;  // we can only read same dimension complexes now.
-  scomplex* sc = (scomplex*)haz_scomplex_init(n, ns, nv, n);
-  // Read element connectivity (nodes)
-  INT one_zero_flag = 1;
-  long long readint;
-  for (j = 0; j < n1; j++) {
-    for (k = 0; k < ns; k++) {
-      INT n1kj = n1 * k + j;
-      fscanf(fp, " %lld ", &readint);
-      sc->nodes[n1kj] = (INT)readint;
-      if (sc->nodes[n1kj] == 0 && one_zero_flag == 1)
-        one_zero_flag = 0;
-    }
-  }
-  if (one_zero_flag == 1)
-    for (i = 0; i < ns * n1; i++)
-      sc->nodes[i] -= 1;
-  // Read element flags
-  for (k = 0; k < ns; k++) {
-    fscanf(fp, " %lld ", (long long*)sc->flags + k);
-  }
-  // Read coordinates (file is column-major, store row-major)
-  for (j = 0; j < nbig; j++) {
-    for (i = 0; i < nv; i++) {
-      fscanf(fp, "%lg", sc->x + i * nbig + j);
-    }
-  }
-  // Read vertex boundary codes
-  for (i = 0; i < nv; i++) {
-    fscanf(fp, "%lld", (long long*)(sc->bndry + i));
-  }
-  // Set connected components from nholes
-  sc->cc = 1;
-  sc->bndry_cc = (nholes == 0) ? 1 : nholes + 1;
-  sc->print_level = print_level;
-  return sc;
-}
+/* haz_scomplex_read moved to io_commented_out.c — use sc_read_gmsh instead */
 /**********************************************************************/
 /*!
  * \fn void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
@@ -560,7 +505,10 @@ void sc_free_fem_data(scomplex* sc) {
   if (!sc || !sc->fem) return;
   sc_fem* fem = sc->fem;
   if (fem->leaf2global) free(fem->leaf2global);
-  if (fem->el_v) { icsr_free(fem->el_v); free(fem->el_v); }
+  if (fem->el_v) {
+    fem->el_v->JA = NULL; /* JA points to sc->nodes, freed by haz_scomplex_free */
+    icsr_free(fem->el_v); free(fem->el_v);
+  }
   if (fem->el_ed) { icsr_free(fem->el_ed); free(fem->el_ed); }
   if (fem->el_f) { icsr_free(fem->el_f); free(fem->el_f); }
   if (fem->ed_v) { icsr_free(fem->ed_v); free(fem->ed_v); }
@@ -616,16 +564,15 @@ void sc_build_fem_data(scomplex* sc) {
       idx++;
     }
   }
-  /* 3. Build el_v CSR from nodes (leaf only) */
+  /* 3. Build el_v CSR from nodes — points directly to sc->nodes (no copy) */
   fem->el_v = (iCSRmat*)malloc(sizeof(iCSRmat));
-  fem->el_v[0] = icsr_create(ns_leaf, nv, ns_leaf * n1);
-  if (fem->el_v->val) { free(fem->el_v->val); fem->el_v->val = NULL; }
-  fem->el_v->IA[0] = 0;
+  fem->el_v->row = ns_leaf;
+  fem->el_v->col = nv;
+  fem->el_v->nnz = ns_leaf * n1;
+  fem->el_v->IA = (INT*)calloc(ns_leaf + 1, sizeof(INT));
+  fem->el_v->val = NULL;
   for (INT j = 0; j < ns_leaf; j++) fem->el_v->IA[j + 1] = (j + 1) * n1;
-  for (INT j = 0; j < ns_leaf; j++) {
-    INT glob = fem->leaf2global[j];
-    memcpy(fem->el_v->JA + j * n1, sc->nodes + glob * n1, n1 * sizeof(INT));
-  }
+  fem->el_v->JA = sc->nodes; /* shared with sc->nodes, freed by haz_scomplex_free */
   /* 4. Count boundary vertices */
   fem->nbv = 0;
   for (INT i = 0; i < nv; i++)
@@ -1939,32 +1886,7 @@ INT sc_conformity_check(scomplex* sc) {
   }
   return nerr;
 }
-/**********************************************************************/
-/*!
-* \fn scomplex* creategrid_fread(FILE *gfid,INT file_type)
-*
-* \brief Creates grid by reading in from file, returns an scomplex.
-*
-* \param gfid      Grid FILE ID
-* \param file_type Type of File Input: 0 - haz format
-*
-* \return scomplex* with the mesh and FEM data.
-*
-*/
-scomplex* creategrid_fread(FILE *gfid,INT file_type)
-{
-  if(file_type!=0) {
-    fprintf(stderr,"Unknown mesh file type, %lld. Try using native (.haz) format. -Exiting\n",(long long )file_type);
-    exit(255);
-  }
-  scomplex *sc = haz_scomplex_read(gfid, 0);
-  fprintf(stdout,"reading complete...\n");fflush(stdout);
-  // Build neighbors, volumes, and FEM data
-  find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
-  sc_vols(sc);
-  sc_build_fem_data(sc);
-  return sc;
-}
+/* creategrid_fread moved to io_commented_out.c — use sc_read_gmsh instead */
 /**********************************************************************/
 /*!
 * \fn scomplex* make_uniform_mesh(const INT dim,const INT mesh_ref_levels,const INT mesh_ref_type,const INT set_bndry_codes)
@@ -2035,12 +1957,12 @@ scomplex* make_uniform_mesh(const INT dim,const INT mesh_ref_levels,const INT me
     ivec_free(&marked);
   }
   fprintf(stdout,"Done.\n");
-  scfinalize(sc,(INT )1);
+  scfinalize(sc, NULL, (INT)1);
   sc_vols(sc);
   if (FALSE) {// (do not export)/(export) the mesh to vtu: [FALSE/TRUE]
     vtu_data vdata;
     vtu_data_init(sc, &vdata);
-    vtkw("mesh.vtu", &vdata);
+    sc_write_vtk("mesh.vtu", &vdata);
     vtu_data_free(&vdata);
   }
   fprintf(stdout,"%%%%---------------------------------------------------------------------\n");

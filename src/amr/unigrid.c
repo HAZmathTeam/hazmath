@@ -352,7 +352,7 @@ void unirefine(INT* nd, scomplex* sc) {
     fprintf(stdout, "u%lldu", (long long int)sc->level);//,nsold,ns,nv);
   }
   fprintf(stdout, "\n");
-  scfinalize(sc, (INT)0);
+  scfinalize(sc, NULL, (INT)0);
   return;
 }
 /**********************************************************************/
