@@ -51,6 +51,7 @@ void haz_scomplex_realloc(scomplex* sc) {
     sc->csys[i] = 0;
   }
   sc->fem = NULL;
+  sc->inc = NULL;
   return;
 }
 /**********************************************************************/
@@ -242,6 +243,7 @@ scomplex* haz_scomplex_init(const INT n, INT ns, INT nv, const INT nbig) {
   sc->v2s_count = 0;
   sc->v2s_alloc = 0;
   sc->fem = NULL;
+  sc->inc = NULL;
   return sc;
 }
 /**********************************************************************/
@@ -355,6 +357,7 @@ void haz_scomplex_init_part(scomplex* sc) {
     sc->csys[i] = 0;
   }
   sc->fem = NULL;
+  sc->inc = NULL;
   return;
 }
 /**********************************************************************/
@@ -505,13 +508,12 @@ void sc_free_fem_data(scomplex* sc) {
   if (!sc || !sc->fem) return;
   sc_fem* fem = sc->fem;
   if (fem->leaf2global) free(fem->leaf2global);
-  if (fem->el_v) {
-    fem->el_v->JA = NULL; /* JA points to sc->nodes, freed by haz_scomplex_free */
-    icsr_free(fem->el_v); free(fem->el_v);
-  }
-  if (fem->el_ed) { icsr_free(fem->el_ed); free(fem->el_ed); }
+  /* el_v, el_ed, ed_v are owned by sc->inc — freed there, not here. */
+  fem->el_v = NULL;
+  fem->el_ed = NULL;
+  fem->ed_v = NULL;
+  /* el_f and f_v are separate allocations for all dimensions */
   if (fem->el_f) { icsr_free(fem->el_f); free(fem->el_f); }
-  if (fem->ed_v) { icsr_free(fem->ed_v); free(fem->ed_v); }
   if (fem->f_v) { icsr_free(fem->f_v); free(fem->f_v); }
   if (fem->f_ed) { icsr_free(fem->f_ed); free(fem->f_ed); }
   if (fem->el_vol) free(fem->el_vol);
@@ -529,6 +531,71 @@ void sc_free_fem_data(scomplex* sc) {
   if (fem->iwork) free(fem->iwork);
   free(fem);
   sc->fem = NULL;
+  sc->inc = NULL;
+}
+/**********************************************************************/
+/*!
+ * \fn static void compute_inc_signs(iCSRmat *k_to_j, iCSRmat *k_to_v, iCSRmat *j_to_v)
+ *
+ * \brief Compute signed incidence for inc[k][j] with j >= 1.
+ *        Automatically detects if this is a boundary operator (j = k-1)
+ *        by comparing the number of vertices per simplex.
+ *
+ *        For boundary operators (j = k-1): sign = (-1)^i * perm_sign,
+ *        where i is the local index of the omitted vertex and perm_sign
+ *        is the sign of the permutation from induced to global order.
+ *        This encodes the chain complex boundary map ∂_k.
+ *
+ *        For non-boundary (j < k-1): sign = perm_sign only,
+ *        encoding relative orientation of the j-simplex in the k-simplex.
+ *
+ * \param k_to_j  incidence matrix from k-simplices to j-simplices
+ * \param k_to_v  k-simplices to vertices
+ * \param j_to_v  j-simplices to vertices
+ */
+static void compute_inc_signs(iCSRmat *k_to_j, iCSRmat *k_to_v, iCSRmat *j_to_v)
+{
+  if (!k_to_j || !k_to_v || !j_to_v) return;
+  INT n_k = k_to_j->row;
+  if (n_k == 0) return;
+  INT kp1 = (INT)(k_to_v->IA[1] - k_to_v->IA[0]); /* k+1 */
+  INT jp1 = (INT)(j_to_v->IA[1] - j_to_v->IA[0]); /* j+1 */
+  INT is_boundary = (jp1 == kp1 - 1) ? 1 : 0;
+  if (k_to_j->val) free(k_to_j->val);
+  k_to_j->val = (INT*)calloc(k_to_j->nnz, sizeof(INT));
+  for (INT s = 0; s < n_k; s++) {
+    INT *kverts = &k_to_v->JA[k_to_v->IA[s]];
+    for (INT p = k_to_j->IA[s]; p < k_to_j->IA[s + 1]; p++) {
+      INT sigma = k_to_j->JA[p];
+      INT *jverts = &j_to_v->JA[j_to_v->IA[sigma]];
+      /* Map shared vertices: for each vertex of k-simplex found in
+         j-simplex, record its position in j-simplex's vertex list. */
+      INT perm[16]; /* supports up to 15-simplices */
+      INT omitted_sign = 1;
+      INT idx = 0;
+      for (INT a = 0; a < kp1; a++) {
+        INT pos = -1;
+        for (INT b = 0; b < jp1; b++) {
+          if (kverts[a] == jverts[b]) { pos = b; break; }
+        }
+        if (pos >= 0) {
+          perm[idx++] = pos;
+        } else if (is_boundary) {
+          /* Boundary operator: (-1)^(position of omitted vertex) */
+          omitted_sign = (a % 2 == 0) ? 1 : -1;
+        }
+      }
+      /* Sign of permutation = (-1)^(number of inversions) */
+      INT inversions = 0;
+      for (INT a = 0; a < jp1; a++) {
+        for (INT b = a + 1; b < jp1; b++) {
+          if (perm[a] > perm[b]) inversions++;
+        }
+      }
+      INT psign = (inversions % 2 == 0) ? 1 : -1;
+      k_to_j->val[p] = (is_boundary ? omitted_sign : 1) * psign;
+    }
+  }
 }
 /**********************************************************************/
 /*!
@@ -564,15 +631,18 @@ void sc_build_fem_data(scomplex* sc) {
       idx++;
     }
   }
-  /* 3. Build el_v CSR from nodes — points directly to sc->nodes (no copy) */
-  fem->el_v = (iCSRmat*)malloc(sizeof(iCSRmat));
-  fem->el_v->row = ns_leaf;
-  fem->el_v->col = nv;
-  fem->el_v->nnz = ns_leaf * n1;
-  fem->el_v->IA = (INT*)calloc(ns_leaf + 1, sizeof(INT));
-  fem->el_v->val = NULL;
-  for (INT j = 0; j < ns_leaf; j++) fem->el_v->IA[j + 1] = (j + 1) * n1;
-  fem->el_v->JA = sc->nodes; /* shared with sc->nodes, freed by haz_scomplex_free */
+  /* 3. Allocate sc->inc and build el_v = inc[dim*n1+0] */
+  sc->inc = (iCSRmat**)calloc(n1 * n1, sizeof(iCSRmat*));
+  iCSRmat *el_v = (iCSRmat*)malloc(sizeof(iCSRmat));
+  el_v->row = ns_leaf;
+  el_v->col = nv;
+  el_v->nnz = ns_leaf * n1;
+  el_v->IA = (INT*)calloc(ns_leaf + 1, sizeof(INT));
+  el_v->val = NULL;
+  for (INT j = 0; j < ns_leaf; j++) el_v->IA[j + 1] = (j + 1) * n1;
+  el_v->JA = sc->nodes; /* shared with sc->nodes, freed by haz_scomplex_free */
+  sc->inc[dim * n1 + 0] = el_v;
+  fem->el_v = el_v; /* convenience pointer into sc->inc */
   /* 4. Count boundary vertices */
   fem->nbv = 0;
   for (INT i = 0; i < nv; i++)
@@ -618,10 +688,19 @@ void sc_build_fem_data(scomplex* sc) {
     /* Face maps */
     iCSRmat f_v = icsr_create(nface, nv, nface * dim);
     iCSRmat f_ed = icsr_create(nface, nedge, nface * (2 * dim - 3));
+    /* Store el_ed and ed_v in sc->inc FIRST (needed before el_f assignment) */
+    sc->inc[dim * n1 + 1] = malloc(sizeof(iCSRmat));
+    *(sc->inc[dim * n1 + 1]) = el_ed;
+    fem->el_ed = sc->inc[dim * n1 + 1];
+    sc->inc[1 * n1 + 0] = malloc(sizeof(iCSRmat));
+    *(sc->inc[1 * n1 + 0]) = ed_v;
+    fem->ed_v = sc->inc[1 * n1 + 0];
+    /* Face maps */
     INT* f_flag = (INT*)calloc(nface, sizeof(INT));
     INT nbface;
-    fem->el_f = malloc(sizeof(struct iCSRmat));
-    get_face_maps(fem->el_v, n1, &ed_v, nface, dim, f_per_elm, fem->el_f, f_flag, &nbface, &f_v, &f_ed, fel_order);
+    iCSRmat *el_f_ptr = malloc(sizeof(struct iCSRmat));
+    get_face_maps(fem->el_v, n1, &ed_v, nface, dim, f_per_elm, el_f_ptr, f_flag, &nbface, &f_v, &f_ed, fel_order);
+    fem->el_f = el_f_ptr;
     /* Edge and face boundary flags */
     INT nbedge = 0;
     INT* ed_flag = (INT*)calloc(nedge, sizeof(INT));
@@ -631,17 +710,13 @@ void sc_build_fem_data(scomplex* sc) {
     REAL* f_mid = (REAL*)calloc(nface * dim, sizeof(REAL));
     REAL* f_norm = (REAL*)calloc(nface * dim, sizeof(REAL));
     face_stats(f_area, f_mid, f_norm, &f_v, sc);
-    /* Sync face nodes */
+    /* Sync face nodes — stores orientation in f_v->val, no JA swaps */
     sync_facenode(&f_v, f_norm, sc);
-    /* Store in fem */
+    /* Store counts and remaining data */
     fem->nedge = nedge;
     fem->nface = nface;
     fem->nbedge = nbedge;
     fem->nbface = nbface;
-    fem->el_ed = malloc(sizeof(struct iCSRmat));
-    *(fem->el_ed) = el_ed;
-    fem->ed_v = malloc(sizeof(struct iCSRmat));
-    *(fem->ed_v) = ed_v;
     fem->f_v = malloc(sizeof(struct iCSRmat));
     *(fem->f_v) = f_v;
     fem->f_ed = malloc(sizeof(struct iCSRmat));
@@ -668,6 +743,57 @@ void sc_build_fem_data(scomplex* sc) {
   get_el_mid(el_mid, fem->el_v, sc, dim);
   fem->el_vol = el_vol;
   fem->el_mid = el_mid;
+  /* 9. Populate remaining sc->inc entries for face data.
+     el_v, el_ed, ed_v are already stored in sc->inc above.
+     For dim>=3: face slots are separate from edge slots.
+     For dim=2: face=edge, so inc[dim][1] already has el_ed.
+     el_f, f_v, f_ed are owned by sc_fem (freed there). */
+  if (dim >= 3) {
+    sc->inc[dim * n1 + (dim - 1)] = fem->el_f;
+    sc->inc[(dim - 1) * n1 + 0] = fem->f_v;
+    sc->inc[(dim - 1) * n1 + 1] = fem->f_ed;
+  }
+  /* 10. Compute signed incidence for all inc[k][j].
+     Convention: inc[k][j]->val stores +1 or -1 encoding
+     relative orientation of the k-simplex and j-simplex.
+     For boundary operators (j = k-1): encodes the chain complex ∂_k.
+     For inc[k][0]: encodes the orientation sign of the k-simplex.
+     Property: ∂_{k-1} ∘ ∂_k = 0 is satisfied.
+     All computations are dimension-independent. */
+  if (dim >= 2) {
+    /* (a) ed_v->val: ∂_1 boundary operator.
+       ∂[v0,v1] = v1 - v0: val = -1 for first vertex, +1 for second. */
+    if (fem->ed_v->val) free(fem->ed_v->val);
+    fem->ed_v->val = (INT*)calloc(fem->ed_v->nnz, sizeof(INT));
+    for (INT e = 0; e < fem->nedge; e++) {
+      fem->ed_v->val[fem->ed_v->IA[e]] = -1;
+      fem->ed_v->val[fem->ed_v->IA[e] + 1] = 1;
+    }
+    /* (b) el_f: ∂_dim boundary (element to face). */
+    compute_inc_signs(fem->el_f, fem->el_v, fem->f_v);
+    /* (c) el_ed: relative edge orientation in element. */
+    compute_inc_signs(fem->el_ed, fem->el_v, fem->ed_v);
+    /* (d) f_ed: boundary or relative orientation (auto-detected). */
+    if (fem->f_ed) compute_inc_signs(fem->f_ed, fem->f_v, fem->ed_v);
+  }
+  /* el_v->val: element orientation sign = sign(det(shape matrix B)).
+     B[i][j] = x[v_{j+1}][i] - x[v_0][i]. */
+  {
+    if (el_v->val) free(el_v->val);
+    el_v->val = (INT*)calloc(el_v->nnz, sizeof(INT));
+    REAL *B = (REAL *)calloc(dim * dim, sizeof(REAL));
+    for (INT el = 0; el < ns_leaf; el++) {
+      INT *verts = &el_v->JA[el_v->IA[el]];
+      for (INT j = 0; j < dim; j++)
+        for (INT i = 0; i < dim; i++)
+          B[j * dim + i] = sc->x[verts[j + 1] * dim + i]
+                         - sc->x[verts[0] * dim + i];
+      INT sign = det_sign(dim, B);
+      for (INT j = el_v->IA[el]; j < el_v->IA[el + 1]; j++)
+        el_v->val[j] = sign;
+    }
+    free(B);
+  }
 }
 /**********************************************************************/
 void haz_scomplex_free(scomplex* sc) {
@@ -719,6 +845,35 @@ void haz_scomplex_free(scomplex* sc) {
   sc->v2s_count = 0;
   sc->v2s_alloc = 0;
   sc_free_fem_data(sc);
+  /* Free inc array — owns el_v, el_ed, ed_v.
+     el_f, f_v, f_ed are owned by sc_fem, already freed above.
+     For dim>=3, NULL out those inc entries to avoid double free. */
+  if (sc->inc) {
+    INT dim = sc->dim, n1 = dim + 1;
+    /* NULL out fem-owned entries (freed by sc_free_fem_data) */
+    if (dim >= 3) {
+      sc->inc[dim * n1 + (dim - 1)] = NULL; /* el_f */
+      sc->inc[(dim - 1) * n1 + 0] = NULL;   /* f_v */
+      sc->inc[(dim - 1) * n1 + 1] = NULL;   /* f_ed */
+    }
+    /* el_v = inc[dim*n1+0] */
+    if (sc->inc[dim * n1 + 0]) {
+      sc->inc[dim * n1 + 0]->JA = NULL; /* JA = sc->nodes, freed above */
+      icsr_free(sc->inc[dim * n1 + 0]);
+      free(sc->inc[dim * n1 + 0]);
+    }
+    /* el_ed = inc[dim*n1+1] */
+    if (dim >= 2 && sc->inc[dim * n1 + 1]) {
+      icsr_free(sc->inc[dim * n1 + 1]);
+      free(sc->inc[dim * n1 + 1]);
+    }
+    /* ed_v = inc[1*n1+0] */
+    if (dim >= 2 && sc->inc[1 * n1 + 0]) {
+      icsr_free(sc->inc[1 * n1 + 0]);
+      free(sc->inc[1 * n1 + 0]);
+    }
+    free(sc->inc); sc->inc = NULL;
+  }
   if (sc) free(sc);
   return;
 }

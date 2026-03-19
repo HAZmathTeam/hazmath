@@ -634,7 +634,6 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,scomplex *sc)
   INT notbdry=-666;
   INT myel,myopn;
   INT* ie = (INT *) calloc(2,sizeof(INT));
-  INT* op_n = (INT *) calloc(2,sizeof(INT));
 
   // Element Node Stuff
   INT* myel_n = (INT *) calloc(el_order,sizeof(INT));
@@ -642,8 +641,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,scomplex *sc)
   REAL* dp = (REAL *) calloc(el_order*dim,sizeof(REAL));
   REAL grad_mag,e1x,e1y,e1z,e2x,e2y,e2z;
 
-  /* Get Face to Element Map */
-  /* Get Transpose of f_el -> el_f */
+  /* Get Face to Element Map (only JA needed, not val) */
   iCSRmat f_el;
   icsr_trans(el_f,&f_el);
 
@@ -663,24 +661,20 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,scomplex *sc)
       jcnt++;
     }
 
-    // Find Corresponding Elements and order in element
-    // Also picks correct opposite node to form vector
-    // normal vectors point from lower number element to higher one
+    // Find Corresponding Elements
+    // Normal vectors point from lower number element to higher one
     // or outward from external boundary
     j_a = f_el.IA[i];
     j_b = f_el.IA[i+1];
-    jcnt=0;
+    notbdry = j_b - j_a - 1;
+    jcnt = 0;
     for (j=j_a; j<j_b; j++) {
-      notbdry = j_b-j_a-1;
       ie[jcnt] = f_el.JA[j];
-      op_n[jcnt] = f_el.val[j];
       jcnt++;
     }
     if(notbdry && (ie[1]<ie[0])) {
-      myopn = op_n[1];
       myel = ie[1];
     } else {
-      myopn = op_n[0];
       myel = ie[0];
     }
     // Get Nodes of this chosen element
@@ -690,6 +684,16 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,scomplex *sc)
     for(j=j_a;j<j_b;j++) {
       myel_n[jcnt] = el_v->JA[j];
       jcnt++;
+    }
+    // Find opposite node: element vertex not on the face
+    INT nfv = f_v->IA[i+1] - f_v->IA[i];
+    myopn = 0;
+    for (INT a = 0; a < el_order; a++) {
+      INT on_face = 0;
+      for (INT b = 0; b < nfv; b++) {
+        if (myel_n[a] == ipf[b]) { on_face = 1; break; }
+      }
+      if (!on_face) { myopn = a; break; }
     }
     myx[0] = sc->x[myel_n[myopn]*dim];
     myx[1] = sc->x[myel_n[myopn]*dim+1];
@@ -741,7 +745,6 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,scomplex *sc)
   if(myx) free(myx);
   if(p) free(p);
   if(dp) free(dp);
-  if(op_n) free(op_n);
   if(ie) free(ie);
   if(myel_n) free(myel_n);
   if(dim==3) {
@@ -777,18 +780,25 @@ void sync_facenode(iCSRmat *f_v,REAL* f_norm,scomplex *sc)
   INT ndpf = dim;
 
   REAL nx,ny,nz,tx,ty,tz,mysign;
-  INT nd,rowa,rowb,jcnt,nf1,nf2,nf3;
+  INT nd,rowa,rowb,jcnt;
   REAL* xf = calloc(ndpf,sizeof(REAL));
   REAL* yf = calloc(ndpf,sizeof(REAL));
   REAL* zf = calloc(ndpf,sizeof(REAL));
 
+  /* Allocate f_v->val to store orientation signs (+1 or -1 per face).
+     +1 = vertex ordering is consistent with normal,
+     -1 = vertex ordering is opposite (would need swap for consistency).
+     We do NOT swap JA — the sign encodes the orientation. */
+  if (!f_v->val) {
+    f_v->val = (INT*)calloc(f_v->nnz, sizeof(INT));
+  }
+  /* Initialize all to +1 */
+  for (i = 0; i < f_v->nnz; i++) f_v->val[i] = 1;
+
   if(dim==2) {
     for(i=0;i<nface;i++) {
-      // Get normal vector of face
       nx = f_norm[(i)*dim];
       ny = f_norm[(i)*dim+1];
-
-      // Get Coordinates of Nodes
       rowa = f_v->IA[i];
       rowb = f_v->IA[i+1];
       jcnt=0;
@@ -798,26 +808,19 @@ void sync_facenode(iCSRmat *f_v,REAL* f_norm,scomplex *sc)
         yf[jcnt] = sc->x[nd*dim+1];
         jcnt++;
       }
-      // Determine proper orientation of basis vectors  Compute n^(\perp)*t.
-      // If + use face_node ordering, if - switch sign
       tx = xf[1]-xf[0];
       ty = yf[1]-yf[0];
       mysign = -ny*tx + nx*ty;
       if(mysign<0) {
-        nf2 = f_v->JA[rowa];
-        nf1 = f_v->JA[rowa+1];
-        f_v->JA[rowa+1] = nf2;
-        f_v->JA[rowa] = nf1;
+        /* Store -1 for this face instead of swapping */
+        for(j=f_v->IA[i]; j<f_v->IA[i+1]; j++) f_v->val[j] = -1;
       }
     }
   } else if (dim==3) {
     for(i=0;i<nface;i++) {
-      // Get normal vector of face
       nx = f_norm[(i)*dim];
       ny = f_norm[(i)*dim+1];
       nz = f_norm[(i)*dim+2];
-
-      // Get Coordinates of Nodes
       rowa = f_v->IA[i];
       rowb = f_v->IA[i+1];
       jcnt=0;
@@ -828,17 +831,12 @@ void sync_facenode(iCSRmat *f_v,REAL* f_norm,scomplex *sc)
         zf[jcnt] = sc->x[nd*dim+2];
         jcnt++;
       }
-      // Determine proper orientation of basis vectors  Compute n^(\perp)*t.
-      // If + use face_node ordering, if - switch sign
       tx = (yf[1]-yf[0])*(zf[2]-zf[0]) - (zf[1]-zf[0])*(yf[2]-yf[0]);
       ty = (zf[1]-zf[0])*(xf[2]-xf[0]) - (xf[1]-xf[0])*(zf[2]-zf[0]);
       tz = (xf[1]-xf[0])*(yf[2]-yf[0]) - (yf[1]-yf[0])*(xf[2]-xf[0]);
       mysign = nx*tx + ny*ty + nz*tz;
       if(mysign<0) {
-        nf3=f_v->JA[rowa+1];
-        nf2=f_v->JA[rowa+2];
-        f_v->JA[rowa+1]=nf2;
-        f_v->JA[rowa+2]=nf3;
+        for(j=f_v->IA[i]; j<f_v->IA[i+1]; j++) f_v->val[j] = -1;
       }
     }
   }

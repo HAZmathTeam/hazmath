@@ -323,6 +323,68 @@ INT ddense_solve_pivot(INT dopivot, INT n, REAL *A, REAL *b, INT *p,REAL *piv)
 }
 
 /**************************************************************************/
+/*!
+ * \fn INT det_sign(INT n, REAL *A)
+ *
+ * \brief Returns the sign of the determinant of an n x n matrix A.
+ *        Uses explicit formulae for n < 5 and no-pivot LU for n >= 5.
+ *        The input array A is NOT modified for n < 5; for n >= 5 a
+ *        local copy is used for the LU factorization.
+ *
+ * \param n   matrix dimension
+ * \param A   the matrix stored row-major as a 1D array of length n*n
+ *
+ * \return +1 if det(A) > 0, -1 if det(A) < 0, 0 if det(A) == 0
+ */
+INT det_sign(INT n, REAL *A)
+{
+  REAL det;
+  if (n == 1) {
+    det = A[0];
+  } else if (n == 2) {
+    det = A[0] * A[3] - A[1] * A[2];
+  } else if (n == 3) {
+    det = A[0] * (A[4] * A[8] - A[5] * A[7])
+        - A[1] * (A[3] * A[8] - A[5] * A[6])
+        + A[2] * (A[3] * A[7] - A[4] * A[6]);
+  } else if (n == 4) {
+    /* Expand by minors along the first row */
+    REAL m0 = A[5]*(A[10]*A[15]-A[11]*A[14])
+            - A[6]*(A[ 9]*A[15]-A[11]*A[13])
+            + A[7]*(A[ 9]*A[14]-A[10]*A[13]);
+    REAL m1 = A[4]*(A[10]*A[15]-A[11]*A[14])
+            - A[6]*(A[ 8]*A[15]-A[11]*A[12])
+            + A[7]*(A[ 8]*A[14]-A[10]*A[12]);
+    REAL m2 = A[4]*(A[ 9]*A[15]-A[11]*A[13])
+            - A[5]*(A[ 8]*A[15]-A[11]*A[12])
+            + A[7]*(A[ 8]*A[13]-A[ 9]*A[12]);
+    REAL m3 = A[4]*(A[ 9]*A[14]-A[10]*A[13])
+            - A[5]*(A[ 8]*A[14]-A[10]*A[12])
+            + A[6]*(A[ 8]*A[13]-A[ 9]*A[12]);
+    det = A[0]*m0 - A[1]*m1 + A[2]*m2 - A[3]*m3;
+  } else {
+    /* n >= 5: LU without pivoting.
+       det = product of diagonal entries of U. */
+    REAL *L = (REAL *)calloc(n * n, sizeof(REAL));
+    memcpy(L, A, n * n * sizeof(REAL));
+    det = 1.0;
+    for (INT k = 0; k < n; k++) {
+      if (L[k * n + k] == 0.0) { free(L); return 0; }
+      det *= L[k * n + k];
+      for (INT i = k + 1; i < n; i++) {
+        REAL factor = L[i * n + k] / L[k * n + k];
+        for (INT j = k + 1; j < n; j++) {
+          L[i * n + j] -= factor * L[k * n + j];
+        }
+      }
+    }
+    free(L);
+  }
+  if (det > 0.0) return 1;
+  if (det < 0.0) return -1;
+  return 0;
+}
+/**************************************************************************/
 /*
  * \fn SHORT ddense_lu(INT n, REAL *deta, REAL *A,INT *p,REAL *piv)
  *

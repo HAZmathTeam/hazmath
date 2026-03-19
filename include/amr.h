@@ -105,6 +105,16 @@ typedef struct /* n-homogenous simplicial complex */
   INT cc; /*num connected components */
   INT bndry_cc; /*num connected components on the boundary */
   sc_fem *fem; /* FEM-derived data (populated by sc_build_fem_data, NULL until then) */
+  /*
+   * Incidence matrices between k-simplices and j-simplices (k > j).
+   * Flat array indexed as inc[k*(dim+1)+j], size (dim+1)*(dim+1).
+   * Example (dim=3): inc[3*4+0]=el_v, inc[3*4+1]=el_ed, inc[3*4+2]=el_f,
+   *   inc[1*4+0]=ed_v, inc[2*4+0]=f_v, inc[2*4+1]=f_ed.
+   * For dim=2: inc[2*3+1]=el_ed=el_f (same entry), inc[1*3+0]=ed_v=f_v.
+   * The sc_fem named fields (el_v, ed_v, etc.) are convenience pointers
+   * into this array. Populated by sc_build_fem_data, NULL until then.
+   */
+  iCSRmat **inc;
 } scomplex;
 /* /\*================================================================*\/ */
 /* typedef struct /\* a macroelement (isomrphic to the hypercube */
