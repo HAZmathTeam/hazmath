@@ -618,65 +618,7 @@ void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, scomplex *sc, q
 }
 /******************************************************************************************************/
 
-/******************************************************************************************************/
-/*!
- * \fn void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,scomplex *sc,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)
- *
- * \brief Computes the local weak formulation of <E,grad(q)> where E is a given
- *         Nedelec approximation and q in H_0^1 (linears)
- *
- * \param FE_H1         FE Space for H1 elements
- * \param FE_Ned        FE Space for Nedelec elements
- * \param mesh          Mesh Data
- * \param cq            Quadrature Nodes
- * \param ed_on_elm     Specific edges on the given element
- * \param v_on_elm      Specific vertices on the given element
- * \param elm           Current element
- * \param u             FEM Function that gives coefficient
- *
- * \return bLoc         Local RHS vector (Full Matrix)
- *
- * \note                Assuming 2D and 3D only
- *
- */
-void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,scomplex *sc,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)
-{
-  // Mesh and FE data
-  INT dim = sc->dim;
-
-  // Loop Indices
-  INT quad,test;
-
-  // Quadrature Weights and Nodes
-  REAL w;
-  REAL qx[dim+1];
-
-  // Right-hand side function at Quadrature Nodes
-  REAL ucoeff[3];
-
-  //  Sum over quadrature points
-  for (quad=0;quad<cq->nq_per_elm;quad++) {
-    qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-    qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-    if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-    w = cq->w[elm*cq->nq_per_elm+quad];
-
-    // Get FEM function at quadrature nodes
-    FE_Interpolation(ucoeff,u->val,qx,ed_on_elm,v_on_elm,FE_Ned,sc);
-
-    //  Get the Basis Functions at each quadrature node
-    PX_H1_basis(FE_H1->phi,FE_H1->dphi,qx,v_on_elm,FE_H1->FEtype,sc);
-
-    // Loop over test functions and integrate rhs
-    for (test=0; test<FE_H1->dof_per_elm;test++) {
-      bLoc[test] += w*(ucoeff[0]*FE_H1->dphi[test]+ucoeff[1]*FE_H1->dphi[test]);
-      if(dim==3) bLoc[test] += w*ucoeff[2]*FE_H1->dphi[test];
-    }
-  }
-
-  return;
-}
-/******************************************************************************************************/
+/* Ned_GradH1_RHS_local removed — was unused (called only from assemble_global_Ned_GradH1_RHS) */
 
 /****** Boundary Assemblies *********************/
 /******************************************************************************************************/

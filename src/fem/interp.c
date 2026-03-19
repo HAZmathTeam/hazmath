@@ -928,49 +928,53 @@ void blockFE_EvaluateBoundary(REAL* val,
  *
  */
 void Project_to_Vertices(REAL* u_on_V, REAL* u, fespace* FE, scomplex* sc) {
-  sc_fem* fem = sc->fem;
   INT dim = sc->dim;
   INT i, k, j;
-  REAL* x = (REAL*)calloc(dim + 1, sizeof(REAL));
-  REAL val[dim + 1];
-
-  // Get FE and Mesh data
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = (dim + 1);
-  // INT FEtype = FE->FEtype;
   INT scal_or_vec = FE->scal_or_vec;
-  INT nelm = fem->ns_leaf;
   INT nv = sc->nv;
+  REAL val[dim + 1];
 
-  INT* dof_on_elm = (INT*)calloc(dof_per_elm, sizeof(INT));
-  INT* v_on_elm = (INT*)calloc(v_per_elm, sizeof(INT));
+  // Set up local data
+  block_fespace temp_bfe;
+  temp_bfe.nspaces = 1; temp_bfe.nun = 1; temp_bfe.nelm = FE->nelm;
+  temp_bfe.ndof = FE->ndof; temp_bfe.nbdof = FE->nbdof;
+  temp_bfe.var_spaces = (fespace**)malloc(sizeof(fespace*));
+  temp_bfe.var_spaces[0] = FE;
+  temp_bfe.dirichlet = FE->dirichlet; temp_bfe.dof_flag = FE->dof_flag;
+  temp_bfe.simplex_data = NULL; temp_bfe.fe_data = NULL;
+  simplex_local_data elm_data;
+  fe_local_data fe_data;
+  memset(&elm_data, 0, sizeof(simplex_local_data));
+  memset(&fe_data, 0, sizeof(fe_local_data));
+  initialize_localdata_elm(&elm_data, &fe_data, sc, &temp_bfe, 2);
 
-  // Loop over Elements
-  for (i = 0; i < nelm; i++) {
-    // Find DOF for given Element
-    get_incidence_row(i, FE->el_dof, dof_on_elm);
+  for (i = 0; i < FE->nelm; i++) {
+    get_elmlocaldata(&elm_data, sc, i);
+    get_felocaldata_elm(&fe_data, &temp_bfe, NULL, i);
+    // Populate u_local from global solution
+    for (k = 0; k < dof_per_elm; k++)
+      fe_data.u_local[k] = u[fe_data.local_dof[k]];
 
-    // Find vertices for given Element
-    get_incidence_row(i, fem->el_v, v_on_elm);
-
-    // Interpolate FE approximation to vertices
+    // Interpolate to each vertex of this element
     for (j = 0; j < v_per_elm; j++) {
-      memcpy(x, sc->x + v_on_elm[j] * dim, dim * sizeof(REAL));
-      FE_Interpolation(val, u, x, dof_on_elm, v_on_elm, FE, sc);
+      REAL* xv = elm_data.xv + j * dim;
+      fe_interpolation_to_x(val, fe_data.u_local, xv, &fe_data, &elm_data, 0);
 
-      if (scal_or_vec == 0) {  // Scalar Element
-        u_on_V[v_on_elm[j]] = val[0];
-      } else {  // Vector Element
+      if (scal_or_vec == 0) {
+        u_on_V[elm_data.local_v[j]] = val[0];
+      } else {
         for (k = 0; k < dim; k++) {
-          u_on_V[k * nv + v_on_elm[j]] = val[k];
+          u_on_V[k * nv + elm_data.local_v[j]] = val[k];
         }
       }
     }
   }
 
-  if (v_on_elm) free(v_on_elm);
-  if (dof_on_elm) free(dof_on_elm);
-  if (x) free(x);
+  free_simplexlocaldata(&elm_data);
+  free_felocaldata(&fe_data);
+  if (temp_bfe.var_spaces) free(temp_bfe.var_spaces);
   return;
 }
 /***********************************************************************************************/
@@ -1502,75 +1506,7 @@ void get_Pigrad_H1toRT(dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl,
   free(PcurlZ);
   free(PcurlX);
 }
-/***********************************************************************************************/
-
-/*!
- * \fn void ProjectOut_Grad(dvector* u,fespace* FE_H1,fespace* FE_Ned,scomplex*
- * sc,qcoordinates* cq,dCSRmat* G)
- *
- * \brief Takes an approximation in H(curl) using lowest-order Nedelec FE space
- *        and projects out the gradient from it's decomposition:
- *
- *        u = grad p + curl q
- *
- *        Thus, we remove the grad p, so that div u = 0 (at least weakly).
- *        Here p is in H0^1 and we assume P1 elements.
- *          u <-- u - grad p
- *        p is found by solving discrete Laplacian: <grad p, grad v> = <E, grad
- * v>
- *
- * \param u       Nedelec Approximation with gradient kernel removed
- * \param FE_H1   P1 FE space
- * \param FE_Ned  Nedelec FE space
- * \param mesh    Mesh Data
- * \param cq      Quadrature points
- * \param G       Gradient matrix in dCSRmat format
- *
- * \note Assumes 2D or 3D.
- *
- */
-void ProjectOut_Grad(dvector* u, fespace* FE_H1, fespace* FE_Ned, scomplex* sc,
-                     qcoordinates* cq, dCSRmat* G) {
-  sc_fem* fem = sc->fem;
-  INT dim = sc->dim;
-  // Construct the Laplacian using P1 elements: <grad p, grad v>
-  dCSRmat Alap = dcsr_create(0,0,0);
-  assemble_global_single(&Alap, NULL, FE_H1, sc, cq,
-                          local_assembly_DuDv, NULL, NULL, NULL, 0.0);
-
-  // Construct RHS vector: <E,grad v>
-  dvector b;
-  assemble_global_Ned_GradH1_RHS(&b, FE_H1, FE_Ned, sc, cq, u);
-
-  // Eliminate Boundary Conditions (p=0 on boundary)
-  eliminate_DirichletBC(zero_coeff_scal, FE_H1, sc, &b, &Alap, 0.0);  //
-
-  // Solve Laplacian System to get p: <grad p, grad v> = <E, grad v> -> use CG
-  // Allocate the solution and set initial guess to be all zero (except at
-  // boundaries)
-  dvector p = dvec_create(sc->nv);
-  dvec_set(p.row, &p, 0.0);
-
-  // Solve for p
-  dcsr_pcg(&Alap, &b, &p, NULL, 1e-15, 50000, 1, 0);
-
-  // Multiply by Gradient
-  dvector gradp = dvec_create(fem->nedge);
-  dcsr_mxv(G, p.val, gradp.val);
-
-  // Update E
-  dvec_axpy(-1.0, &gradp, u);
-
-  // Free Vectors
-  dcsr_free(&Alap);
-  dvec_free(&b);
-  dvec_free(&p);
-  dvec_free(&gradp);
-
-  return;
-}
-/******************************************************************************/
-
+/* ProjectOut_Grad removed — was unused */
 /******************************************************************************/
 /**********************Deprecated versions*************************************/
 /******************************************************************************/
@@ -1728,107 +1664,8 @@ void FE_DerivativeInterpolation(REAL* val, REAL* u, REAL* x, INT* dof_on_elm,
 }
 /******************************************************************************/
 
-/*!
- * \fn void blockFE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT
- * *v_on_elm,block_fespace *FE,scomplex *sc)
- *
- * \brief Interpolate a block finite-element approximation to any other point in
- * the given element using the given type of elements.
- *
- * \param u 	        Approximation to interpolate in block form
- * \param x           Coordinates where to compute value
- * \param dof_on_elm  DOF belonging to particular element
- * \param v_on_elm    Vertices belonging to particular element
- * \param FE          Block FE Space
- * \param mesh        Mesh Data
- * \param nun         Number of unknowns in u (1 is a scalar)
- * \param val         Pointer to value of approximation at given values
- *
- */
-void blockFE_Interpolation(REAL* val, REAL* u, REAL* x, INT* dof_on_elm,
-                           INT* v_on_elm, block_fespace* FE, scomplex* sc) {
-  sc_fem* fem = sc->fem;
-  INT dim = sc->dim;
-  INT k;
-
-  INT* local_dof_on_elm = dof_on_elm;
-  REAL* val_sol = val;
-  REAL* u_comp = u;
-
-  for (k = 0; k < FE->nspaces; k++) {
-    FE_Interpolation(val_sol, u_comp, x, local_dof_on_elm, v_on_elm,
-                     FE->var_spaces[k], sc);
-    if (FE->var_spaces[k]->scal_or_vec == 0) {  // Scalar
-      val_sol++;
-    } else {  // Vector
-      val_sol += dim;
-    }
-    u_comp += FE->var_spaces[k]->ndof;
-    local_dof_on_elm += FE->var_spaces[k]->dof_per_elm;
-  }
-
-  return;
-}
-/******************************************************************************/
-
-/*!
- * \fn void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT
- * *dof_on_elm,INT *v_on_elm,block_fespace *FE,scomplex *sc)
- *
- * \brief Interpolate the "derivative" of a block finite-element approximation
- * to any other point in the given element using the given type of elements.
- * Note that for Lagrange Elements this means the Gradient, grad u, for Nedelec
- * it means the Curl, curl u, and for RT it is the Divergence, div u.
- *
- *
- * \param u 	        Approximation to interpolate in block form
- * \param x           Coordinates where to compute value
- * \param dof_on_elm  DOF belonging to particular element
- * \param v_on_elm    Vertices belonging to particular element
- * \param FE          Block FE Space
- * \param mesh        Mesh Data
- * \param nun         Number of unknowns in u (1 is a scalar)
- * \param val         Pointer to value of approximation at given values
- *
- */
-void blockFE_DerivativeInterpolation(REAL* val, REAL* u, REAL* x,
-                                     INT* dof_on_elm, INT* v_on_elm,
-                                     block_fespace* FE, scomplex* sc) {
-  sc_fem* fem = sc->fem;
-  INT dim = sc->dim;
-  INT k;
-
-  INT* local_dof_on_elm = dof_on_elm;
-  REAL* val_sol = val;
-  REAL* u_comp = u;
-
-  for (k = 0; k < FE->nspaces; k++) {
-    FE_DerivativeInterpolation(val_sol, u_comp, x, local_dof_on_elm, v_on_elm,
-                               FE->var_spaces[k], sc);
-    if (FE->var_spaces[k]->FEtype < 20 || FE->var_spaces[k]->FEtype == 99 ||
-        FE->var_spaces[k]->FEtype == 103) {  // Scalar
-      val_sol += dim;
-    } else if (FE->var_spaces[k]->FEtype == 20 &&
-               dim == 2) {  // Curl in 2D is Scalar
-      val_sol++;
-    } else if (FE->var_spaces[k]->FEtype == 20 &&
-               dim == 3) {  // Curl in 3D is Vector
-      val_sol += dim;
-    } else if (FE->var_spaces[k]->FEtype == 30) {  // Div is Scalar
-      val_sol++;
-    } else if (FE->var_spaces[k]->FEtype >= 60 &&
-               FE->var_spaces[k]->FEtype <=
-                   70) {  // VectorLagrange (i.e., bubbles) Gradient is matrix.
-      val_sol += dim * dim;
-    } else {
-      check_error(ERROR_FE_TYPE, __FUNCTION__);
-    }
-    u_comp += FE->var_spaces[k]->ndof;
-    local_dof_on_elm += FE->var_spaces[k]->dof_per_elm;
-  }
-
-  return;
-}
+/* blockFE_Interpolation removed — use blockfe_interpolation_to_x/quadpt instead */
+/* blockFE_DerivativeInterpolation removed — use blockfe_dinterp_to_x/quadpt instead */
 /******************************************************************************/
 
 /******************************************************************************/
