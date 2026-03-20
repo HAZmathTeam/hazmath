@@ -525,7 +525,8 @@ void rt0_basis(REAL *phi,REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,I
 * \fn void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_face,REAL* farea)
 * \brief Brezzi-Douglas-Marini (BDM) Elements of order 1.
 *
-* \note ONLY in 2D for now.
+* \note Enrichment and derivatives are 2D only for now.
+* \note RT0 part of phi is dimension independent.
 * \note This has NOT been tested.
 *
 * \param lam,dlam  P1 bases at quadrature point
@@ -534,8 +535,9 @@ void rt0_basis(REAL *phi,REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,I
 * \param v_on_face   Vertices on each face (DoF) on the elm
 * \param farea    Area of each face on element
 *
-* \return phi      Basis functions (2*f_per_elm for each face, 12 total in 2D)
-* \return dphix    Div of basis functions
+* \return phi      Basis functions (2*dim per face in 2D: RT0 + enrichment)
+* \return dphix    d/dx of basis functions (2D only)
+* \return dphiy    d/dy of basis functions (2D only)
 *
 */
 void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_face,REAL* farea)
@@ -548,39 +550,62 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL* lam,REAL* dlam,INT dim,I
   INT f_per_elm = dim+1;
   INT v_per_f = dim;
 
-  INT i,j;
-  REAL a1,a2,a3,a4;
-  INT vel,ef1,ef2;
+  INT i,j,k,c;
 
-  // Go through each face and find the corresponding nodes
-  if(dim==2) {
+  // (dim-1)!
+  REAL fac = 1.0;
+  for (i=2; i<dim; i++) fac *= i;
 
-    for (i=0; i<f_per_elm; i++) {
-      // Loop through vertices on element to find corresponding nodes and get correct orienation
-      for(j=0;j<v_per_elm;j++) {
-        vel = v_on_elm[j];
-        if(v_on_face[i*v_per_f+0]==vel) {
-          ef1 = j;
-        }
-        if(v_on_face[i*v_per_f+1]==vel) {
-          ef2 = j;
+  for (i=0; i<f_per_elm; i++) {
+    // Map face vertices to local element vertex indices
+    INT ef[dim];
+    for (k=0; k<v_per_f; k++) {
+      for (j=0; j<v_per_elm; j++) {
+        if (v_on_face[i*v_per_f+k] == v_on_elm[j]) {
+          ef[k] = j;
+          break;
         }
       }
+    }
 
-      /* Now, with the linear basis functions p, dpx, and dpy, the BDM1 elements are in 2D
-      * phi_fij = |fij|*(p(i)curl(p(j)) - p(j)curl(p(i)))
-      * psi_fij = alpha*|fij|*curl(p(i)p(j))
-      * |fij| = |eij|
-      */
-      phi[i*dim*2] = farea[i]*(lam[ef1]*dlam[ef2*dim+1] - lam[ef2]*dlam[ef1*dim+1]);
-      phi[i*dim*2+1] = farea[i]*(-lam[ef1]*dlam[ef2*dim] + lam[ef2]*dlam[ef1*dim]);
+    /* RT0 part (dimension independent):
+     * phi_RT0[c] = (dim-1)! * farea[i] * sum_k lam[ef[k]] * cofactor(c,k)
+     * where M[c][k] = dlam[ef[k]*dim + c] and cofactor uses haz_det
+     */
+    REAL M[dim*dim];
+    for (c=0; c<dim; c++)
+      for (k=0; k<dim; k++)
+        M[c*dim+k] = dlam[ef[k]*dim+c];
+
+    for (c=0; c<dim; c++) {
+      REAL val = 0.0;
+      for (k=0; k<dim; k++) {
+        // Cofactor(c,k) = (-1)^(c+k) * det of (dim-1)x(dim-1) minor
+        REAL minor[(dim-1)*(dim-1)];
+        INT mi = 0;
+        for (INT r=0; r<dim; r++) {
+          if (r == c) continue;
+          for (INT s=0; s<dim; s++) {
+            if (s == k) continue;
+            minor[mi++] = M[r*dim+s];
+          }
+        }
+        REAL sign = ((c+k) % 2 == 0) ? 1.0 : -1.0;
+        val += lam[ef[k]] * sign * haz_det(minor, dim-1);
+      }
+      phi[i*dim*2 + c] = fac * farea[i] * val;
+    }
+
+    /* Enrichment and derivatives: 2D only */
+    if(dim==2) {
+      INT ef1 = ef[0], ef2 = ef[1];
       phi[i*dim*2+2] = -6*farea[i]*(lam[ef1]*dlam[ef2*dim+1] + lam[ef2]*dlam[ef2*dim+1]);
       phi[i*dim*2+3] = 6*farea[i]*(lam[ef1]*dlam[ef2*dim] + lam[ef2]*dlam[ef2*dim]);
 
-      a1 = dlam[ef1*dim]*dlam[ef2*dim];
-      a2 = dlam[ef1*dim]*dlam[ef2*dim+1];
-      a3 = dlam[ef1*dim+1]*dlam[ef2*dim];
-      a4 = dlam[ef1*dim+1]*dlam[ef2*dim+1];
+      REAL a1 = dlam[ef1*dim]*dlam[ef2*dim];
+      REAL a2 = dlam[ef1*dim]*dlam[ef2*dim+1];
+      REAL a3 = dlam[ef1*dim+1]*dlam[ef2*dim];
+      REAL a4 = dlam[ef1*dim+1]*dlam[ef2*dim+1];
 
       dphix[i*dim*2] = farea[i]*(a2-a3);
       dphix[i*dim*2+1] = 0.0;
@@ -590,11 +615,10 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL* lam,REAL* dlam,INT dim,I
       dphiy[i*dim*2+1] = farea[i]*(a2-a3);
       dphiy[i*dim*2+2] = -12*farea[i]*a4;
       dphiy[i*dim*2+3] = 6*farea[i]*(a2+a3);
+    } else {
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__); // enrichment + derivatives not implemented for dim>2
     }
-
-  } else {
-    status = ERROR_DIM;
-    check_error(status, __FUNCTION__); // 3D not implemented
   }
 
   return;
@@ -759,6 +783,28 @@ void get_FEM_basis_on_elm(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,
   } else if(fe_type==99) { // Constraint Single DOF Space
 
     phi[0] = 1.0;
+
+  } else if(fe_type==103) { // MINI element (P1 + cubic bubble)
+
+    INT v_per_elm = dim+1;
+    INT j,k;
+    // P1 part
+    PX_basis(phi,dphi,1,dim,lam,dlam);
+    // Bubble: b = lam[0]*lam[1]*...*lam[dim]
+    phi[v_per_elm] = 1.0;
+    for(i=0;i<v_per_elm;i++)
+      phi[v_per_elm] *= lam[i];
+    // Gradient of bubble: db/dx_k = sum_i (prod_{j!=i} lam[j]) * dlam[i*dim+k]
+    for(k=0;k<dim;k++) {
+      dphi[v_per_elm*dim+k] = 0.0;
+      for(i=0;i<v_per_elm;i++) {
+        REAL temp = dlam[i*dim+k];
+        for(j=0;j<v_per_elm;j++) {
+          if(j!=i) temp *= lam[j];
+        }
+        dphi[v_per_elm*dim+k] += temp;
+      }
+    }
 
   } else {
     status = ERROR_FE_TYPE;
@@ -1228,141 +1274,7 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,scomplex *sc)
 }
 /*******************************************************************************************************/
 
-/*******************************************************************************************************/
-/*!
-* \fn void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,scomplex *sc)
-*
-* \brief Compute Standard Quadratic Finite Element Basis Functions (P2) at a particular point
-*        Also compute the 2nd derivatives for some reason...
-*
-* \param x,y,z           Coordinate on where to compute basis function
-* \param dof             DOF for the given element (in this case vertices and their global numbering)
-* \param porder          Order of elements
-* \param sc              Simplicial complex
-*
-* \return p              Basis functions (1 for each DOF on element)
-* \return dpx,dpy        Derivatives of basis functions (i.e., gradient)
-* \return dpxx,dpyy,dpxy 2nd Derivatives of basis functions
-*
-*/
-void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,scomplex *sc)
-{
-  REAL dp0r,dp1r,dp2r,dp3r,dp4r,dp5r;
-  REAL dp0s,dp1s,dp2s,dp3s,dp4s,dp5s;
-  REAL onemrs;
-  REAL xv0,xv1,xv2,yv0,yv1,yv2;
-  REAL dp0rr,dp1rr,dp2rr,dp3rr,dp4rr,dp5rr;
-  REAL dp0ss,dp1ss,dp2ss,dp3ss,dp4ss,dp5ss;
-  REAL dp0rs,dp1rs,dp2rs,dp3rs,dp4rs,dp5rs;
-
-  INT dim = sc->dim;
-
-  // Get Nodes and Physical Coordinates of vertices only
-  xv0 = sc->x[dof[0]*dim];
-  xv1 = sc->x[dof[1]*dim];
-  xv2 = sc->x[dof[2]*dim];
-  yv0 = sc->x[dof[0]*dim+1];
-  yv1 = sc->x[dof[1]*dim+1];
-  yv2 = sc->x[dof[2]*dim+1];
-
-  // Get coordinates on reference triangle
-  REAL det = (xv1-xv0)*(yv2-yv0) - (xv2-xv0)*(yv1-yv0);
-
-  REAL r = ((yv2-yv0)*(x-xv0) + (xv0-xv2)*(y-yv0))/det;
-
-  REAL drdx = (yv2-yv0)/det;
-  REAL drdy = (xv0-xv2)/det;
-
-  REAL s = ((yv0-yv1)*(x-xv0) + (xv1-xv0)*(y-yv0))/det;
-
-  REAL dsdx = (yv0-yv1)/det;
-  REAL dsdy = (xv1-xv0)/det;
-
-  /*  Get the basis functions for quadratic elements on each node and edge.
-  *  The basis functions can now be evaluated in terms of the
-  *  reference coordinates R and S.  It's also easy to determine
-  *  the values of the derivatives with respect to R and S.
-  */
-
-  onemrs = 1 - r - s;
-  p[0] = 2*onemrs*(onemrs-0.5);
-  p[1] = 2*r*(r-0.5);
-  p[2] = 2*s*(s-0.5);
-  p[3] = 4*r*onemrs;
-  p[4] = 4*s*onemrs;
-  p[5] = 4*r*s;
-  dp0r = 4*r+4*s-3;
-  dp0rr = 4.0;
-  dp0rs = 4.0;
-  dp1r = 4*r - 1;
-  dp1rr = 4.0;
-  dp1rs = 0.0;
-  dp2r = 0.0;
-  dp2rr = 0.0;
-  dp2rs = 0.0;
-  dp3r = 4.0-8*r-4*s;
-  dp3rr = -8.0;
-  dp3rs = -4.0;
-  dp4r = -4.0*s;
-  dp4rr = 0.0;
-  dp4rs = -4.0;
-  dp5r = 4.0*s;
-  dp5rr = 0.0;
-  dp5rs = 4.0;
-  dp0s = dp0r;
-  dp0ss = 4.0;
-  dp1s = 0.0;
-  dp1ss = 0.0;
-  dp2s = 4.0*s-1.0;
-  dp2ss = 4.0;
-  dp3s = -4.0*r;
-  dp3ss = 0;
-  dp4s = 4.0-4*r-8*s;
-  dp4ss = -8.0;
-  dp5s = 4.0*r;
-  dp5ss = 0.0;
-
-
-  /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
-  *  to (X,Y) using the chain rule.
-  */
-
-  dpx[0] = dp0r * drdx + dp0s * dsdx;
-  dpy[0] = dp0r * drdy + dp0s * dsdy;
-  dpx[1] = dp1r * drdx + dp1s * dsdx;
-  dpy[1] = dp1r * drdy + dp1s * dsdy;
-  dpx[2] = dp2r * drdx + dp2s * dsdx;
-  dpy[2] = dp2r * drdy + dp2s * dsdy;
-  dpx[3] = dp3r * drdx + dp3s * dsdx;
-  dpy[3] = dp3r * drdy + dp3s * dsdy;
-  dpx[4] = dp4r * drdx + dp4s * dsdx;
-  dpy[4] = dp4r * drdy + dp4s * dsdy;
-  dpx[5] = dp5r * drdx + dp5s * dsdx;
-  dpy[5] = dp5r * drdy + dp5s * dsdy;
-  dpxx[0] = dp0rr*drdx*drdx + 2*dp0rs*drdx*dsdx + dp0ss*dsdx*dsdx;
-  dpxx[1] = dp1rr*drdx*drdx + 2*dp1rs*drdx*dsdx + dp1ss*dsdx*dsdx;
-  dpxx[2] = dp2rr*drdx*drdx + 2*dp2rs*drdx*dsdx + dp2ss*dsdx*dsdx;
-  dpxx[3] = dp3rr*drdx*drdx + 2*dp3rs*drdx*dsdx + dp3ss*dsdx*dsdx;
-  dpxx[4] = dp4rr*drdx*drdx + 2*dp4rs*drdx*dsdx + dp4ss*dsdx*dsdx;
-  dpxx[5] = dp5rr*drdx*drdx + 2*dp5rs*drdx*dsdx + dp5ss*dsdx*dsdx;
-
-  dpyy[0] = dp0rr*drdy*drdy + 2*dp0rs*drdy*dsdy + dp0ss*dsdy*dsdy;
-  dpyy[1] = dp1rr*drdy*drdy + 2*dp1rs*drdy*dsdy + dp1ss*dsdy*dsdy;
-  dpyy[2] = dp2rr*drdy*drdy + 2*dp2rs*drdy*dsdy + dp2ss*dsdy*dsdy;
-  dpyy[3] = dp3rr*drdy*drdy + 2*dp3rs*drdy*dsdy + dp3ss*dsdy*dsdy;
-  dpyy[4] = dp4rr*drdy*drdy + 2*dp4rs*drdy*dsdy + dp4ss*dsdy*dsdy;
-  dpyy[5] = dp5rr*drdy*drdy + 2*dp5rs*drdy*dsdy + dp5ss*dsdy*dsdy;
-
-  dpxy[0] = dp0rr*drdy*drdx + dp0rs*drdy*dsdx + dp0rs*drdx*dsdy + dp0ss*dsdx*dsdy;
-  dpxy[1] = dp1rr*drdy*drdx + dp1rs*drdy*dsdx + dp1rs*drdx*dsdy + dp1ss*dsdx*dsdy;
-  dpxy[2] = dp2rr*drdy*drdx + dp2rs*drdy*dsdx + dp2rs*drdx*dsdy + dp2ss*dsdx*dsdy;
-  dpxy[3] = dp3rr*drdy*drdx + dp3rs*drdy*dsdx + dp3rs*drdx*dsdy + dp3ss*dsdx*dsdy;
-  dpxy[4] = dp4rr*drdy*drdx + dp4rs*drdy*dsdx + dp4rs*drdx*dsdy + dp4ss*dsdx*dsdy;
-  dpxy[5] = dp5rr*drdy*drdx + dp5rs*drdy*dsdx + dp5rs*drdx*dsdy + dp5ss*dsdx*dsdy;
-
-  return;
-}
-/*******************************************************************************************************/
+/* quad_tri_2D_2der — moved to zcommented_out_basis.c (dead code) */
 
 /*******************************************************************************************************/
 /*!
@@ -1827,308 +1739,14 @@ void P2_basis_2der(REAL *p,REAL *dp,REAL *ddp,REAL* x,INT *dof,scomplex *sc)
 }
 /*******************************************************************************************************/
 
-/*******************************************************************************************************/
-/*!
-* \fn void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,scomplex *sc)
-*
-* \brief Compute Nedelec Finite Element Basis Functions (zeroth order) at a particular point in 2 or 3D
-*
-* \param x         Coordinate on where to compute basis function
-* \param v_on_elm  Vertices on element
-* \param dof       DOF on element
-* \param sc        Simplicial complex
-*
-* \return phi      Basis functions (dim for each edge from reference triangle)
-* \return cphi     Curl of basis functions (1 for each edge in 2D, dim for each edge in 3D)
-*
-*/
-void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,scomplex *sc)
-{
-  // Flag for errors
-  SHORT status;
+/* ned_basis — moved to zcommented_out_basis.c (replaced by ned0_basis via get_FEM_basis) */
 
-  // Get Mesh Data
-  sc_fem *fem = sc->fem;
-  INT dim = sc->dim;
-  INT v_per_elm = (dim + 1);
-  INT ed_per_elm = dim*(dim+1)/2;
+/* rt_basis — moved to zcommented_out_basis.c (replaced by rt0_basis via get_FEM_basis) */
 
-  INT i,k,ica,n1,n2,ihi,ilo;
-  INT mark1 = -1;
-  INT mark2 = -1;
+/* bdm1_basis_global — moved to zcommented_out_basis.c (dead code) */
 
-  /* Get Linear Basis Functions for particular element */
-  // We use the working double arrays in fem to store the values
-  // This way we do not need to reallocate each time this is called.
-  REAL* p = fem->dwork;
-  REAL* dp = fem->dwork + v_per_elm;
-  PX_H1_basis(p,dp,x,v_on_elm,1,sc);
-
-  REAL elen;
-
-  /* Now, with the linear basis functions p, dpx, and dpy, the nedelec elements are
-  * phi_eij = |eij|*(p(i)grad(p(j)) - p(j)grad(p(i)))
-  * |eij| = sqrt(|xj-xi|^2)
-  */
-
-  // Go through each edge and get length and find the corresponding nodes
-  for (i=0; i<ed_per_elm; i++) {
-    ica = fem->ed_v->IA[dof[i]];
-    n1 = fem->ed_v->JA[ica];
-    n2 = fem->ed_v->JA[ica+1];
-    elen = fem->ed_len[dof[i]];
-
-    // Find out which linear basis elements line up with nodes on this edge
-    for (k=0; k<v_per_elm; k++) {
-      if (v_on_elm[k]==n1) {
-        mark1=k;
-      }
-      if (v_on_elm[k]==n2) {
-        mark2=k;
-      }
-    }
-    // Make sure orientation is correct always go from i->j if nj > ni
-    if (MAX(n1,n2)==n1) {
-      ihi = mark1;
-      ilo = mark2;
-    } else {
-      ihi = mark2;
-      ilo = mark1;
-    }
-
-    phi[i*dim+0] = elen*(p[ilo]*dp[ihi*dim] - p[ihi]*dp[ilo*dim]);
-    phi[i*dim+1] = elen*(p[ilo]*dp[ihi*dim+1] - p[ihi]*dp[ilo*dim+1]);
-    if(dim==3) phi[i*dim+2] = elen*(p[ilo]*dp[ihi*dim+2] - p[ihi]*dp[ilo*dim+2]);
-
-    /* Now compute Curls
-    * In 2D curl v = (-dy,dx)*(v1,v2)^T = (dx,dy)(0 1;-1 0)(v1,v2)^T = div (Jv)
-    * curl phi_eij = |eij|*(grad(p(i))*(J*grad(p(j)))-grad(p(j))*(J*grad(p(i)))
-    * This results from the fact that the p's are linear...
-    *
-    * In 3D, technically the curls are not needed in 3D as <curl u, curl v> operator can be found from Laplacian matrix.
-    * We compute them anyway
-    */
-
-    if(dim==2) {
-      cphi[i] = 2*elen*(dp[ilo*dim]*dp[ihi*dim+1] - dp[ilo*dim+1]*dp[ihi*dim]);
-    } else if(dim==3) {
-      cphi[i*dim+0] = 2*elen*(dp[ilo*dim+1]*dp[ihi*dim+2]-dp[ihi*dim+1]*dp[ilo*dim+2]);
-      cphi[i*dim+1] = 2*elen*(dp[ihi*dim]*dp[ilo*dim+2]-dp[ilo*dim]*dp[ihi*dim+2]);
-      cphi[i*dim+2] = 2*elen*(dp[ilo*dim]*dp[ihi*dim+1]-dp[ihi*dim]*dp[ilo*dim+1]);
-    } else {
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
-    }
-  }
-
-  // Clean up working array for next person to use.
-  array_set(v_per_elm*(dim+1),fem->dwork,0.0);
-
-  return;
-}
-/****************************************************************************************************************************/
-
-/****************************************************************************************************************************/
-/*!
-* \fn void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,scomplex *sc)
-*
-* \brief Compute Raviart-Thomas Finite Element Basis Functions (zeroth order)
-*        at a particular point in any dimension. Uses the identity:
-*        phi_i(x) = sigma_i * |F_i| * (x - x_opp).
-*
-* \param x         Coordinate on where to compute basis function
-* \param v_on_elm  Vertices on element
-* \param dof       DOF on element
-* \param sc        Simplicial complex
-*
-* \return phi      Basis functions (dim for each face)
-* \return dphi     Div of basis functions (1 for each face)
-*
-*/
-void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,scomplex *sc)
-{
-  // Get Mesh Data
-  sc_fem *fem = sc->fem;
-  INT dim = sc->dim;
-  INT v_per_elm = (dim + 1);
-  INT f_per_elm = (dim + 1);
-  INT v_per_f = dim;
-
-  INT i,j,k,c,ica,icb,jcnt;
-  INT ipf[dim];
-  INT ef[dim];
-  INT myf;
-  REAL farea;
-
-  /* Get Linear Basis Functions for particular element */
-  REAL* p = fem->dwork;
-  REAL* dp = fem->dwork + v_per_elm;
-  PX_H1_basis(p,dp,x,v_on_elm,1,sc);
-
-  // (dim-1)!
-  REAL fac = 1.0;
-  for (i=2; i<dim; i++) fac *= i;
-
-  for (i=0; i<f_per_elm; i++) {
-    myf = dof[i];
-    ica = fem->f_v->IA[myf];
-    icb = fem->f_v->IA[myf+1];
-    jcnt=0;
-    for(j=ica;j<icb;j++) {
-      ipf[jcnt] = fem->f_v->JA[j];
-      jcnt++;
-    }
-    farea = fem->f_area[myf];
-
-    // Map face vertices to local element vertex indices
-    for (k=0; k<v_per_f; k++) {
-      for (j=0; j<v_per_elm; j++) {
-        if (ipf[k] == v_on_elm[j]) {
-          ef[k] = j;
-          break;
-        }
-      }
-    }
-
-    // Find opposite vertex (the local vertex not on the face)
-    INT opp = -1;
-    for (j=0; j<v_per_elm; j++) {
-      INT on_face = 0;
-      for (k=0; k<v_per_f; k++) {
-        if (ef[k] == j) { on_face = 1; break; }
-      }
-      if (!on_face) { opp = j; break; }
-    }
-
-    // Build dim x dim matrix M[c][k] = dp[ef[k]*dim + c]
-    REAL M[dim*dim];
-    for (c=0; c<dim; c++)
-      for (k=0; k<dim; k++)
-        M[c*dim+k] = dp[ef[k]*dim+c];
-
-    REAL sigma = fac * haz_det(M, dim);
-
-    // phi_i(x) = sigma * farea * (x - x_opp)
-    // x_opp = sc->x[v_on_elm[opp]*dim + c]
-    INT vopp = v_on_elm[opp];
-    for (c=0; c<dim; c++)
-      phi[i*dim+c] = sigma * farea * (x[c] - sc->x[vopp*dim+c]);
-
-    dphi[i] = sigma * dim * farea;
-  }
-
-  // Clean up working array for next person to use.
-  array_set(v_per_elm*(dim+1),fem->dwork,0.0);
-
-  return;
-}
-/****************************************************************************************************************************/
-
-/****************************************************************************************************************************/
-/*!
-* \fn void bdm1_basis_global(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof,scomplex *sc)
-*
-* \brief Brezzi-Douglas-Marini (BDM) Elements of order 1.
-*
-* \note ONLY in 2D for now.
-* \note This has NOT been tested.
-*
-* \param x         Coordinate on where to compute basis function
-* \param v_on_elm  Vertices on element
-* \param dof       DOF on element
-* \param sc        Simplicial complex
-*
-* \return phi      Basis functions (2*f_per_elm for each face, 12 total in 2D)
-* \return dphix    Div of basis functions
-*
-*/
-void bdm1_basis_global(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof,scomplex *sc)
-{
-  // Flag for errors
-  SHORT status;
-
-  // Get Mesh Data
-  sc_fem *fem = sc->fem;
-  INT dim = sc->dim;
-  INT v_per_elm = (dim + 1);
-  INT f_per_elm = (dim + 1);
-
-  INT i,j,ica,icb,jcnt;
-  REAL a1,a2,a3,a4;
-  INT ipf[dim];
-  INT myf;
-  REAL farea;
-  INT elnd,ef1,ef2;
-
-  /* Get Linear Basis Functions for particular element */
-  // We use the working double arrays in fem to store the values
-  // This way we do not need to reallocate each time this is called.
-  REAL* p = fem->dwork;
-  REAL* dp = fem->dwork + v_per_elm;
-  PX_H1_basis(p,dp,x,v_on_elm,1,sc);
-
-  // Go through each face and find the corresponding nodes
-  if(dim==2) {
-    for (i=0; i<f_per_elm; i++) {
-      myf = dof[i];
-      ica = fem->f_v->IA[myf];
-      icb = fem->f_v->IA[myf+1];
-      jcnt=0;
-      for(j=ica;j<icb;j++) {
-        ipf[jcnt] = fem->f_v->JA[j];
-        jcnt++;
-      }
-
-      // Get the area and normal vector of the face
-      farea = fem->f_area[myf];
-
-      // Loop through Nodes on element to find corresponding nodes and get correct orienation
-      for(j=0;j<v_per_elm;j++) {
-        elnd = v_on_elm[j];
-        if(ipf[0]==elnd) {
-          ef1 = j;
-        }
-        if(ipf[1]==elnd) {
-          ef2 = j;
-        }
-      }
-
-      /* Now, with the linear basis functions p, dpx, and dpy, the BDM1 elements are in 2D
-      * phi_fij = |fij|*(p(i)curl(p(j)) - p(j)curl(p(i)))
-      * psi_fij = alpha*|fij|*curl(p(i)p(j))
-      * |fij| = |eij|
-      */
-      phi[i*dim*2] = farea*(p[ef1]*dp[ef2*dim+1] - p[ef2]*dp[ef1*dim+1]);
-      phi[i*dim*2+1] = farea*(-p[ef1]*dp[ef2*dim] + p[ef2]*dp[ef1*dim]);
-      phi[i*dim*2+2] = -6*farea*(p[ef1]*dp[ef2*dim+1] + p[ef2]*dp[ef2*dim+1]);
-      phi[i*dim*2+3] = 6*farea*(p[ef1]*dp[ef2*dim] + p[ef2]*dp[ef2*dim]);
-
-      a1 = dp[ef1*dim]*dp[ef2*dim];
-      a2 = dp[ef1*dim]*dp[ef2*dim+1];
-      a3 = dp[ef1*dim+1]*dp[ef2*dim];
-      a4 = dp[ef1*dim+1]*dp[ef2*dim+1];
-
-      dphix[i*dim*2] = farea*(a2-a3);
-      dphix[i*dim*2+1] = 0.0;
-      dphix[i*dim*2+2] = -6*farea*(a2+a3);
-      dphix[i*dim*2+3] = 12*farea*a1;
-      dphiy[i*dim*2] = 0.0;
-      dphiy[i*dim*2+1] = farea*(a2-a3);
-      dphiy[i*dim*2+2] = -12*farea*a4;
-      dphiy[i*dim*2+3] = 6*farea*(a2+a3);
-    }
-  } else {
-    status = ERROR_DIM;
-    check_error(status, __FUNCTION__); // 3D not implemented
-  }
-
-  // Clean up working array for next person to use.
-  array_set(v_per_elm*(dim+1),fem->dwork,0.0);
-
-  return;
-}
-/****************************************************************************************************************************/
-
+/* bubble_face_basis, MINI_basis: scomplex-based versions still needed by get_FEM_basis
+ * which is called from FE_Interpolation/FE_DerivativeInterpolation in interp.c */
 /****************************************************************************************************************************/
 /*!
 * \fn void bubble_face_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,scomplex *sc)
@@ -2338,8 +1956,10 @@ void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,scomplex 
   SHORT status;
 
   // Mesh and FEM Data
+  sc_fem *fem = sc->fem;
   INT FEtype = FE->FEtype;
   INT dim = sc->dim;
+  INT v_per_elm = dim+1;
   INT offset = FE->dof_per_elm/dim;
 
   if(FEtype>=0 && FEtype<10) { // PX elements
@@ -2347,12 +1967,44 @@ void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,scomplex 
     PX_H1_basis(phi,dphi,x,dof,FEtype,sc);
 
   } else if(FEtype==20) { // Nedelec elements
-
-    ned_basis(phi,dphi,x,v_on_elm,dof,sc);
+    // Compute P1 basis (lam/dlam) then call local ned0_basis
+    REAL lam[v_per_elm], dlam[v_per_elm*dim];
+    PX_H1_basis(lam,dlam,x,v_on_elm,1,sc);
+    // Build local v_on_ed and ed_len from sc->fem for edges on this element
+    INT ed_per_elm = dim*(dim+1)/2;
+    INT v_per_ed = 2;
+    INT v_on_ed[ed_per_elm*v_per_ed];
+    REAL ed_len[ed_per_elm];
+    for(INT i=0; i<ed_per_elm; i++) {
+      INT eid = dof[i];
+      INT ica = fem->ed_v->IA[eid];
+      v_on_ed[i*v_per_ed+0] = fem->ed_v->JA[ica];
+      v_on_ed[i*v_per_ed+1] = fem->ed_v->JA[ica+1];
+      ed_len[i] = fem->ed_len[eid];
+    }
+    ned0_basis(phi,dphi,lam,dlam,dim,v_on_elm,v_on_ed,ed_len);
 
   } else if(FEtype==30) { // Raviart-Thomas elements
-
-    rt_basis(phi,dphi,x,v_on_elm,dof,sc);
+    // Compute P1 basis (lam/dlam) then call local rt0_basis
+    REAL lam[v_per_elm], dlam[v_per_elm*dim];
+    PX_H1_basis(lam,dlam,x,v_on_elm,1,sc);
+    // Build local v_on_f, f_area, xv from sc->fem for faces on this element
+    INT f_per_elm = dim+1;
+    INT v_per_f = dim;
+    INT v_on_f[f_per_elm*v_per_f];
+    REAL f_area[f_per_elm];
+    REAL xv[v_per_elm*dim];
+    for(INT i=0; i<f_per_elm; i++) {
+      INT fid = dof[i];
+      INT ica = fem->f_v->IA[fid];
+      for(INT j=0; j<v_per_f; j++)
+        v_on_f[i*v_per_f+j] = fem->f_v->JA[ica+j];
+      f_area[i] = fem->f_area[fid];
+    }
+    for(INT i=0; i<v_per_elm; i++)
+      for(INT j=0; j<dim; j++)
+        xv[i*dim+j] = sc->x[v_on_elm[i]*dim+j];
+    rt0_basis(phi,dphi,lam,dlam,dim,v_on_elm,v_on_f,f_area,xv);
 
   } else if(FEtype==60) { // Vector element
 
@@ -2383,4 +2035,3 @@ void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,scomplex 
 
   return;
 }
-/****************************************************************************************************************************/
