@@ -11,7 +11,7 @@ title{Unit square in 2D}
 %% 0 means uniform refinement everywhere. 33 means refining near specific points.
 %% 1 means something different like Doerfler marking
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-amr_marking_type{0} 
+amr_marking_type{1} 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 num_refinements{0}

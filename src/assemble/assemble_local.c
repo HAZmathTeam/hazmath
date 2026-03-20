@@ -443,11 +443,6 @@ void assemble_symmetricDuDv_local(REAL* ALoc,REAL* bLoc,REAL* u_local,
   INT dim = elm_data->dim;
   INT nq = elm_data->quad_local->nq;
 
-  // Space indices
-  INT iu1 = 0;
-  INT iu2 = 1;
-  INT iu3 = 2;
-
   // DoF per element
   INT dof_per_elm = 0;
   INT dof_per_elm_arr[dim];

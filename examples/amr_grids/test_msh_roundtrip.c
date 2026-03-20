@@ -91,21 +91,20 @@ INT main(INT argc, char* argv[])
   if (nerr)
     fprintf(stderr, "  FAIL: non-conforming (%lld errors)\n", (long long)nerr);
 
-  /* ---- Phase 4: Refine once ---- */
-  printf("\nPhase 4: Refine (1 level, newest vertex bisection)\n");
+  /* ---- Phase 4: Refine twice ---- */
+  printf("\nPhase 4: Refine (2 levels, newest vertex bisection)\n");
   INT dim = sc->dim;
 
-  /* Mark all elements and refine using newest vertex bisection */
-  {
-    scomplex* sctop = scfinest(sc);
-    ivector marked;
-    marked.row = sctop->ns;
-    marked.val = (INT*)calloc(marked.row, sizeof(INT));
-    for (i = 0; i < marked.row; i++) marked.val[i] = TRUE;
-    refine(1, sc, &marked);
-    ivec_free(&marked);
-    haz_scomplex_free(sctop);
-  }
+  /* First refinement: uniform */
+  refine(1, sc, NULL);
+  /* Extract leaf mesh — this destroys the hierarchy, giving a flat mesh */
+  scfinalize(sc, NULL, (INT)1);
+  /* Reset level and generations so refine treats this as a fresh mesh */
+  sc->level = 0;
+  for (i = 0; i < sc->ns; i++) sc->gen[i] = 0;
+
+  /* Second refinement: uniform on the leaf mesh */
+  refine(1, sc, NULL);
 
   /* Finalize: compact to leaves only */
   scfinalize(sc, NULL, (INT)1);

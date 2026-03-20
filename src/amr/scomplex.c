@@ -242,6 +242,12 @@ scomplex* haz_scomplex_init(const INT n, INT ns, INT nv, const INT nbig) {
   sc->v2s_simp = NULL;
   sc->v2s_count = 0;
   sc->v2s_alloc = 0;
+  sc->v2s_nv = 0;
+  sc->gen_N = NULL;
+  sc->dgs_N = 0;
+  sc->ncsys = 0;
+  sc->systypes = NULL;
+  sc->csys_ox = NULL;
   sc->fem = NULL;
   sc->inc = NULL;
   return sc;
@@ -297,6 +303,11 @@ scomplex haz_scomplex_null(const INT n, const INT nbig) {
   sc.v2s_simp = NULL;
   sc.v2s_count = 0;
   sc.v2s_alloc = 0;
+  sc.gen_N = NULL;
+  sc.dgs_N = 0;
+  sc.ncsys = 0;
+  sc.systypes = NULL;
+  sc.csys_ox = NULL;
   sc.flags = NULL;
   sc.x = NULL;
   sc.vols = NULL;
@@ -845,6 +856,10 @@ void haz_scomplex_free(scomplex* sc) {
   }
   sc->v2s_count = 0;
   sc->v2s_alloc = 0;
+  if (sc->gen_N) { free(sc->gen_N); sc->gen_N = NULL; }
+  if (sc->systypes) { free(sc->systypes); sc->systypes = NULL; }
+  if (sc->csys_ox) { free(sc->csys_ox); sc->csys_ox = NULL; }
+  sc->ncsys = 0;
   sc_free_fem_data(sc);
   /* Free inc array — owns el_v, el_ed, ed_v.
      el_f, f_v, f_ed are owned by sc_fem, already freed above.
@@ -1237,70 +1252,47 @@ static INT set_color(scomplex* sc, INT* color) {
  * \param N      I: the largest color
  */
 static void dgs_initialize(scomplex* sc, INT* color, INT N) {
-  INT ns = sc->ns, dim = sc->dim, n1 = dim + 1;
-  INT i, j, k;
-  INT* tmp = (INT*)malloc(n1 * sizeof(INT));
-  INT* perm = (INT*)malloc(n1 * sizeof(INT));
-  INT* nbrtmp = (INT*)malloc(n1 * sizeof(INT));
+  INT ns = sc->ns, nv = sc->nv, dim = sc->dim, n1 = dim + 1;
+  INT i, j;
+  /* Allocate gen_N and set initial values: gen_N(v) = -color(v) */
+  sc->gen_N = (INT*)calloc(nv, sizeof(INT));
+  sc->dgs_N = N;
+  for (i = 0; i < nv; i++) sc->gen_N[i] = -color[i];
+  /* Sort each simplex by DECREASING gen_N */
   for (i = 0; i < ns; i++) {
     INT* el = sc->nodes + i * n1;
-    INT* nb = sc->nbr + i * n1;
-    /* Build sorting permutation: perm[new_pos] = old_pos.
-       First sort by color using insertion sort (n1 is small). */
-    for (j = 0; j < n1; j++) perm[j] = j;
-    for (j = 1; j < n1; j++) {
-      INT key_perm = perm[j];
-      INT key_color = color[el[key_perm]];
-      k = j - 1;
-      while (k >= 0 && color[el[perm[k]]] > key_color) {
-        perm[k + 1] = perm[k];
-        k--;
-      }
-      perm[k + 1] = key_perm;
-    }
-    /* perm now maps: sorted position j -> original position perm[j],
-       with color[el[perm[0]]] < ... < color[el[perm[n]]].
-       Apply Definition 2 (equation (1)):
-       If c(v_{perm[n]}) == N: T = [v_n, v_0, ..., v_{n-1}]_n (cyclic)
-       Otherwise:               T = [v_0, v_1, ..., v_n]_n
-    */
-    memcpy(tmp, el, n1 * sizeof(INT));
-    memcpy(nbrtmp, nb, n1 * sizeof(INT));
-    if (color[tmp[perm[dim]]] == N) {
-      /* Cyclic: new[0]=old[perm[dim]], new[j+1]=old[perm[j]] for j=0..dim-1 */
-      el[0] = tmp[perm[dim]];
-      nb[0] = nbrtmp[perm[dim]];
-      for (j = 0; j < dim; j++) {
-        el[j + 1] = tmp[perm[j]];
-        nb[j + 1] = nbrtmp[perm[j]];
-      }
-    } else {
-      /* Straight sort: new[j] = old[perm[j]] */
-      for (j = 0; j < n1; j++) {
-        el[j] = tmp[perm[j]];
-        nb[j] = nbrtmp[perm[j]];
-      }
-    }
+    for (j = 0; j < n1; j++)
+      for (INT k = j + 1; k < n1; k++)
+        if (sc->gen_N[el[j]] < sc->gen_N[el[k]]) {
+          INT t = el[j]; el[j] = el[k]; el[k] = t;
+        }
     sc->gen[i] = 0;
   }
-  free(nbrtmp);
-  free(perm);
-  free(tmp);
+  /* nbr is not reordered — it will be set to -1 for children
+     and rebuilt by find_nbr in scfinalize */
 }
 /**********************************************************************/
 /*!
- * \brief Build the vertex-to-simplex incidence (transpose of nodes).
+ * \brief Build v2s index for current LEAF simplices only.
+ *        Children created during refinement are NOT added.
+ *        This prevents infinite recursion in the DGS closure.
  */
 static void v2s_build(scomplex* sc) {
   INT ns = sc->ns, nv = sc->nv, n1 = sc->dim + 1;
   INT i, j, v;
-  sc->v2s_alloc = ns * n1 * 2; /* room to grow */
+  /* Count leaf simplex-vertex pairs */
+  INT total = 0;
+  for (i = 0; i < ns; i++)
+    if (sc->child0[i] < 0) total += n1;
+  sc->v2s_alloc = total > 0 ? total : 1;
   sc->v2s_head = (INT*)malloc(nv * sizeof(INT));
   sc->v2s_next = (INT*)malloc(sc->v2s_alloc * sizeof(INT));
   sc->v2s_simp = (INT*)malloc(sc->v2s_alloc * sizeof(INT));
   for (i = 0; i < nv; i++) sc->v2s_head[i] = -1;
   sc->v2s_count = 0;
+  sc->v2s_nv = nv;
   for (i = 0; i < ns; i++) {
+    if (sc->child0[i] >= 0) continue; /* skip non-leaf */
     INT* el = sc->nodes + i * n1;
     for (j = 0; j < n1; j++) {
       v = el[j];
@@ -1312,343 +1304,228 @@ static void v2s_build(scomplex* sc) {
   }
 }
 /**********************************************************************/
+static void v2s_free_data(scomplex* sc) {
+  if (sc->v2s_head) { free(sc->v2s_head); sc->v2s_head = NULL; }
+  if (sc->v2s_next) { free(sc->v2s_next); sc->v2s_next = NULL; }
+  if (sc->v2s_simp) { free(sc->v2s_simp); sc->v2s_simp = NULL; }
+  sc->v2s_count = 0; sc->v2s_alloc = 0; sc->v2s_nv = 0;
+}
+/**********************************************************************/
+/* Algorithm 4 helpers: lvl_N and type_N from gen_N (eq 8 in paper)  */
+/* gen_N = N*(lvl_N - 1) + type_N,  type_N in {1,...,N}              */
+/**********************************************************************/
+static inline INT dgs_type_N(INT gen, INT N) {
+  return ((gen - 1) % N + N) % N + 1;
+}
+static inline INT dgs_lvl_N(INT gen, INT N) {
+  INT t = dgs_type_N(gen, N);
+  return (gen - t) / N + 1;
+}
+/**********************************************************************/
 /*!
- * \brief Add one (vertex, simplex) pair to the v2s incidence.
+ * \brief Get the bisection edge of simplex is using Algorithm 4.
+ *        Simplex vertices must be sorted by DECREASING gen_N.
+ *        Returns the two vertex indices (v_a, v_b) of the bse.
  */
-static inline void v2s_add(scomplex* sc, INT v, INT s) {
-  if (sc->v2s_count >= sc->v2s_alloc) {
-    sc->v2s_alloc *= 2;
-    sc->v2s_next = realloc(sc->v2s_next, sc->v2s_alloc * sizeof(INT));
-    sc->v2s_simp = realloc(sc->v2s_simp, sc->v2s_alloc * sizeof(INT));
+static void dgs_get_bse(scomplex* sc, INT is, INT *va_out, INT *vb_out) {
+  INT dim = sc->dim, n1 = dim + 1, N = sc->dgs_N;
+  INT *el = sc->nodes + is * n1;
+  INT vm = el[dim], vm1 = el[dim - 1];
+  INT lvl_m = dgs_lvl_N(sc->gen_N[vm], N);
+  INT lvl_m1 = dgs_lvl_N(sc->gen_N[vm1], N);
+  if (lvl_m != lvl_m1) {
+    *va_out = vm1; *vb_out = vm;
+  } else {
+    INT j = dim;
+    for (INT k = 0; k < n1; k++)
+      if (dgs_lvl_N(sc->gen_N[el[k]], N) == lvl_m) { j = k; break; }
+    *va_out = el[j]; *vb_out = vm;
   }
-  INT k = sc->v2s_count++;
-  sc->v2s_simp[k] = s;
-  sc->v2s_next[k] = sc->v2s_head[v];
-  sc->v2s_head[v] = k;
 }
 /**********************************************************************/
 /*!
- * \brief Grow v2s_head array when a new vertex is added.
+ * \brief Bisect simplex is using Algorithm 4, creating a NEW midpoint.
+ *        Children are sorted by decreasing gen_N.
+ * \return index of the new midpoint vertex
  */
-static inline void v2s_add_vertex(scomplex* sc, INT vnew) {
-  sc->v2s_head = realloc(sc->v2s_head, (vnew + 1) * sizeof(INT));
-  sc->v2s_head[vnew] = -1;
+static INT haz_bisect_new(scomplex* sc, INT is) {
+  INT dim = sc->dim, nbig = sc->nbig, n1 = dim + 1, N = sc->dgs_N;
+  INT *el = sc->nodes + is * n1;
+  /* Algorithm 4: determine bse and gen_N of midpoint */
+  INT vm = el[dim], vm1 = el[dim - 1];
+  INT lvl_m = dgs_lvl_N(sc->gen_N[vm], N);
+  INT lvl_m1 = dgs_lvl_N(sc->gen_N[vm1], N);
+  INT va_idx, gen_new; /* va_idx = index into el[] */
+  if (lvl_m != lvl_m1) {
+    va_idx = dim - 1;
+    gen_new = sc->gen_N[vm1] + N;
+  } else {
+    va_idx = dim;
+    for (INT k = 0; k < n1; k++)
+      if (dgs_lvl_N(sc->gen_N[el[k]], N) == lvl_m) { va_idx = k; break; }
+    gen_new = sc->gen_N[vm] + 2*N + 1 - dgs_type_N(sc->gen_N[el[va_idx]], N);
+  }
+  INT v_a = el[va_idx], v_b = el[dim];
+  /* Create midpoint vertex via haz_add_simplex */
+  INT nsnew = sc->ns + 2, nvnew = sc->nv + 1, nodnew = sc->nv;
+  REAL* xnew = (REAL*)calloc(nbig, sizeof(REAL));
+  for (INT j = 0; j < nbig; j++)
+    xnew[j] = 0.5 * (sc->x[v_a * nbig + j] + sc->x[v_b * nbig + j]);
+  /* Project onto curve if both endpoints share a polar coordinate system */
+  INT csysnew = (sc->csys[v_a] < sc->csys[v_b]) ? sc->csys[v_a] : sc->csys[v_b];
+  if (sc->csys[v_a] == sc->csys[v_b] && sc->systypes &&
+      sc->csys[v_a] < sc->ncsys && sc->systypes[sc->csys[v_a]] == 1) {
+    /* Both endpoints in the same polar coordinate system.
+       Compute midpoint on the arc: use Cartesian midpoint's direction
+       but at the average radius from the origin. */
+    INT sys = sc->csys[v_a];
+    REAL *ox = sc->csys_ox + sys * dim;
+    REAL ra = 0, rb = 0, rm_dir = 0;
+    for (INT j = 0; j < dim; j++) {
+      REAL da = sc->x[v_a * nbig + j] - ox[j];
+      REAL db = sc->x[v_b * nbig + j] - ox[j];
+      ra += da * da;
+      rb += db * db;
+    }
+    ra = sqrt(ra); rb = sqrt(rb);
+    REAL rho_avg = 0.5 * (ra + rb);
+    /* Direction from origin to Cartesian midpoint */
+    for (INT j = 0; j < dim; j++) {
+      REAL d = xnew[j] - ox[j];
+      rm_dir += d * d;
+    }
+    rm_dir = sqrt(rm_dir);
+    if (rm_dir > 1e-14) {
+      REAL scale = rho_avg / rm_dir;
+      for (INT j = 0; j < dim; j++)
+        xnew[j] = ox[j] + scale * (xnew[j] - ox[j]);
+    }
+  }
+  INT pv[2] = {v_a, v_b};
+  INT ks0 = sc->ns, ksn = sc->ns + 1;
+  sc->child0[is] = ks0;
+  sc->childn[is] = ksn;
+  haz_add_simplex(is, sc, xnew, pv, 0, csysnew, nsnew, nvnew);
+  /* Set gen_N for the new vertex (gen_N array was grown by haz_add_simplex
+     via realloc of bndry/csys but gen_N needs separate growth) */
+  sc->gen_N = realloc(sc->gen_N, nvnew * sizeof(INT));
+  sc->gen_N[nodnew] = gen_new;
+  /* Build children: replace va with v', replace vb with v' */
+  el = sc->nodes + is * n1;
+  INT *c0 = sc->nodes + ks0 * n1;
+  INT *cn = sc->nodes + ksn * n1;
+  for (INT j = 0; j < n1; j++) c0[j] = el[j];
+  c0[va_idx] = nodnew;
+  for (INT j = 0; j < n1; j++) cn[j] = el[j];
+  cn[dim] = nodnew;
+  /* Sort children by decreasing gen_N */
+  for (INT i = 0; i < n1; i++)
+    for (INT j = i+1; j < n1; j++) {
+      if (sc->gen_N[c0[i]] < sc->gen_N[c0[j]]) { INT t=c0[i]; c0[i]=c0[j]; c0[j]=t; }
+      if (sc->gen_N[cn[i]] < sc->gen_N[cn[j]]) { INT t=cn[i]; cn[i]=cn[j]; cn[j]=t; }
+    }
+  for (INT j = 0; j < n1; j++) {
+    sc->nbr[ks0 * n1 + j] = -1;
+    sc->nbr[ksn * n1 + j] = -1;
+  }
+  return nodnew;
 }
 /**********************************************************************/
 /*!
- * \brief Register all vertices of a new simplex in v2s.
+ * \brief Bisect simplex is using Algorithm 4, REUSING existing midpoint.
  */
-static void v2s_register_simplex(scomplex* sc, INT s) {
-  INT n1 = sc->dim + 1, j;
-  INT* el = sc->nodes + s * n1;
-  for (j = 0; j < n1; j++) v2s_add(sc, el[j], s);
+static void haz_bisect_reuse(scomplex* sc, INT is, INT nodnew) {
+  INT dim = sc->dim, n1 = dim + 1, N = sc->dgs_N;
+  INT *el = sc->nodes + is * n1;
+  INT vm = el[dim], vm1 = el[dim - 1];
+  INT lvl_m = dgs_lvl_N(sc->gen_N[vm], N);
+  INT lvl_m1 = dgs_lvl_N(sc->gen_N[vm1], N);
+  INT va_idx;
+  if (lvl_m != lvl_m1) {
+    va_idx = dim - 1;
+  } else {
+    va_idx = dim;
+    for (INT k = 0; k < n1; k++)
+      if (dgs_lvl_N(sc->gen_N[el[k]], N) == lvl_m) { va_idx = k; break; }
+  }
+  INT v_a = el[va_idx], v_b = el[dim];
+  INT nsnew = sc->ns + 2, nvnew = sc->nv;
+  INT pv[2] = {v_a, v_b};
+  INT ks0 = sc->ns, ksn = sc->ns + 1;
+  sc->child0[is] = ks0;
+  sc->childn[is] = ksn;
+  haz_add_simplex(is, sc, NULL, pv, 0, 0, nsnew, nvnew);
+  el = sc->nodes + is * n1;
+  INT *c0 = sc->nodes + ks0 * n1;
+  INT *cn = sc->nodes + ksn * n1;
+  for (INT j = 0; j < n1; j++) c0[j] = el[j];
+  c0[va_idx] = nodnew;
+  for (INT j = 0; j < n1; j++) cn[j] = el[j];
+  cn[dim] = nodnew;
+  for (INT i = 0; i < n1; i++)
+    for (INT j = i+1; j < n1; j++) {
+      if (sc->gen_N[c0[i]] < sc->gen_N[c0[j]]) { INT t=c0[i]; c0[i]=c0[j]; c0[j]=t; }
+      if (sc->gen_N[cn[i]] < sc->gen_N[cn[j]]) { INT t=cn[i]; cn[i]=cn[j]; cn[j]=t; }
+    }
+  for (INT j = 0; j < n1; j++) {
+    sc->nbr[ks0 * n1 + j] = -1;
+    sc->nbr[ksn * n1 + j] = -1;
+  }
 }
 /**********************************************************************/
 /*!
  * \fn INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
  *
- * \brief Bisects simplex is in the simplicial complex sc. The
- *        bisection rule is Algorithm 1 from Maubach (1995). The
- *        conforming closure is Algorithm 3 from Diening-Gehring-Storn
- *        (2025), which works for arbitrary initial triangulations in nD.
+ * \brief Bisects simplex is with DGS conforming closure (Algorithm 3)
+ *        using Algorithm 4 bisection (handles N+1 > n+1 colors).
+ *        Scans ALL simplices for the conforming closure (brute force).
  *
- * \param sc  I/O: simplicial complex
+ * \param sc  I/O: simplicial complex with gen_N set
  * \param is  I: index of the simplex to bisect
- * \param it  I: index of the neighbor that already created the new vertex;
- *               pass -1 if no such neighbor exists.
+ * \param it  I: unused (kept for API compatibility), pass -1
  *
  * \return 0 on success
- *
- * \note The DGS coloring-based initialization (set_color + dgs_initialize)
- *       replaces the Traxler reflected-neighbor ordering and works for
- *       any conforming initial triangulation.
- *
- *       References:
- *       [1] Maubach, J. Local bisection refinement for n-simplicial
- *           grids generated by reflection. SIAM J. Sci. Comput. 16
- *           (1995), no. 1, 210–227.
- *       [2] Diening, L., Gehring, L., Storn, J. Adaptive Mesh
- *           Refinement for Arbitrary Initial Triangulations.
- *           Found. Comput. Math. (2025).
- *           DOI: 10.1007/s10208-024-09642-1
- *
  */
 INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
-  INT dim = sc->dim, nbig = sc->nbig, ns = sc->ns, nv = sc->nv;
-  INT nsnew = ns, nvnew = nv;
-  INT itype, nodnew = -10;
-  INT n1 = dim + 1, j, i, p, p0, pn, isn1, snbri, snbrp, snbrn, snbr0;
-  INT jt, jv0, jvn, ks0, ksn, s0nbri, snnbri;  //,isn;
-  REAL* xnew;
-  INT pv[2];
-  INT csysnew, ibnew;
-  if (is < 0) return 0;
+  if (is < 0 || sc->child0[is] >= 0) return 0;
+  INT dim = sc->dim, n1 = dim + 1;
+  INT v0, vg;
+  dgs_get_bse(sc, is, &v0, &vg);
+  /* Conforming closure (Algorithm 3): find all leaves sharing edge
+     {v0,vg} with bse != {v0,vg}, refine them first. */
+  INT restart = 1;
+  while (restart) {
+    restart = 0;
+    for (INT s = 0; s < sc->ns; s++) {
+      if (s == is || sc->child0[s] >= 0) continue;
+      INT *el = sc->nodes + s * n1;
+      INT h0 = 0, hg = 0;
+      for (INT a = 0; a < n1; a++) {
+        if (el[a] == v0) h0 = 1;
+        if (el[a] == vg) hg = 1;
+      }
+      if (!h0 || !hg) continue;
+      INT bv0, bvg;
+      dgs_get_bse(sc, s, &bv0, &bvg);
+      if ((bv0 == v0 && bvg == vg) || (bv0 == vg && bvg == v0)) continue;
+      haz_refine_simplex(sc, s, -1);
+      restart = 1;
+      break;
+    }
+  }
   if (sc->child0[is] >= 0) return 0;
-  //  isn=is*n;
-  isn1 = is * n1;
-  /* DGS conforming closure (Algorithm 3, Diening-Gehring-Storn 2025):
-     Before bisecting 'is' along edge e=(v0,vn), ensure ALL leaf
-     simplices sharing e have e as their bisection edge. If any
-     simplex T' shares e but bse(T')!=e, refine T' first. */
-  {
-    INT v0 = sc->nodes[isn1];
-    INT vn = sc->nodes[isn1 + dim];
-    INT dgs_retry = 1;
-    while (dgs_retry) {
-      dgs_retry = 0;
-      /* Walk v2s list of v0; for each simplex check if it also has vn */
-      INT k;
-      for (k = sc->v2s_head[v0]; k >= 0; k = sc->v2s_next[k]) {
-        j = sc->v2s_simp[k];
-        if (j == is || sc->child0[j] >= 0) continue;
-        INT* elj = sc->nodes + j * n1;
-        INT has_vn = 0;
-        for (i = 0; i < n1; i++) {
-          if (elj[i] == vn) {
-            has_vn = 1;
-            break;
-          }
-        }
-        if (!has_vn) continue;
-        /* j shares edge e; check if bse(j) == e */
-        if ((elj[0] == v0 && elj[dim] == vn) || (elj[0] == vn && elj[dim] == v0))
-          continue;
-        /* bse(j) != e: refine j first (Algorithm 3 recursive call) */
-        haz_refine_simplex(sc, j, -1);
-        nsnew = sc->ns;
-        nvnew = sc->nv;
-        dgs_retry = 1;
-        break; /* restart scan (v2s list may have changed) */
-      }
+  /* Bisect is, creating new midpoint */
+  INT vnew = haz_bisect_new(sc, is);
+  /* Bisect all remaining leaves sharing {v0,vg} */
+  for (INT s = 0; s < sc->ns; s++) {
+    if (sc->child0[s] >= 0) continue;
+    INT *el = sc->nodes + s * n1;
+    INT h0 = 0, hg = 0;
+    for (INT a = 0; a < n1; a++) {
+      if (el[a] == v0) h0 = 1;
+      if (el[a] == vg) hg = 1;
     }
-    /* 'is' may have been bisected as a side effect of the closure */
-    if (sc->child0[is] >= 0) return 0;
-  }
-  /* Traxler pre-refinement commented out — using DGS only */
-  /* } else { */
-  /*   for (i=1;i<n;i++){ */
-  /*     snbri=sc->nbr[isn1+i] ; // the on-axis neighbor. */
-  /*     if(snbri<0) continue; //this is a boundary */
-  /*     if (sc->gen[snbri]<sc->gen[is]){//this was wrong in the code in the
-   * Traxler's paper */
-  /*       haz_refine_simplex(sc,snbri,-1); */
-  /*       nsnew=sc->ns; */
-  /*       nvnew=sc->nv; */
-  /*     } */
-  /*   } */
-  /* } */
-  if (it < 0) {
-    xnew = (REAL*)calloc(nbig, sizeof(REAL));
-    jv0 = sc->nodes[isn1];
-    jvn = sc->nodes[isn1 + dim];
-    // here we can store the edge the new vertex comes from
-    for (j = 0; j < nbig; j++) {
-      xnew[j] = 0.5 * (sc->x[jv0 * nbig + j] + sc->x[jvn * nbig + j]);
-    }
-    // parents of the vertex:
-    pv[0] = jv0;
-    pv[1] = jvn;
-    // boundary codes (these are also fixed later when connected components on
-    // the boundary are found.
-    /* if(sc->bndry[jv0] > sc->bndry[jvn]) */
-    /*   ibnew=sc->bndry[jv0]; */
-    /* else */
-    /*   ibnew=sc->bndry[jvn]; */
-    ibnew = 0;  // added vertex is considered interior vertex by default. ;
-    if (sc->csys[jv0] < sc->csys[jvn])
-      csysnew = sc->csys[jv0];
-    else
-      csysnew = sc->csys[jvn];
-    /* we have added a vertex, let us indicate this */
-    nodnew = nvnew;
-    nvnew++;
-  } else {
-    //    jx=    newvertex=t->child0->vertex[1];
-    jt = sc->child0[it];           // child simplex number
-    jv0 = sc->nodes[jt * n1 + 1];  // global vertex number of vertex 1.
-    xnew = (sc->x + jv0 * nv);     /* xnew is the same pointer, the vertex
-                                      has already been added. */
-    nodnew = jv0;
-    ibnew = sc->bndry[nodnew];
-    csysnew = sc->csys[nodnew];
-  }
-  ks0 = nsnew;
-  sc->child0[is] = ks0;  // child0 simplex number
-  nsnew++;
-  ksn = nsnew;
-  sc->childn[is] = ksn;  // childn simplex number
-  nsnew++;
-  /*
-    Add two new simplices and initialize their parents, etc
-  */
-  haz_add_simplex(is, sc, xnew, pv, ibnew, csysnew, nsnew, nvnew);
-  /* grow v2s_head if a new vertex was added */
-  if (sc->v2s_head && nvnew > nv) v2s_add_vertex(sc, nodnew);
-  /*
-    Initialize all vertex pointers of the children according to the
-    scheme. Also initialize all pointers to bring simplices as long
-    as they do not require a recursive call for subdivision.  Always
-    remember: The mesh is supposed to meet the structural condition when
-    this routine is called, and it will meet the structural condition
-    again after this routine has terminated.
-  */
-  INT isc0 = -100, iscn = -100;
-  // ks0 = sc->child0[is];
-  // ksn = sc->childn[is];
-  isc0 = ks0 * n1;
-  iscn = ksn * n1;
-  sc->nodes[isc0 + 0] = sc->nodes[isn1];  // nodes[is][0]
-  sc->nodes[iscn + 0] =
-      sc->nodes[isn1 + dim];  // nodes[is][n1] nodes is (ns x n1)
-  /*backup:   sn->nodes[1]=s0->nodes[1]=nodnew;*/
-  sc->nodes[iscn + 1] = sc->nodes[isc0 + 1] = nodnew;
-  sc->nbr[isc0] = sc->childn[is];
-  sc->nbr[iscn] = sc->child0[is];
-  /*
-    We know the structure of the nbrs children, if existent already,
-    thanks to the structural condition.
-  */
-  snbr0 = sc->nbr[isn1];
-  snbrn = sc->nbr[isn1 + dim];
-  if (snbrn >= 0) {
-    if (sc->child0[snbrn] >= 0) {
-      //      s0->nbr[1]=sc->child0[snbrn];
-      sc->nbr[isc0 + 1] = sc->child0[snbrn];
-    } else {
-      //      s0->nbr[1]=snbrn;
-      sc->nbr[isc0 + 1] = snbrn;
-    }
-  }
-  if (snbr0 >= 0) {
-    if (sc->childn[snbr0] >= 0)
-      //      sn->nbr[1]=sc->childn[snbr0];
-      sc->nbr[iscn + 1] = sc->childn[snbr0];
-    else
-      //      sn->nbr[1]=snbr0;
-      sc->nbr[iscn + 1] = snbr0;
-  }
-  /* Compute the simplex type. */
-  itype = (sc->gen[is]) % dim;
-  // for each vertex p=1..dim-1 of the parent simplex S
-  for (p = 1; p < dim; p++) {
-    /*
-       p0 is the index of S->vertex[p] in child0
-       pn is the index of S->vertex[p] in childn
-    */
-    pn = p + 1;
-    p0 = p + 1;
-    if (p > itype) pn = dim - p + itype + 1;
-    /*       YYYYYYYYYYYYYYYYYYYYYY */
-    /* initialize children % vertex according to structural cond */
-    //      sn->nodes[pn]=s0->nodes[p0]=sc->nodes[isn1+p];
-    sc->nodes[isc0 + p0] = sc->nodes[isn1 + p];
-    sc->nodes[iscn + pn] = sc->nodes[isn1 + p];
-    snbrp = sc->nbr[isn1 + p]; /* s->nbr[p] */
-    if (snbrp < 0) continue;
-    if (sc->child0[snbrp] >= 0) {
-      /*
-         S-> nbr[p] is subdivided. The corresponding nbr pointers of the
-         children of S should then point to S nbr[p] -> children (structural
-         condition). It might however be that the vertices 0 and dim of S have
-         exchanged local indices in the nbr. That has to be tested.
-      */
-      if (sc->nodes[snbrp * n1 + 0] == sc->nodes[isn1 + 0]) {
-        //	  s0->nbr[p0]=sc->child0[snbrp];
-        //	  sn->nbr[pn]=sc->childn[snbrp];
-        sc->nbr[isc0 + p0] = sc->child0[snbrp];
-        sc->nbr[iscn + pn] = sc->childn[snbrp];
-      } else {
-        //	  s0->nbr[p0]=sc->childn[snbrp];
-        //	  sn->nbr[pn]=sc->child0[snbrp];
-        sc->nbr[isc0 + p0] = sc->childn[snbrp];
-        sc->nbr[iscn + pn] = sc->child0[snbrp];
-      }
-    } else {
-      /*
-        s->nbr[p] is not subdivided. The corresponding neighbor pointers
-        of the children of s are now set to s->nbr[p], which will be
-        corrected later, when this simplex is divided as well.
-      */
-      //	sn->nbr[pn]=snbrp;
-      //	s0->nbr[p0]=snbrp;
-      sc->nbr[isc0 + p0] = snbrp;
-      sc->nbr[iscn + pn] = snbrp;
-    }
-  }
-  /* register children in v2s */
-  if (sc->v2s_head) {
-    v2s_register_simplex(sc, ks0);
-    v2s_register_simplex(sc, ksn);
-  }
-  for (i = 0; i < n1; i++) {
-    /*
-       The children OF NEIGHBORS, if existent, still point to s as
-       one of their nbrs. This contradicts the structural condition
-       and is corrected here.
-    */
-    //    s0nbri=s0->nbr[i];
-    //    snnbri=sn->nbr[i];
-    s0nbri = sc->nbr[isc0 + i]; /*s->child0->neighbor[i]*/
-    snnbri = sc->nbr[iscn + i]; /*s->childn->neighbor[i]*/
-    if (s0nbri >= 0) {
-      if (s0nbri >= sc->ns) {
-        fprintf(stderr,
-                "\n\nSTOPPING: nsnew,s0nbri,snnbri,ns: %lld %lld %lld %lld\n\n",
-                (long long)nsnew, (long long)snnbri, (long long)s0nbri,
-                (long long)sc->ns);
-        fflush(stdout);
-        exit(32);
-      }
-      //      if(sc->gen[s0nbri]==s0->gen)
-      if (sc->gen[s0nbri] == sc->gen[ks0])
-        /* sc->nbr[s0nbri*n1+i] = s->child0->neighbor[i]->neighbor[i]*/
-        sc->nbr[s0nbri * n1 + i] = ks0;
-    }
-    if (snnbri >= 0) {
-      if (snnbri >= sc->ns) {
-        fprintf(stderr,
-                "\n\nSTOPPING2: s0nbri,snnbri,ns: %lld %lld %lld %lld\n",
-                (long long)nsnew, (long long)snnbri, (long long)s0nbri,
-                (long long)sc->ns);
-        fflush(stdout);
-        exit(33);
-      }
-      //      if(sc->gen[snnbri]==sn->gen)
-      if (sc->gen[snnbri] == sc->gen[ksn])
-        /* sc->nbr[snnbri*n1+i] = s->childn->neighbor[i]->neighbor[i]*/
-        sc->nbr[snnbri * n1 + i] = ksn;
-    }
-  }
-  /*
-     NOW call the on-axis nbrs for refinement, passing to them a
-     pointer to this simplex S so they find our new vertex.  Skip the
-     neighbors opposite to x0 and xn, they do not have to be refined
-     and refine the rest of the "on-axis" neighbors */
-  for (i = 1; i < dim; i++) {
-    haz_refine_simplex(sc, sc->nbr[isn1 + i], is);
-  }
-  /* DGS: also bisect any remaining leaf simplices sharing the
-     bisection edge that are not face-adjacent (relevant for n>=3).
-     All such simplices have e as bse (guaranteed by the pre-refinement
-     conforming closure above). */
-  {
-    INT v0p = sc->nodes[isn1];
-    INT vnp = sc->nodes[isn1 + dim];
-    /* Walk v2s list of v0p; for each simplex check if it also has vnp */
-    INT k;
-    for (k = sc->v2s_head[v0p]; k >= 0; k = sc->v2s_next[k]) {
-      j = sc->v2s_simp[k];
-      if (sc->child0[j] >= 0) continue;
-      INT* elj = sc->nodes + j * n1;
-      INT hvn = 0;
-      for (i = 0; i < n1; i++) {
-        if (elj[i] == vnp) {
-          hvn = 1;
-          break;
-        }
-      }
-      if (hvn) haz_refine_simplex(sc, j, is);
-    }
+    if (h0 && hg) haz_bisect_reuse(sc, s, vnew);
   }
   return 0;
 }
@@ -1715,23 +1592,13 @@ void refine(const INT ref_levels, scomplex* sc, ivector* marked) {
   }
   if ((!marked)) {
     // just refine everything that was not refined:
-    v2s_build(sc);
     for (i = 0; i < ref_levels; i++) {
       nsold = sc->ns;
       for (j = 0; j < nsold; j++)
-        if ((sc->child0[j] < 0 || sc->childn[j] < 0))
+        if (sc->child0[j] < 0 && sc->childn[j] < 0)
           haz_refine_simplex(sc, j, -1);
       sc->level++;
     }
-    /* free v2s */
-    free(sc->v2s_head);
-    sc->v2s_head = NULL;
-    free(sc->v2s_next);
-    sc->v2s_next = NULL;
-    free(sc->v2s_simp);
-    sc->v2s_simp = NULL;
-    sc->v2s_count = 0;
-    sc->v2s_alloc = 0;
     for (j = 0; j < sc->ns; j++)
       sc->marked[j] = TRUE;  // not sure we need this.
     // we are done here;
@@ -1760,20 +1627,10 @@ void refine(const INT ref_levels, scomplex* sc, ivector* marked) {
    * refine everything that is marked on the finest level and is
    * not yet refined: (marked>0 and child<0)
    */
-  v2s_build(sc);
   nsold = sc->ns;
   for (j = 0; j < nsold; j++)
-    if (sc->marked[j] && (sc->child0[j] < 0 || sc->childn[j] < 0))
+    if (sc->marked[j] && (sc->child0[j] < 0 && sc->childn[j] < 0))
       haz_refine_simplex(sc, j, -1);
-  /* free v2s */
-  free(sc->v2s_head);
-  sc->v2s_head = NULL;
-  free(sc->v2s_next);
-  sc->v2s_next = NULL;
-  free(sc->v2s_simp);
-  sc->v2s_simp = NULL;
-  sc->v2s_count = 0;
-  sc->v2s_alloc = 0;
   /*
    *  compute volumes (the volumes on the coarsest grid should be set in
    * generate_initial_grid, but just in case we are coming here from
@@ -1902,6 +1759,151 @@ scomplex sc_bndry(scomplex* sc) {
   return dsc;
 }
 
+/**********************************************************************/
+/*!
+ * \fn INT sc_cc_from_nbr(scomplex *sc)
+ *
+ * \brief Computes the number of connected components from the neighbor
+ *        array sc->nbr.  Builds a compact CSR adjacency (skipping -1
+ *        entries) and calls run_dfs.  Sets sc->cc on return.
+ *
+ * \param sc  I/O: simplicial complex with nbr[] filled.
+ *
+ * \return number of connected components
+ */
+INT sc_cc_from_nbr(scomplex* sc) {
+  INT ns = sc->ns, n1 = sc->dim + 1;
+  INT i, j, is, nnz = 0;
+  iCSRmat s2s = icsr_create(ns, ns, n1 * ns);
+  s2s.IA[0] = 0;
+  for (i = 0; i < ns; i++) {
+    for (j = 0; j < n1; j++) {
+      is = sc->nbr[i * n1 + j];
+      if (is >= 0) {
+        s2s.JA[nnz] = is;
+        s2s.val[nnz] = 1;
+        nnz++;
+      }
+    }
+    s2s.IA[i + 1] = nnz;
+  }
+  s2s.nnz = nnz;
+  iCSRmat* blk_dfs = run_dfs(ns, s2s.IA, s2s.JA);
+  sc->cc = blk_dfs->row;
+  icsr_free(&s2s);
+  icsr_free(blk_dfs);
+  free(blk_dfs);
+  return sc->cc;
+}
+/**********************************************************************/
+/*!
+ * \fn scomplex sc_build_boundary(scomplex *sc)
+ *
+ * \brief Builds the boundary simplicial complex from a bulk mesh.
+ *
+ *        The boundary complex has dimension dim-1 embedded in dim
+ *        dimensions (nbig=dim).  Boundary faces are identified by
+ *        nbr[i*n1+j] < 0.  Face codes are inherited from sc->bndry[]
+ *        (minimum nonzero code over the face's vertices).
+ *
+ *        The returned scomplex has:
+ *        - nodes[]: boundary face connectivity (local vertex numbering)
+ *        - flags[]: face codes from the initial mesh
+ *        - x[]: boundary vertex coordinates
+ *        - bndry[]: per-vertex boundary codes (from bulk mesh)
+ *        - nbr[]: face-to-face adjacency on the boundary
+ *        - cc: number of connected components on the boundary
+ *
+ * \param sc  I: the bulk simplicial complex (with nbr[] set by find_nbr)
+ *
+ * \return the boundary simplicial complex (by value)
+ *
+ * \note sc->nbr must be filled (via find_nbr) before calling.
+ *       sc->bndry[] should contain vertex boundary codes.
+ */
+scomplex sc_build_boundary(scomplex* sc) {
+  INT ns = sc->ns, nv = sc->nv, dim = sc->dim, n1 = dim + 1;
+  INT i, j, k, m;
+  scomplex dsc;
+
+  /* Count boundary faces */
+  INT ns_b = 0;
+  for (i = 0; i < ns; i++)
+    for (j = 0; j < n1; j++)
+      if (sc->nbr[i * n1 + j] < 0) ns_b++;
+
+  /* Extract face connectivity and face codes */
+  INT* fnodes = calloc(ns_b * dim, sizeof(INT));
+  INT* fcodes = calloc(ns_b, sizeof(INT));
+  INT idx = 0;
+  for (i = 0; i < ns; i++) {
+    for (j = 0; j < n1; j++) {
+      if (sc->nbr[i * n1 + j] < 0) {
+        /* Collect vertices of face (all except vertex j) */
+        k = 0;
+        INT mincode = 0;
+        for (m = 0; m < n1; m++) {
+          if (m == j) continue;
+          INT v = sc->nodes[i * n1 + m];
+          fnodes[idx * dim + k] = v;
+          /* Face code = minimum nonzero bndry code over face vertices */
+          INT bc = abs(sc->bndry[v]);
+          if (bc > 0) {
+            if (mincode == 0 || bc < mincode) mincode = bc;
+          }
+          k++;
+        }
+        fcodes[idx] = mincode;
+        idx++;
+      }
+    }
+  }
+
+  /* Renumber vertices: only boundary vertices get local numbers */
+  INT* indx = calloc(nv, sizeof(INT));
+  INT* indxinv = calloc(nv, sizeof(INT));
+  for (i = 0; i < nv; i++) indx[i] = -1;
+  for (i = 0; i < ns_b * dim; i++) indx[fnodes[i]] = 0;
+  INT nv_b = 0;
+  for (i = 0; i < nv; i++) {
+    if (indx[i] < 0) continue;
+    indxinv[nv_b] = i;
+    indx[i] = nv_b;
+    nv_b++;
+  }
+  if (nv_b < nv) indxinv = realloc(indxinv, nv_b * sizeof(INT));
+
+  /* Apply renumbering to fnodes */
+  for (i = 0; i < ns_b * dim; i++) fnodes[i] = indx[fnodes[i]];
+
+  /* Create boundary scomplex */
+  dsc = haz_scomplex_null(dim - 1, dim);
+  dsc.ns = ns_b;
+  dsc.nv = nv_b;
+  dsc.nodes = fnodes; /* haz_scomplex_realloc will realloc this */
+  haz_scomplex_realloc(&dsc);
+
+  /* Set flags (face codes) — must be after realloc which zeros flags */
+  for (i = 0; i < ns_b; i++) dsc.flags[i] = fcodes[i];
+  free(fcodes);
+
+  /* Copy vertex coordinates */
+  dsc.x = realloc(dsc.x, nv_b * dim * sizeof(REAL));
+  for (i = 0; i < nv_b; i++)
+    memcpy(dsc.x + i * dim, sc->x + indxinv[i] * dim, dim * sizeof(REAL));
+
+  /* Copy boundary codes */
+  for (i = 0; i < nv_b; i++) dsc.bndry[i] = sc->bndry[indxinv[i]];
+
+  free(indx);
+  free(indxinv);
+
+  /* Build neighbors and connected components */
+  find_nbr(dsc.ns, dsc.nv, dsc.dim, dsc.nodes, dsc.nbr);
+  sc_cc_from_nbr(&dsc);
+
+  return dsc;
+}
 /**********************************************************************/
 /*!
  * \fn INT sc_conformity_check(scomplex *sc)

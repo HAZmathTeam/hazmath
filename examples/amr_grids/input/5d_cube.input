@@ -106,5 +106,5 @@ data_coordsystems{0 0. 0.  0. 0. 0. 0}
 %%%  marking strategy as in the examples given in the file
 %%%  solve_estimate_mark.h
 
-amr_marking_type{0}
+amr_marking_type{1}
 

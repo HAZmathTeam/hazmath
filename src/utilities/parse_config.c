@@ -426,7 +426,7 @@ void config2vars_amr(config_z* config, input_grid* gz)
   INT dim = gz->dim;
   INT i, j;
 
-  /* data_coordsystems: [label][ox[0:dim-1]][type], row_width = dim+2 */
+  /* data_coordsystems: [label][type][ox[0:dim-1]], row_width = dim+2 */
   if (gz->ncsys > 0 && data_coordsystems != NULL) {
     INT row_w = dim + 2;
     gz->syslabels = (INT*)malloc(gz->ncsys * sizeof(INT));
@@ -434,9 +434,9 @@ void config2vars_amr(config_z* config, input_grid* gz)
     gz->ox = (REAL*)malloc(gz->ncsys * dim * sizeof(REAL));
     for (i = 0; i < gz->ncsys; i++) {
       gz->syslabels[i] = (INT)data_coordsystems[i * row_w + 0];
+      gz->systypes[i] = (INT)data_coordsystems[i * row_w + 1];
       for (j = 0; j < dim; j++)
-        gz->ox[i * dim + j] = data_coordsystems[i * row_w + 1 + j];
-      gz->systypes[i] = (INT)data_coordsystems[i * row_w + dim + 1];
+        gz->ox[i * dim + j] = data_coordsystems[i * row_w + 2 + j];
     }
   }
 

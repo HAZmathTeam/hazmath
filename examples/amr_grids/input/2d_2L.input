@@ -123,7 +123,7 @@ data_macrofaces{0 10  1 %boundary face with code 1
 		   }
 
 %%%%%%%%%%%%%%AMR %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-num_refinements{10}
+num_refinements{0}
 
 refinement_type{20}
 

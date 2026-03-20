@@ -677,9 +677,35 @@ void scfinalize(scomplex* sc, scomplex* sc_leaf, const INT set_bndry_codes) {
         idx++;
       }
     }
+    /* Copy parent_v and bndry_v from the hierarchy so that
+       find_cc_bndry_cc can propagate boundary codes to midpoint vertices.
+       parent_v tracks which two vertices each midpoint was created from.
+       bndry_v tracks which boundary faces each vertex belongs to;
+       its val array is double-sized (codes + face indices). */
+    if (leaf->parent_v) { icsr_free(leaf->parent_v); free(leaf->parent_v); }
+    leaf->parent_v = malloc(sizeof(iCSRmat));
+    leaf->parent_v[0] = icsr_create(sc->parent_v->row, sc->parent_v->col, sc->parent_v->nnz);
+    memcpy(leaf->parent_v->IA, sc->parent_v->IA, (sc->parent_v->row + 1) * sizeof(INT));
+    memcpy(leaf->parent_v->JA, sc->parent_v->JA, sc->parent_v->nnz * sizeof(INT));
+    memcpy(leaf->parent_v->val, sc->parent_v->val, sc->parent_v->nnz * sizeof(INT));
+    if (leaf->bndry_v) { icsr_free(leaf->bndry_v); free(leaf->bndry_v); }
+    leaf->bndry_v = malloc(sizeof(iCSRmat));
+    leaf->bndry_v->row = sc->bndry_v->row;
+    leaf->bndry_v->col = sc->bndry_v->col;
+    leaf->bndry_v->nnz = sc->bndry_v->nnz;
+    leaf->bndry_v->IA = malloc((sc->bndry_v->row + 1) * sizeof(INT));
+    memcpy(leaf->bndry_v->IA, sc->bndry_v->IA, (sc->bndry_v->row + 1) * sizeof(INT));
+    leaf->bndry_v->JA = malloc(sc->bndry_v->nnz * sizeof(INT));
+    memcpy(leaf->bndry_v->JA, sc->bndry_v->JA, sc->bndry_v->nnz * sizeof(INT));
+    /* val in bndry_v is allocated as 2*nnz by find_cc_bndry_cc */
+    INT bv_val_size = 2 * sc->bndry_v->nnz;
+    if (bv_val_size < 1) bv_val_size = 1;
+    leaf->bndry_v->val = calloc(bv_val_size, sizeof(INT));
+    if (sc->bndry_v->val && sc->bndry_v->nnz > 0)
+      memcpy(leaf->bndry_v->val, sc->bndry_v->val, bv_val_size * sizeof(INT));
     /* Build connectivity and boundary info on leaf mesh */
     find_nbr(leaf->ns, leaf->nv, leaf->dim, leaf->nodes, leaf->nbr);
-    find_cc_bndry_cc(leaf, (INT)1);
+    find_cc_bndry_cc(leaf, set_bndry_codes);
     /* Copy result to caller's struct */
     *sc_leaf = *leaf;
     /* Free the wrapper (but not its contents, which are now in *sc_leaf) */

@@ -101,7 +101,13 @@ typedef struct /* n-homogenous simplicial complex */
   INT *v2s_simp; /* [v2s_alloc] simplex index for entry */
   INT v2s_count; /* number of entries used */
   INT v2s_alloc; /* allocated size of next/simp arrays */
-  INT ref_type; /* refinement type */
+  INT v2s_nv;    /* number of vertices when v2s was built */
+  INT *gen_N;    /* [nv] DGS vertex generation (Algorithm 4). Initial: -color(v). NULL until DGS init */
+  INT dgs_N;     /* max color N used by DGS (N+1 colors total) */
+  INT ncsys;     /* number of coordinate systems */
+  INT *systypes; /* [ncsys] coordinate system types: 0=Cartesian, 1=polar */
+  REAL *csys_ox; /* [ncsys*nbig] coordinate system origins */
+  INT ref_type;  /* refinement type */
   INT cc; /*num connected components */
   INT bndry_cc; /*num connected components on the boundary */
   sc_fem *fem; /* FEM-derived data (populated by sc_build_fem_data, NULL until then) */

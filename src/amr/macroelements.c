@@ -1483,10 +1483,21 @@ scomplex **generate_initial_grid(input_grid* g0) {
   input_grid_free(g);
   macrocomplex_free(mc);
   cube2simp_free(c2s);
-  /* order simplex2vertex array as required by the adaptive refinement */
+  /* find_nbr is needed for scfinalize and other utilities.
+     DGS initialization (set_color + dgs_initialize) is done in refine(). */
   find_nbr(sc[0]->ns, sc[0]->nv, sc[0]->dim, sc[0]->nodes, sc[0]->nbr);
   sc_vols(sc[0]);
   sc[0]->ref_type = g0->ref_type;
+  /* Store coordinate system data for curved midpoint projection during refinement */
+  {
+    INT ncsys = abs(g0->ncsys);
+    INT nbig = sc[0]->nbig > 0 ? sc[0]->nbig : sc[0]->dim;
+    sc[0]->ncsys = ncsys;
+    sc[0]->systypes = calloc(ncsys, sizeof(INT));
+    sc[0]->csys_ox = calloc(ncsys * nbig, sizeof(REAL));
+    memcpy(sc[0]->systypes, g0->systypes, ncsys * sizeof(INT));
+    memcpy(sc[0]->csys_ox, g0->ox, ncsys * g0->dim * sizeof(REAL));
+  }
   /* Traxler BFS tree ordering commented out — DGS initialization is done in refine() */
   /* if(g0->ref_type < 20){ */
   /*   INT *wrk1=calloc(5*(sc[0]->dim+2),sizeof(INT)); */
