@@ -1070,7 +1070,7 @@ void rvecd_(FILE *fp,
 
 /****************************************************************************************/
 /*!
- * \fn FILE* HAZ_fopen( char *fname, char *mode )
+ * \fn FILE* HAZ_fopen( const char *fname, const char *mode )
  *
  * \brief A graceful version of fopen(). It checks if the file has
  *     been successfully opened.  If  that is  not  the case  a
@@ -1080,7 +1080,7 @@ void rvecd_(FILE *fp,
  * \param mode      read or write
  *
  */
-FILE* HAZ_fopen(char *fname, char *mode )
+FILE* HAZ_fopen(const char *fname, const char *mode )
 {
   // local variable
   FILE   *fp;
@@ -1911,6 +1911,7 @@ scomplex* sc_read_gmsh(const char *namemsh)
       case 4:  nn = 4; break; /* 4-node tetrahedron */
       default: nn = el_type[i] - 50 + 1; break; /* custom */
     }
+    if (nn <= 0) nn = 1;
     el_nnodes[i] = nn;
     el_nodes[i] = (INT*)calloc(nn, sizeof(INT));
     for (j = 0; j < nn; j++) {

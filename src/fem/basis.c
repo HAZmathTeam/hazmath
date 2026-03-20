@@ -408,11 +408,9 @@ void ned0_basis(REAL *phi,REAL *cphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,
       ihi = mark2;
       ilo = mark1;
     }
-
-    phi[i*dim+0] = elen*(lam[ilo]*dlam[ihi*dim] - lam[ihi]*dlam[ilo*dim]);
-    phi[i*dim+1] = elen*(lam[ilo]*dlam[ihi*dim+1] - lam[ihi]*dlam[ilo*dim+1]);
-    if(dim==3) phi[i*dim+2] = elen*(lam[ilo]*dlam[ihi*dim+2] - lam[ihi]*dlam[ilo*dim+2]);
-
+    for(k=0;k<dim;k++) {
+      phi[i*dim+k] = elen*(lam[ilo]*dlam[ihi*dim+k] - lam[ihi]*dlam[ilo*dim+k]);
+    }
     /* Now compute Curls
     * In 2D curl v = (-dy,dx)*(v1,v2)^T = (dx,dy)(0 1;-1 0)(v1,v2)^T = div (Jv)
     * curl phi_eij = |eij|*(grad(p(i))*(J*grad(p(j)))-grad(p(j))*(J*grad(p(i)))
@@ -424,13 +422,12 @@ void ned0_basis(REAL *phi,REAL *cphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,
 
     if(dim==2) {
       cphi[i] = 2*elen*(dlam[ilo*dim]*dlam[ihi*dim+1] - dlam[ilo*dim+1]*dlam[ihi*dim]);
-    } else if(dim==3) {
-      cphi[i*dim+0] = 2*elen*(dlam[ilo*dim+1]*dlam[ihi*dim+2]-dlam[ihi*dim+1]*dlam[ilo*dim+2]);
-      cphi[i*dim+1] = 2*elen*(dlam[ihi*dim]*dlam[ilo*dim+2]-dlam[ilo*dim]*dlam[ihi*dim+2]);
-      cphi[i*dim+2] = 2*elen*(dlam[ilo*dim]*dlam[ihi*dim+1]-dlam[ihi*dim]*dlam[ilo*dim+1]);
     } else {
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
+      INT j;
+      for(j=0; j<dim; j++) {
+        cphi[i*dim+j] = 2*elen*(dlam[ilo*dim+(j+1)%dim]*dlam[ihi*dim+(j+2)%dim]
+                               -dlam[ihi*dim+(j+1)%dim]*dlam[ilo*dim+(j+2)%dim]);
+      }
     }
   }
 
@@ -439,97 +436,85 @@ void ned0_basis(REAL *phi,REAL *cphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,
 /******************************************************************************/
 
 /*!
-* \fn void rt0_basis_local(REAL *phi,REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_face,REAL* f_area)
+* \fn void rt0_basis(REAL *phi,REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_face,REAL* f_area,REAL* xv)
 *
-* \brief Compute Raviart-Thomas Finite Element Basis Functions (zeroth order) at a particular point in 2 or 3D
+* \brief Compute Raviart-Thomas Finite Element Basis Functions (zeroth order)
+*        at a particular point in any dimension.
 *
-* \param lam,dlam  P1 bases at quadrature point
-* \param dim       Dimension of problem
-* \param v_on_elm  Vertices on element
-* \param v_on_face   Vertices on each face (DoF) ordered of element (dim+1 faces per elm with dim vertices per face -> (dim+1)xdim matrix)
-* \param f_area    Area of each face on element
+* \note  Uses the identity: the RT0 basis for the face opposite vertex x_opp is
+*        phi_i(x) = sigma_i * |F_i| * (x - x_opp),
+*        where sigma_i = (dim-1)! * det(M_i) and M_i is the dim x dim matrix
+*        of gradients of barycentric coordinates at the face vertices.
 *
-* \return phi      Basis functions (dim for each face from reference triangle)
+* \param lam,dlam    P1 bases at quadrature point
+* \param dim         Dimension of problem
+* \param v_on_elm    Vertices on element
+* \param v_on_face   Vertices on each face (dim+1 faces, dim vertices per face)
+* \param f_area      Area of each face on element
+* \param xv          Coordinates of element vertices (v_per_elm * dim)
+*
+* \return phi      Basis functions (dim for each face)
 * \return dphi     Div of basis functions (1 for each face)
 *
 */
-void rt0_basis(REAL *phi,REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_face,REAL* f_area)
+void rt0_basis(REAL *phi,REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_face,REAL* f_area,REAL* xv)
 {
-  // Flag for erros
-  SHORT status;
-
-  // Get Mesh Data
   INT v_per_elm = dim+1;
   INT f_per_elm = dim+1;
   INT v_per_f = dim;
 
-  INT i,j;
-  INT vel,ef1,ef2,ef3;
+  INT i,j,k,c;
 
-  // Go through each face and find the corresponding nodes
-  if(dim==2) {
-    for (i=0; i<f_per_elm; i++) {
+  // Compute physical point x = sum_k lam[k] * xv[k*dim + c]
+  REAL x[dim];
+  for (c=0; c<dim; c++) {
+    x[c] = 0.0;
+    for (k=0; k<v_per_elm; k++)
+      x[c] += lam[k] * xv[k*dim+c];
+  }
 
-      // Loop through vertices on element to find corresponding verties on face and get correct orientation
-      for(j=0;j<v_per_elm;j++) {
-        vel = v_on_elm[j];
-        if(v_on_face[i*v_per_f+0]==vel) {
-          ef1 = j;
-        }
-        if(v_on_face[i*v_per_f+1]==vel) {
-          ef2 = j;
-        }
-      }
+  // (dim-1)!
+  REAL fac = 1.0;
+  for (i=2; i<dim; i++) fac *= i;
 
-      /* Now, with the linear basis functions p, dpx, and dpy, the RT elements are in 2D
-      * phi_fij = |fij|*(p(i)curl(p(j)) - p(j)curl(p(i)))
-      * |fij| = |eij|
-      */
-      phi[i*dim+0] = f_area[i]*(lam[ef1]*dlam[ef2*dim+1] - lam[ef2]*dlam[ef1*dim+1]);
-      phi[i*dim+1] = f_area[i]*(-lam[ef1]*dlam[ef2*dim] + lam[ef2]*dlam[ef1*dim]);
-
-      // Compute divs div(phi_fij) = 2*|fij|(dx(p(i))*dy(p(j)) - dx(p(j))*dy(p(i)))
-      dphi[i] = 2*f_area[i]*(dlam[ef1*dim]*dlam[ef2*dim+1] - dlam[ef2*dim]*dlam[ef1*dim+1]);
-    }
-  } else if(dim==3) {
-    for (i=0; i<f_per_elm; i++) {
-
-      // Loop through Nodes on element to find corresponding nodes for correct orienation
-      for(j=0;j<v_per_elm;j++) {
-        vel = v_on_elm[j];
-        if(v_on_face[i*v_per_f+0]==vel) {
-          ef1 = j;
-        }
-        if(v_on_face[i*v_per_f+1]==vel) {
-          ef2 = j;
-        }
-        if(v_on_face[i*v_per_f+2]==vel) {
-          ef3 = j;
+  for (i=0; i<f_per_elm; i++) {
+    // Map face vertices to local element vertex indices
+    INT ef[dim];
+    for (k=0; k<v_per_f; k++) {
+      for (j=0; j<v_per_elm; j++) {
+        if (v_on_face[i*v_per_f+k] == v_on_elm[j]) {
+          ef[k] = j;
+          break;
         }
       }
-
-      /* Now, with the linear basis functions p, dpx, and dpy, the RT elements are in 3D
-      * phi_fijk = 2*|fijk|*(p(i)(grad(p(j)) x grad(p(k))) + p(j)(grad(p(k)) x grad(p(i))) + p(k)(grad(p(i)) x grad(p(j))))
-      * |fijk| = Area(Face)
-      */
-      phi[i*dim+0] = 2*f_area[i]*(lam[ef1]*(dlam[ef2*dim+1]*dlam[ef3*dim+2]-dlam[ef2*dim+2]*dlam[ef3*dim+1])
-      + lam[ef2]*(dlam[ef3*dim+1]*dlam[ef1*dim+2]-dlam[ef3*dim+2]*dlam[ef1*dim+1])
-      + lam[ef3]*(dlam[ef1*dim+1]*dlam[ef2*dim+2]-dlam[ef1*dim+2]*dlam[ef2*dim+1]));
-      phi[i*dim+1] = 2*f_area[i]*(lam[ef1]*(dlam[ef2*dim+2]*dlam[ef3*dim]-dlam[ef2*dim]*dlam[ef3*dim+2])
-      + lam[ef2]*(dlam[ef3*dim+2]*dlam[ef1*dim]-dlam[ef3*dim]*dlam[ef1*dim+2])
-      + lam[ef3]*(dlam[ef1*dim+2]*dlam[ef2*dim]-dlam[ef1*dim]*dlam[ef2*dim+2]));
-      phi[i*dim+2] = 2*f_area[i]*(lam[ef1]*(dlam[ef2*dim]*dlam[ef3*dim+1]-dlam[ef2*dim+1]*dlam[ef3*dim])
-      + lam[ef2]*(dlam[ef3*dim]*dlam[ef1*dim+1]-dlam[ef3*dim+1]*dlam[ef1*dim])
-      + lam[ef3]*(dlam[ef1*dim]*dlam[ef2*dim+1]-dlam[ef1*dim+1]*dlam[ef2*dim]));
-
-      // Compute divs div(phi_fijk) = 6*|fijk| grad(pi) dot (grad(pj) cross grad(pk)) (
-      dphi[i] = 6*f_area[i]*(dlam[ef1*dim]*(dlam[ef2*dim+1]*dlam[ef3*dim+2]-dlam[ef2*dim+2]*dlam[ef3*dim+1])
-      + dlam[ef1*dim+1]*(dlam[ef2*dim+2]*dlam[ef3*dim]-dlam[ef2*dim]*dlam[ef3*dim+2])
-      + dlam[ef1*dim+2]*(dlam[ef2*dim]*dlam[ef3*dim+1]-dlam[ef2*dim+1]*dlam[ef3*dim]));
     }
-  } else {
-    status = ERROR_DIM;
-    check_error(status, __FUNCTION__);
+
+    // Find opposite vertex (the local vertex not on the face)
+    INT opp = -1;
+    for (j=0; j<v_per_elm; j++) {
+      INT on_face = 0;
+      for (k=0; k<v_per_f; k++) {
+        if (ef[k] == j) { on_face = 1; break; }
+      }
+      if (!on_face) { opp = j; break; }
+    }
+
+    // Build dim x dim matrix M[c][k] = dlam[ef[k]*dim + c]
+    // and compute its determinant for the orientation sign
+    REAL M[dim*dim];
+    for (c=0; c<dim; c++)
+      for (k=0; k<dim; k++)
+        M[c*dim+k] = dlam[ef[k]*dim+c];
+
+    REAL detM = haz_det(M, dim);
+    REAL sigma = fac * detM;
+
+    // phi_i(x) = sigma * f_area[i] * (x - x_opp)
+    for (c=0; c<dim; c++)
+      phi[i*dim+c] = sigma * f_area[i] * (x[c] - xv[opp*dim+c]);
+
+    // div(x - x_opp) = dim, so dphi = sigma * dim * f_area
+    dphi[i] = sigma * dim * f_area[i];
   }
 
   return;
@@ -761,7 +746,7 @@ void get_FEM_basis_on_elm(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,
 
   } else if(fe_type==30) { // Raviart-Thomas elements
 
-    rt0_basis(phi,dphi,lam,dlam,dim,simplex_data->local_v,simplex_data->v_on_f,simplex_data->f_area);
+    rt0_basis(phi,dphi,lam,dlam,dim,simplex_data->local_v,simplex_data->v_on_f,simplex_data->f_area,simplex_data->xv);
 
   } else if(fe_type==60) { // Vector element
 
@@ -1947,127 +1932,89 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,scomplex *sc)
 /*!
 * \fn void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,scomplex *sc)
 *
-* \brief Compute Raviart-Thomas Finite Element Basis Functions (zeroth order) at a particular point in 2 or 3D
+* \brief Compute Raviart-Thomas Finite Element Basis Functions (zeroth order)
+*        at a particular point in any dimension. Uses the identity:
+*        phi_i(x) = sigma_i * |F_i| * (x - x_opp).
 *
 * \param x         Coordinate on where to compute basis function
 * \param v_on_elm  Vertices on element
 * \param dof       DOF on element
 * \param sc        Simplicial complex
 *
-* \return phi      Basis functions (dim for each face from reference triangle)
+* \return phi      Basis functions (dim for each face)
 * \return dphi     Div of basis functions (1 for each face)
 *
 */
 void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,scomplex *sc)
 {
-  // Flag for erros
-  SHORT status;
-
   // Get Mesh Data
   sc_fem *fem = sc->fem;
   INT dim = sc->dim;
   INT v_per_elm = (dim + 1);
   INT f_per_elm = (dim + 1);
+  INT v_per_f = dim;
 
-  INT i,j,ica,icb,jcnt;
+  INT i,j,k,c,ica,icb,jcnt;
   INT ipf[dim];
+  INT ef[dim];
   INT myf;
   REAL farea;
-  INT elnd,ef1,ef2,ef3;
 
   /* Get Linear Basis Functions for particular element */
-  // We use the working double arrays in fem to store the values
-  // This way we do not need to reallocate each time this is called.
   REAL* p = fem->dwork;
   REAL* dp = fem->dwork + v_per_elm;
   PX_H1_basis(p,dp,x,v_on_elm,1,sc);
 
-  // Go through each face and find the corresponding nodes
-  if(dim==2) {
-    for (i=0; i<f_per_elm; i++) {
-      myf = dof[i];
-      ica = fem->f_v->IA[myf];
-      icb = fem->f_v->IA[myf+1];
-      jcnt=0;
-      for(j=ica;j<icb;j++) {
-        ipf[jcnt] = fem->f_v->JA[j];
-        jcnt++;
-      }
+  // (dim-1)!
+  REAL fac = 1.0;
+  for (i=2; i<dim; i++) fac *= i;
 
-      // Get the area and normal vector of the face
-      farea = fem->f_area[myf];
-
-      // Loop through Nodes on element to find corresponding nodes and get correct orientation
-      for(j=0;j<v_per_elm;j++) {
-        elnd = v_on_elm[j];
-        if(ipf[0]==elnd) {
-          ef1 = j;
-        }
-        if(ipf[1]==elnd) {
-          ef2 = j;
-        }
-      }
-
-      /* Now, with the linear basis functions p, dpx, and dpy, the RT elements are in 2D
-      * phi_fij = |fij|*(p(i)curl(p(j)) - p(j)curl(p(i)))
-      * |fij| = |eij|
-      */
-      phi[i*dim+0] = farea*(p[ef1]*dp[ef2*dim+1] - p[ef2]*dp[ef1*dim+1]);
-      phi[i*dim+1] = farea*(-p[ef1]*dp[ef2*dim] + p[ef2]*dp[ef1*dim]);
-
-      // Compute divs div(phi_fij) = 2*|fij|(dx(p(i))*dy(p(j)) - dx(p(j))*dy(p(i)))
-      dphi[i] = 2*farea*(dp[ef1*dim]*dp[ef2*dim+1] - dp[ef2*dim]*dp[ef1*dim+1]);
+  for (i=0; i<f_per_elm; i++) {
+    myf = dof[i];
+    ica = fem->f_v->IA[myf];
+    icb = fem->f_v->IA[myf+1];
+    jcnt=0;
+    for(j=ica;j<icb;j++) {
+      ipf[jcnt] = fem->f_v->JA[j];
+      jcnt++;
     }
-  } else if(dim==3) {
-    for (i=0; i<f_per_elm; i++) {
-      myf = dof[i];
-      ica = fem->f_v->IA[myf];
-      icb = fem->f_v->IA[myf+1];
-      jcnt=0;
-      for(j=ica;j<icb;j++) {
-        ipf[jcnt] = fem->f_v->JA[j];
-        jcnt++;
-      }
+    farea = fem->f_area[myf];
 
-      // Get the area
-      farea = fem->f_area[myf];
-
-      // Loop through Nodes on element to find corresponding nodes for correct orienation
-      for(j=0;j<v_per_elm;j++) {
-        elnd = v_on_elm[j];
-        if(ipf[0]==elnd) {
-          ef1 = j;
-        }
-        if(ipf[1]==elnd) {
-          ef2 = j;
-        }
-        if(ipf[2]==elnd) {
-          ef3 = j;
+    // Map face vertices to local element vertex indices
+    for (k=0; k<v_per_f; k++) {
+      for (j=0; j<v_per_elm; j++) {
+        if (ipf[k] == v_on_elm[j]) {
+          ef[k] = j;
+          break;
         }
       }
-
-      /* Now, with the linear basis functions p, dpx, and dpy, the RT elements are in 3D
-      * phi_fijk = 2*|fijk|*(p(i)(grad(p(j)) x grad(p(k))) + p(j)(grad(p(k)) x grad(p(i))) + p(k)(grad(p(i)) x grad(p(j))))
-      * |fijk| = Area(Face)
-      */
-      phi[i*dim+0] = 2*farea*(p[ef1]*(dp[ef2*dim+1]*dp[ef3*dim+2]-dp[ef2*dim+2]*dp[ef3*dim+1])
-      + p[ef2]*(dp[ef3*dim+1]*dp[ef1*dim+2]-dp[ef3*dim+2]*dp[ef1*dim+1])
-      + p[ef3]*(dp[ef1*dim+1]*dp[ef2*dim+2]-dp[ef1*dim+2]*dp[ef2*dim+1]));
-      phi[i*dim+1] = 2*farea*(p[ef1]*(dp[ef2*dim+2]*dp[ef3*dim]-dp[ef2*dim]*dp[ef3*dim+2])
-      + p[ef2]*(dp[ef3*dim+2]*dp[ef1*dim]-dp[ef3*dim]*dp[ef1*dim+2])
-      + p[ef3]*(dp[ef1*dim+2]*dp[ef2*dim]-dp[ef1*dim]*dp[ef2*dim+2]));
-      phi[i*dim+2] = 2*farea*(p[ef1]*(dp[ef2*dim]*dp[ef3*dim+1]-dp[ef2*dim+1]*dp[ef3*dim])
-      + p[ef2]*(dp[ef3*dim]*dp[ef1*dim+1]-dp[ef3*dim+1]*dp[ef1*dim])
-      + p[ef3]*(dp[ef1*dim]*dp[ef2*dim+1]-dp[ef1*dim+1]*dp[ef2*dim]));
-
-      // Compute divs div(phi_fijk) = 6*|fijk| grad(pi) dot (grad(pj) cross grad(pk)) (
-      dphi[i] = 6*farea*(dp[ef1*dim]*(dp[ef2*dim+1]*dp[ef3*dim+2]-dp[ef2*dim+2]*dp[ef3*dim+1])
-      + dp[ef1*dim+1]*(dp[ef2*dim+2]*dp[ef3*dim]-dp[ef2*dim]*dp[ef3*dim+2])
-      + dp[ef1*dim+2]*(dp[ef2*dim]*dp[ef3*dim+1]-dp[ef2*dim+1]*dp[ef3*dim]));
     }
-  } else {
-    status = ERROR_DIM;
-    check_error(status, __FUNCTION__);
+
+    // Find opposite vertex (the local vertex not on the face)
+    INT opp = -1;
+    for (j=0; j<v_per_elm; j++) {
+      INT on_face = 0;
+      for (k=0; k<v_per_f; k++) {
+        if (ef[k] == j) { on_face = 1; break; }
+      }
+      if (!on_face) { opp = j; break; }
+    }
+
+    // Build dim x dim matrix M[c][k] = dp[ef[k]*dim + c]
+    REAL M[dim*dim];
+    for (c=0; c<dim; c++)
+      for (k=0; k<dim; k++)
+        M[c*dim+k] = dp[ef[k]*dim+c];
+
+    REAL sigma = fac * haz_det(M, dim);
+
+    // phi_i(x) = sigma * farea * (x - x_opp)
+    // x_opp = sc->x[v_on_elm[opp]*dim + c]
+    INT vopp = v_on_elm[opp];
+    for (c=0; c<dim; c++)
+      phi[i*dim+c] = sigma * farea * (x[c] - sc->x[vopp*dim+c]);
+
+    dphi[i] = sigma * dim * farea;
   }
 
   // Clean up working array for next person to use.

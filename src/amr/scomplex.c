@@ -788,7 +788,8 @@ void sc_build_fem_data(scomplex* sc) {
         for (INT i = 0; i < dim; i++)
           B[j * dim + i] = sc->x[verts[j + 1] * dim + i]
                          - sc->x[verts[0] * dim + i];
-      INT sign = det_sign(dim, B);
+      REAL detB = haz_det(dim, B);
+      INT sign = (detB > 0.0) ? 1 : ((detB < 0.0) ? -1 : 0);
       for (INT j = el_v->IA[el]; j < el_v->IA[el + 1]; j++)
         el_v->val[j] = sign;
     }

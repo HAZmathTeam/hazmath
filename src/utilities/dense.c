@@ -324,9 +324,9 @@ INT ddense_solve_pivot(INT dopivot, INT n, REAL *A, REAL *b, INT *p,REAL *piv)
 
 /**************************************************************************/
 /*!
- * \fn INT det_sign(INT n, REAL *A)
+ * \fn REAL haz_det(INT n, REAL *A)
  *
- * \brief Returns the sign of the determinant of an n x n matrix A.
+ * \brief Returns the determinant of an n x n matrix A.
  *        Uses explicit formulae for n < 5 and no-pivot LU for n >= 5.
  *        The input array A is NOT modified for n < 5; for n >= 5 a
  *        local copy is used for the LU factorization.
@@ -334,9 +334,9 @@ INT ddense_solve_pivot(INT dopivot, INT n, REAL *A, REAL *b, INT *p,REAL *piv)
  * \param n   matrix dimension
  * \param A   the matrix stored row-major as a 1D array of length n*n
  *
- * \return +1 if det(A) > 0, -1 if det(A) < 0, 0 if det(A) == 0
+ * \return determinant of A
  */
-INT det_sign(INT n, REAL *A)
+REAL haz_det(INT n, REAL *A)
 {
   REAL det;
   if (n == 1) {
@@ -369,7 +369,7 @@ INT det_sign(INT n, REAL *A)
     memcpy(L, A, n * n * sizeof(REAL));
     det = 1.0;
     for (INT k = 0; k < n; k++) {
-      if (L[k * n + k] == 0.0) { free(L); return 0; }
+      if (L[k * n + k] == 0.0) { free(L); return 0.0; }
       det *= L[k * n + k];
       for (INT i = k + 1; i < n; i++) {
         REAL factor = L[i * n + k] / L[k * n + k];
@@ -380,9 +380,7 @@ INT det_sign(INT n, REAL *A)
     }
     free(L);
   }
-  if (det > 0.0) return 1;
-  if (det < 0.0) return -1;
-  return 0;
+  return det;
 }
 /**************************************************************************/
 /*
