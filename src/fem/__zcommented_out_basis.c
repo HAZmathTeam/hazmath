@@ -477,7 +477,7 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,scomplex *sc)
     for (c=0; c<dim; c++)
       for (k=0; k<dim; k++)
         M[c*dim+k] = dp[ef[k]*dim+c];
-    REAL sigma = fac * haz_det(M, dim);
+    REAL sigma = fac * haz_det(dim, M);
     INT vopp = v_on_elm[opp];
     for (c=0; c<dim; c++)
       phi[i*dim+c] = sigma * farea * (x[c] - sc->x[vopp*dim+c]);

@@ -506,7 +506,7 @@ void rt0_basis(REAL *phi,REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,I
       for (k=0; k<dim; k++)
         M[c*dim+k] = dlam[ef[k]*dim+c];
 
-    REAL detM = haz_det(M, dim);
+    REAL detM = haz_det(dim, M);
     REAL sigma = fac * detM;
 
     // phi_i(x) = sigma * f_area[i] * (x - x_opp)
@@ -591,7 +591,7 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL* lam,REAL* dlam,INT dim,I
           }
         }
         REAL sign = ((c+k) % 2 == 0) ? 1.0 : -1.0;
-        val += lam[ef[k]] * sign * haz_det(minor, dim-1);
+        val += lam[ef[k]] * sign * haz_det(dim-1, minor);
       }
       phi[i*dim*2 + c] = fac * farea[i] * val;
     }

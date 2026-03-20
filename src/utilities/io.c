@@ -1719,7 +1719,7 @@ scomplex *hazr(char *namein)
 /* hazw moved to io_commented_out.c — use sc_write_gmsh instead */
 /********************************************************************************/
 /*!
- * \fn void sc_write_gmsh(char *namemsh,scomplex *sc, const INT shift0)
+ * \fn void sc_write_gmsh(const char *namemsh,scomplex *sc, const INT shift0)
  *
  * \brief Write a simplicial complex to a file in a ".msh" format. No
  *        boundary information is written. The data is organized as
@@ -1732,7 +1732,7 @@ scomplex *hazr(char *namein)
  *
  */
 /********************************************************************************/
-void sc_write_gmsh(char *namemsh,scomplex *sc, const INT shift0)
+void sc_write_gmsh(const char *namemsh,scomplex *sc, const INT shift0)
 {
   // WRITING in .msh format.
   INT shift=shift0;// this is fake because shift must be 1 below, nno zero node nnumbers:

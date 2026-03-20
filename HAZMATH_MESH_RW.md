@@ -227,11 +227,47 @@ $Elements
 $EndElements
 ```
 
-Here:
-- Element 1: type 1 (line), 2 tags (physical=1, elementary=1),
-  nodes 1-2. This is a boundary edge with code 1.
-- Elements 2-3: type 2 (triangle), 1 tag (material=1),
-  nodes defining each triangle.
+#### Field-by-field breakdown of `1 1 2 1 1 1 2`:
+
+```
+1  1  2  1  1  1  2
+│  │  │  │  │  │  └─ node 2 (vertex 2, 1-based)
+│  │  │  │  │  └──── node 1 (vertex 1, 1-based)
+│  │  │  │  └─────── tag 2: elementary entity ID (geometric entity in Gmsh)
+│  │  │  └────────── tag 1: physical group = 1 (boundary code used by HAZMATH)
+│  │  └───────────── num_tags = 2 (two integer tags follow)
+│  └──────────────── elm_type = 1 (2-node line segment)
+└─────────────────── elm_id = 1 (1-based element identifier)
+```
+
+This defines a boundary edge between vertices 1 and 2 with **boundary
+code 1** (the physical group tag). HAZMATH uses the first tag as the
+boundary code for boundary face elements and as the material/region
+flag for volume elements.
+
+#### Field-by-field breakdown of `2 2 1 1 1 2 3`:
+
+```
+2  2  1  1  1  2  3
+│  │  │  │  │  │  └─ node 3 (vertex 3)
+│  │  │  │  │  └──── node 2 (vertex 2)
+│  │  │  │  └─────── node 1 (vertex 1)
+│  │  │  └────────── tag 1: physical group = 1 (material/region flag)
+│  │  └───────────── num_tags = 1 (one tag)
+│  └──────────────── elm_type = 2 (3-node triangle)
+└─────────────────── elm_id = 2
+```
+
+This defines a triangle (volume element in 2D) with vertices 1, 2, 3
+and material flag 1.
+
+#### How HAZMATH distinguishes boundary faces from volume elements
+
+The spatial dimension is determined from the highest-dimensional element
+type present. Elements of that dimension become volume elements
+(`sc->nodes`, `sc->flags`). Elements of dimension `dim-1` become
+boundary faces (`sc->bndry_f2v`) with boundary codes from the first tag.
+Lower-dimensional elements (e.g., points in a 3D mesh) are ignored.
 
 ---
 
@@ -242,12 +278,28 @@ Here:
 Boundary faces carry a physical group tag (the first tag). For example,
 to mark different parts of a square boundary:
 
+Consider the unit square with vertices:
 ```
-1 1 2 1 1 1 2    % bottom edge, code 1
-2 1 2 2 2 2 3    % right edge, code 2
-3 1 2 3 3 3 4    % top edge, code 3
-4 1 2 4 4 4 1    % left edge, code 4
+$Nodes
+4
+1 0.0 0.0       % vertex 1: bottom-left
+2 1.0 0.0       % vertex 2: bottom-right
+3 1.0 1.0       % vertex 3: top-right
+4 0.0 1.0       % vertex 4: top-left
+$EndNodes
 ```
+
+The four boundary edges with distinct codes:
+```
+1 1 2 1 1 1 2    % edge: type=line, 2 tags, phys=1 elem=1, verts 1-2 → bottom, code 1
+2 1 2 2 2 2 3    % edge: type=line, 2 tags, phys=2 elem=2, verts 2-3 → right,  code 2
+3 1 2 3 3 3 4    % edge: type=line, 2 tags, phys=3 elem=3, verts 3-4 → top,    code 3
+4 1 2 4 4 4 1    % edge: type=line, 2 tags, phys=4 elem=4, verts 4-1 → left,   code 4
+```
+
+Each line follows the pattern: `elm_id  elm_type  num_tags  phys_tag  elem_tag  node1  node2`.
+The physical tag (first tag) becomes the HAZMATH boundary code.
+HAZMATH uses boundary codes 1-16 for Dirichlet and 17-32 for Neumann by convention.
 
 ### In HAZMATH After Reading
 
