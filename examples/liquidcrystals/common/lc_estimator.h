@@ -31,16 +31,13 @@
 void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,scomplex *sc,qcoordinates *cq) {
 
   // Counters
-  INT elm,neighborelm,quad,i,j,rowa,rowb,jcntr,face,iface;
+  INT elm,neighborelm,quad,i,j,d,rowa,rowb,jcntr,face,iface;
   INT haveneighbor = 0;
   REAL est_on_elm = 0.0;
 
-  // Mesh Stuff
+  // Mesh and FE local data
   INT dim = sc->dim;
   INT twoders = 3*(dim-1); // uxx, uxy, uyy, uxz, uyz, uzz
-  INT v_per_elm = dim+1;
-  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
-  INT* v_on_elm_neighbor = (INT *) calloc(v_per_elm,sizeof(INT));
   INT f_per_elm = dim+1;
   INT* f_on_elm = (INT *) calloc(f_per_elm,sizeof(INT));
   REAL hT; // Element diamter
@@ -48,62 +45,60 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,scomplex *sc,qcoordin
   iCSRmat* f_el = (iCSRmat *)malloc(1*sizeof(iCSRmat)); // face_to_element;
   icsr_trans(sc->fem->el_f,f_el);
 
+  // Local data for element and neighbor
+  simplex_local_data elm_data, nbr_data;
+  fe_local_data fe_data, fe_nbr_data;
+  memset(&elm_data, 0, sizeof(simplex_local_data));
+  memset(&fe_data, 0, sizeof(fe_local_data));
+  memset(&nbr_data, 0, sizeof(simplex_local_data));
+  memset(&fe_nbr_data, 0, sizeof(fe_local_data));
+  initialize_localdata_elm(&elm_data, &fe_data, sc, FE, cq->nq1d);
+  initialize_localdata_elm(&nbr_data, &fe_nbr_data, sc, FE, cq->nq1d);
+
+  // Wrap REAL* u in a temporary dvector for get_felocaldata_elm
+  dvector sol_dvec;
+  sol_dvec.row = 0;
+  for (i = 0; i < FE->nspaces; i++) sol_dvec.row += FE->var_spaces[i]->ndof;
+  sol_dvec.val = u;
+
+  // Per-space DOF counts and offsets
+  INT n1dofpelm = fe_data.n_dof_per_space[0];
+  INT n2dofpelm = fe_data.n_dof_per_space[1];
+  INT n3dofpelm = fe_data.n_dof_per_space[2];
+  INT lamdofpelm = fe_data.n_dof_per_space[3];
+  INT offset_n1 = 0;
+  INT offset_n2 = n1dofpelm;
+  INT offset_n3 = n1dofpelm + n2dofpelm;
+  INT offset_lam = n1dofpelm + n2dofpelm + n3dofpelm;
+
   // Quadrature Weights and Nodes
   REAL w, wface;
-  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
-  REAL* qxf = (REAL *) calloc(dim,sizeof(REAL));
+  REAL qx[3], qxf[3];
   qcoordinates *cq_face = allocateqcoords_bdry(cq->nq1d,1,dim,2);
 
-  // FEM Stuff
-  INT nspaces = FE->nspaces;
-  INT dof_per_elm = 0;
-  INT dof_per_face = 0;
-  for(i=0;i<FE->nspaces;i++) {
-    dof_per_elm += FE->var_spaces[i]->dof_per_elm;
-    dof_per_face += FE->var_spaces[i]->dof_per_face;
-  }
-  INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
-  INT* dof_on_elm_neighbor = (INT *) calloc(dof_per_elm,sizeof(INT));
-  INT* local_dof_on_elm;
-  INT* local_dof_on_elm_neighbor;
-
   // Solution Stuff
-  REAL* local_uprev = NULL;
   REAL n1, n1neigh;
   REAL n2, n2neigh;
   REAL n3, n3neigh;
   REAL lam;
-  REAL* dn1 = (REAL *) calloc( dim, sizeof(REAL));
-  REAL* dn2 = (REAL *) calloc( dim, sizeof(REAL));
-  REAL* dn3 = (REAL *) calloc( dim, sizeof(REAL));
-  REAL* dn1neigh = (REAL *) calloc( dim, sizeof(REAL));
-  REAL* dn2neigh = (REAL *) calloc( dim, sizeof(REAL));
-  REAL* dn3neigh = (REAL *) calloc( dim, sizeof(REAL));
+  REAL dn1[3], dn2[3], dn3[3];
+  REAL dn1neigh[3], dn2neigh[3], dn3neigh[3];
   REAL* ddn1 = (REAL *) calloc( twoders, sizeof(REAL));
   REAL* ddn2 = (REAL *) calloc( twoders, sizeof(REAL));
   REAL* ddn3 = (REAL *) calloc( twoders, sizeof(REAL));
   REAL divn,divnneigh,ndotcurln,ndotnm1;
-  REAL* curln = (REAL *) calloc( 3, sizeof(REAL));
-  REAL* curlnneigh = (REAL *) calloc( 3, sizeof(REAL));
-  REAL* ndotcurlncurln = (REAL *) calloc( 3, sizeof(REAL));
-  REAL* graddiv = (REAL *) calloc(3,sizeof(REAL));
-  REAL* curlnx = (REAL *) calloc(3,sizeof(REAL));
-  REAL* curlny = (REAL *) calloc(3,sizeof(REAL));
-  REAL* curlnz = (REAL *) calloc(3,sizeof(REAL));
-  REAL* cZc = (REAL *) calloc(3,sizeof(REAL));
-  REAL* term1 = (REAL *) calloc(3,sizeof(REAL));
-  REAL* term2 = (REAL *) calloc(3,sizeof(REAL));
+  REAL curln[3], curlnneigh[3], ndotcurlncurln[3];
+  REAL graddiv[3], curlnx[3], curlny[3], curlnz[3];
+  REAL cZc[3], term1[3], term2[3];
   REAL Zn11,Zn12,Zn13,Zn22,Zn23,Zn33;
   REAL Zn11neigh,Zn12neigh,Zn13neigh,Zn22neigh,Zn23neigh,Zn33neigh;
   REAL Zn11x,Zn12x,Zn13x,Zn22x,Zn23x,Zn33x;
   REAL Zn11y,Zn12y,Zn13y,Zn22y,Zn23y,Zn33y;
   REAL Zn11z,Zn12z,Zn13z,Zn22z,Zn23z,Zn33z;
-  REAL* Zcurln = (REAL *) calloc(3,sizeof(REAL));
-  REAL* Zcurlnneigh = (REAL *) calloc(3,sizeof(REAL));
+  REAL Zcurln[3], Zcurlnneigh[3];
 
   // Frank coefficients
-  REAL* K = (REAL *) calloc(3,sizeof(REAL));
-  // Coefficients
+  REAL K[3];
   get_frank_constants(K);
   REAL K1 = K[0];
   REAL K2 = K[1];
@@ -118,56 +113,51 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,scomplex *sc,qcoordin
     // Get cell diameter
     hT = pow(dim*(dim-1)*sc->fem->el_vol[elm],1.0/dim);
 
-    // Find DOF for given Element
-    // Note this is "local" ordering for the given FE space of the block
-    // Not global ordering of all DOF
-    jcntr = 0;
-    for(i=0;i<nspaces;i++) {
-      rowa = FE->var_spaces[i]->el_dof->IA[elm];
-      rowb = FE->var_spaces[i]->el_dof->IA[elm+1];
-      for (j=rowa; j<rowb; j++) {
-        dof_on_elm[jcntr] = FE->var_spaces[i]->el_dof->JA[j];
-        jcntr++;
-      }
-    }
-
-    // Find Vertices for given Element if not H1 elements
-    get_incidence_row(elm,sc->fem->el_v,v_on_elm);
+    // Get element local data
+    get_elmlocaldata(&elm_data, sc, elm);
+    get_felocaldata_elm(&fe_data, FE, &sol_dvec, elm);
 
     // Interior calculations first
     // Loop over quadrature nodes on element
-    for (quad=0;quad<cq->nq_per_elm;quad++) {
-      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      if(sc->dim==2 || sc->dim==3)
-      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(sc->dim==3)
-      qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-      w = cq->w[elm*cq->nq_per_elm+quad];
+    for (quad=0;quad<elm_data.quad_local->nq;quad++) {
+      for (d = 0; d < dim; d++) qx[d] = elm_data.quad_local->x[quad*dim+d];
+      w = elm_data.quad_local->w[quad];
 
-      // Interpolate FE solution to quadrature point
-      //  Get the Basis Functions and previous solutions at each quadrature node
-      // n
-      local_uprev = u;
-      FE_Interpolation(&n1,local_uprev,qx,dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
-      FE_DerivativeInterpolation(dn1,local_uprev,qx,dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
-      P2_2ndDerivativeInterpolation(ddn1,local_uprev,qx,dof_on_elm,FE->var_spaces[0],sc);
-      local_dof_on_elm = dof_on_elm + FE->var_spaces[0]->dof_per_elm;
-      local_uprev+=FE->var_spaces[0]->ndof;
+      // Get basis functions for all spaces at this quadrature point
+      for (i = 0; i < fe_data.nspaces; i++)
+        get_FEM_basis_at_quadpt(&elm_data, &fe_data, i, quad);
 
-      FE_Interpolation(&n2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
-      FE_DerivativeInterpolation(dn2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
-      P2_2ndDerivativeInterpolation(ddn2,local_uprev,qx,dof_on_elm,FE->var_spaces[1],sc);
-      local_dof_on_elm += FE->var_spaces[1]->dof_per_elm;
-      local_uprev+=FE->var_spaces[1]->ndof;
+      // Interpolate n1, dn1
+      n1 = 0.0;
+      for (j = 0; j < n1dofpelm; j++) n1 += fe_data.u_local[offset_n1+j] * fe_data.phi[0][j];
+      for (d = 0; d < dim; d++) {
+        dn1[d] = 0.0;
+        for (j = 0; j < n1dofpelm; j++) dn1[d] += fe_data.u_local[offset_n1+j] * fe_data.dphi[0][j*dim+d];
+      }
+      // P2 2nd derivatives (kept on old scomplex path for now)
+      P2_2ndDerivativeInterpolation(ddn1,u,qx,fe_data.local_dof,FE->var_spaces[0],sc);
 
-      FE_Interpolation(&n3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
-      FE_DerivativeInterpolation(dn3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
-      P2_2ndDerivativeInterpolation(ddn3,local_uprev,qx,dof_on_elm,FE->var_spaces[2],sc);
-      local_dof_on_elm += FE->var_spaces[2]->dof_per_elm;
-      local_uprev+=FE->var_spaces[2]->ndof;
+      // Interpolate n2, dn2
+      n2 = 0.0;
+      for (j = 0; j < n2dofpelm; j++) n2 += fe_data.u_local[offset_n2+j] * fe_data.phi[1][j];
+      for (d = 0; d < dim; d++) {
+        dn2[d] = 0.0;
+        for (j = 0; j < n2dofpelm; j++) dn2[d] += fe_data.u_local[offset_n2+j] * fe_data.dphi[1][j*dim+d];
+      }
+      P2_2ndDerivativeInterpolation(ddn2,u+FE->var_spaces[0]->ndof,qx,fe_data.local_dof+n1dofpelm,FE->var_spaces[1],sc);
+
+      // Interpolate n3, dn3
+      n3 = 0.0;
+      for (j = 0; j < n3dofpelm; j++) n3 += fe_data.u_local[offset_n3+j] * fe_data.phi[2][j];
+      for (d = 0; d < dim; d++) {
+        dn3[d] = 0.0;
+        for (j = 0; j < n3dofpelm; j++) dn3[d] += fe_data.u_local[offset_n3+j] * fe_data.dphi[2][j*dim+d];
+      }
+      P2_2ndDerivativeInterpolation(ddn3,u+FE->var_spaces[0]->ndof+FE->var_spaces[1]->ndof,qx,fe_data.local_dof+n1dofpelm+n2dofpelm,FE->var_spaces[2],sc);
 
       // lambda
-      FE_Interpolation(&lam,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[3],sc);
+      lam = 0.0;
+      for (j = 0; j < lamdofpelm; j++) lam += fe_data.u_local[offset_lam+j] * fe_data.phi[3][j];
 
       // Compute divs and curls
       divn = dn1[0] + dn2[1];
@@ -281,20 +271,9 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,scomplex *sc,qcoordin
             neighborelm = f_el->JA[j];
           }
         }
-
-        // Get DoF on neighbor element
-        jcntr = 0;
-        for(i=0;i<nspaces;i++) {
-          rowa = FE->var_spaces[i]->el_dof->IA[neighborelm];
-          rowb = FE->var_spaces[i]->el_dof->IA[neighborelm+1];
-          for (j=rowa; j<rowb; j++) {
-            dof_on_elm_neighbor[jcntr] = FE->var_spaces[i]->el_dof->JA[j];
-            jcntr++;
-          }
-        }
-
-        // Find Vertices for neighbor element
-        get_incidence_row(neighborelm,sc->fem->el_v,v_on_elm_neighbor);
+        // Get neighbor local data
+        get_elmlocaldata(&nbr_data, sc, neighborelm);
+        get_felocaldata_elm(&fe_nbr_data, FE, &sol_dvec, neighborelm);
       }
 
       // Loop over quadrature on face
@@ -306,39 +285,27 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,scomplex *sc,qcoordin
         qxf[2] = cq_face->z[quad];
         wface = cq->w[quad];
 
-        // Interpolate FE solution to quadrature point
-        //  Get current solutions at each quadrature node
-        // n
-        local_uprev = u;
-        FE_Interpolation(&n1,local_uprev,qxf,dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
-        FE_DerivativeInterpolation(dn1,local_uprev,qxf,dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
-        local_dof_on_elm = dof_on_elm + FE->var_spaces[0]->dof_per_elm;
+        // Interpolate FE solution on element at face quad point
+        fe_interpolation_to_x(&n1, fe_data.u_local+offset_n1, qxf, &fe_data, &elm_data, 0);
+        fe_dinterp_to_x(dn1, fe_data.u_local+offset_n1, qxf, &fe_data, &elm_data, 0);
         if(haveneighbor) {
-          FE_Interpolation(&n1neigh,local_uprev,qxf,dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[0],sc);
-          FE_DerivativeInterpolation(dn1neigh,local_uprev,qxf,dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[0],sc);
-          local_dof_on_elm_neighbor = dof_on_elm_neighbor + FE->var_spaces[0]->dof_per_elm;
+          fe_interpolation_to_x(&n1neigh, fe_nbr_data.u_local+offset_n1, qxf, &fe_nbr_data, &nbr_data, 0);
+          fe_dinterp_to_x(dn1neigh, fe_nbr_data.u_local+offset_n1, qxf, &fe_nbr_data, &nbr_data, 0);
         }
-        local_uprev+=FE->var_spaces[0]->ndof;
 
-        FE_Interpolation(&n2,local_uprev,qxf,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
-        FE_DerivativeInterpolation(dn2,local_uprev,qxf,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
-        local_dof_on_elm += FE->var_spaces[1]->dof_per_elm;
+        fe_interpolation_to_x(&n2, fe_data.u_local+offset_n2, qxf, &fe_data, &elm_data, 1);
+        fe_dinterp_to_x(dn2, fe_data.u_local+offset_n2, qxf, &fe_data, &elm_data, 1);
         if(haveneighbor) {
-          FE_Interpolation(&n2neigh,local_uprev,qxf,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[1],sc);
-          FE_DerivativeInterpolation(dn2neigh,local_uprev,qxf,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[1],sc);
-          local_dof_on_elm_neighbor += FE->var_spaces[1]->dof_per_elm;
+          fe_interpolation_to_x(&n2neigh, fe_nbr_data.u_local+offset_n2, qxf, &fe_nbr_data, &nbr_data, 1);
+          fe_dinterp_to_x(dn2neigh, fe_nbr_data.u_local+offset_n2, qxf, &fe_nbr_data, &nbr_data, 1);
         }
-        local_uprev+=FE->var_spaces[1]->ndof;
 
-        FE_Interpolation(&n3,local_uprev,qxf,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
-        FE_DerivativeInterpolation(dn3,local_uprev,qxf,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
-        local_dof_on_elm += FE->var_spaces[2]->dof_per_elm;
+        fe_interpolation_to_x(&n3, fe_data.u_local+offset_n3, qxf, &fe_data, &elm_data, 2);
+        fe_dinterp_to_x(dn3, fe_data.u_local+offset_n3, qxf, &fe_data, &elm_data, 2);
         if(haveneighbor) {
-          FE_Interpolation(&n3neigh,local_uprev,qxf,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[2],sc);
-          FE_DerivativeInterpolation(dn3neigh,local_uprev,qxf,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[2],sc);
-          local_dof_on_elm_neighbor += FE->var_spaces[2]->dof_per_elm;
+          fe_interpolation_to_x(&n3neigh, fe_nbr_data.u_local+offset_n3, qxf, &fe_nbr_data, &nbr_data, 2);
+          fe_dinterp_to_x(dn3neigh, fe_nbr_data.u_local+offset_n3, qxf, &fe_nbr_data, &nbr_data, 2);
         }
-        local_uprev+=FE->var_spaces[2]->ndof;
 
         // Compute divs and curls
         divn = dn1[0] + dn2[1];
@@ -408,36 +375,15 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,scomplex *sc,qcoordin
     }
   }
 
-  if(dof_on_elm) free(dof_on_elm);
-  if(dof_on_elm_neighbor) free(dof_on_elm_neighbor);
-  if(v_on_elm) free(v_on_elm);
-  if(v_on_elm_neighbor) free(v_on_elm_neighbor);
+  free_simplexlocaldata(&elm_data);
+  free_felocaldata(&fe_data);
+  free_simplexlocaldata(&nbr_data);
+  free_felocaldata(&fe_nbr_data);
   if(f_on_elm) free(f_on_elm);
   icsr_free(f_el);
-  if(qx) free(qx);
-  if(qxf) free(qxf);
-  if(dn1) free(dn1);
-  if(dn2) free(dn2);
-  if(dn3) free(dn3);
-  if(dn1neigh) free(dn1neigh);
-  if(dn2neigh) free(dn2neigh);
-  if(dn3neigh) free(dn3neigh);
   if(ddn1) free(ddn1);
   if(ddn2) free(ddn2);
   if(ddn3) free(ddn3);
-  if(curln) free(curln);
-  if(curlnneigh) free(curlnneigh);
-  if(cZc) free(cZc);
-  if(Zcurln) free(Zcurln);
-  if(Zcurlnneigh) free(Zcurlnneigh);
-  if(curlnx) free(curlnx);
-  if(curlny) free(curlny);
-  if(curlnz) free(curlnz);
-  if(graddiv) free(graddiv);
-  if(ndotcurlncurln) free(ndotcurlncurln);
-  if(term1) free(term1);
-  if(term2) free(term2);
-  if(K) free(K);
   if(cq_face){
     free_qcoords(cq_face);
     free(cq_face);

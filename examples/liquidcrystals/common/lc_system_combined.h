@@ -67,91 +67,85 @@
 void compute_LCelastic_energy(REAL* energy, REAL *u, block_fespace *FE, scomplex *sc, qcoordinates *cq) {
 
   // Counters
-  INT elm, quad, i, j, rowa, rowb, jcntr;
+  INT elm, quad, i, j, d;
   REAL splay = 0.0;
   REAL twist = 0.0;
   REAL bend = 0.0;
 
-  // Mesh Stuff
+  // Mesh and FE local data
   INT dim = sc->dim;
-  INT* v_on_elm = (INT *) calloc(sc->dim+1, sizeof(INT));
+  simplex_local_data elm_data;
+  fe_local_data fe_data;
+  memset(&elm_data, 0, sizeof(simplex_local_data));
+  memset(&fe_data, 0, sizeof(fe_local_data));
+  initialize_localdata_elm(&elm_data, &fe_data, sc, FE, cq->nq1d);
 
-  // Quadrature Weights and Nodes
-  REAL w;
-  REAL* qx = (REAL *) calloc(dim, sizeof(REAL));
+  // Wrap REAL* u in a temporary dvector for get_felocaldata_elm
+  dvector sol_dvec;
+  sol_dvec.row = 0;
+  for (i = 0; i < FE->nspaces; i++) sol_dvec.row += FE->var_spaces[i]->ndof;
+  sol_dvec.val = u;
 
-  // FEM Stuff
-  INT nspaces = FE->nspaces;
-  INT dof_per_elm = 0;
-  for(i=0;i<FE->nspaces;i++) {
-    dof_per_elm += FE->var_spaces[i]->dof_per_elm;
-  }
-  INT* dof_on_elm = (INT *) calloc(dof_per_elm, sizeof(INT));
-  INT* local_dof_on_elm;
+  // Per-space DOF counts and offsets into u_local
+  INT n1dofpelm = fe_data.n_dof_per_space[0];
+  INT n2dofpelm = fe_data.n_dof_per_space[1];
+  INT n3dofpelm = fe_data.n_dof_per_space[2];
+  INT offset_n1 = 0;
+  INT offset_n2 = n1dofpelm;
+  INT offset_n3 = n1dofpelm + n2dofpelm;
 
   // Solution Stuff
-  REAL* local_uprev = NULL;
-  REAL n1;
-  REAL n2;
-  REAL n3;
-  REAL* dn1 = (REAL *) calloc(dim, sizeof(REAL));
-  REAL* dn2 = (REAL *) calloc(dim, sizeof(REAL));
-  REAL* dn3 = (REAL *) calloc(dim, sizeof(REAL));
+  REAL n1, n2, n3;
+  REAL dn1[3], dn2[3], dn3[3];
   REAL divn;
-  REAL* curln = (REAL *) calloc(3, sizeof(REAL));
+  REAL curln[3];
 
   // Frank coefficients
-  REAL* K = (REAL *) calloc(3, sizeof(REAL));
-  // Coefficients
+  REAL K[3];
   get_frank_constants(K);
   REAL K1 = K[0];
   REAL K2 = K[1];
   REAL K3 = K[2];
-  REAL kap = K2/K3;
+
+  // Quadrature
+  REAL w;
 
   /* Loop over all Elements */
   for (elm=0; elm<sc->fem->ns_leaf; elm++) {
-    // Find DOF for given Element
-    // Note this is "local" ordering for the given FE space of the block
-    // Not global ordering of all DOF
-    jcntr = 0;
-    for(i=0;i<nspaces;i++) {
-      rowa = FE->var_spaces[i]->el_dof->IA[elm];
-      rowb = FE->var_spaces[i]->el_dof->IA[elm+1];
-      for (j=rowa; j<rowb; j++) {
-        dof_on_elm[jcntr] = FE->var_spaces[i]->el_dof->JA[j];
-        jcntr++;
-      }
-    }
-
-    // Find Vertices for given Element if not H1 elements
-    get_incidence_row(elm,sc->fem->el_v,v_on_elm);
+    get_elmlocaldata(&elm_data, sc, elm);
+    get_felocaldata_elm(&fe_data, FE, &sol_dvec, elm);
 
     // Loop over quadrature nodes on element
-    for (quad=0;quad<cq->nq_per_elm;quad++) {
-      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      if(sc->dim==2 || sc->dim==3)
-        qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(sc->dim==3)
-        qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-      w = cq->w[elm*cq->nq_per_elm+quad];
+    for (quad=0; quad<elm_data.quad_local->nq; quad++) {
+      w = elm_data.quad_local->w[quad];
 
-      // Interpolate FE solution to quadrature point
-      // Get the Basis Functions and previous solutions at each quadrature node
-      // n
-      local_uprev = u;
-      FE_Interpolation(&n1,local_uprev,qx,dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
-      FE_DerivativeInterpolation(dn1,local_uprev,qx,dof_on_elm,v_on_elm,FE->var_spaces[0],sc);
-      local_dof_on_elm = dof_on_elm + FE->var_spaces[0]->dof_per_elm;
-      local_uprev+=FE->var_spaces[0]->ndof;
+      // Get basis functions for all spaces at this quadrature point
+      for (i = 0; i < fe_data.nspaces; i++)
+        get_FEM_basis_at_quadpt(&elm_data, &fe_data, i, quad);
 
-      FE_Interpolation(&n2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
-      FE_DerivativeInterpolation(dn2,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],sc);
-      local_dof_on_elm += FE->var_spaces[1]->dof_per_elm;
-      local_uprev+=FE->var_spaces[1]->ndof;
+      // Interpolate n1 and its gradient
+      n1 = 0.0;
+      for (j = 0; j < n1dofpelm; j++) n1 += fe_data.u_local[offset_n1+j] * fe_data.phi[0][j];
+      for (d = 0; d < dim; d++) {
+        dn1[d] = 0.0;
+        for (j = 0; j < n1dofpelm; j++) dn1[d] += fe_data.u_local[offset_n1+j] * fe_data.dphi[0][j*dim+d];
+      }
 
-      FE_Interpolation(&n3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
-      FE_DerivativeInterpolation(dn3,local_uprev,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],sc);
+      // Interpolate n2 and its gradient
+      n2 = 0.0;
+      for (j = 0; j < n2dofpelm; j++) n2 += fe_data.u_local[offset_n2+j] * fe_data.phi[1][j];
+      for (d = 0; d < dim; d++) {
+        dn2[d] = 0.0;
+        for (j = 0; j < n2dofpelm; j++) dn2[d] += fe_data.u_local[offset_n2+j] * fe_data.dphi[1][j*dim+d];
+      }
+
+      // Interpolate n3 and its gradient
+      n3 = 0.0;
+      for (j = 0; j < n3dofpelm; j++) n3 += fe_data.u_local[offset_n3+j] * fe_data.phi[2][j];
+      for (d = 0; d < dim; d++) {
+        dn3[d] = 0.0;
+        for (j = 0; j < n3dofpelm; j++) dn3[d] += fe_data.u_local[offset_n3+j] * fe_data.dphi[2][j*dim+d];
+      }
 
       divn     = dn1[0] + dn2[1];
       curln[0] = dn3[1];
@@ -178,14 +172,8 @@ void compute_LCelastic_energy(REAL* energy, REAL *u, block_fespace *FE, scomplex
   energy[2] = twist;
   energy[3] = bend;
 
-  if(dof_on_elm) free(dof_on_elm);
-  if(v_on_elm) free(v_on_elm);
-  if(qx) free(qx);
-  if(dn1) free(dn1);
-  if(dn2) free(dn2);
-  if(dn3) free(dn3);
-  if(curln) free(curln);
-  if(K) free(K);
+  free_simplexlocaldata(&elm_data);
+  free_felocaldata(&fe_data);
 
 }
 
