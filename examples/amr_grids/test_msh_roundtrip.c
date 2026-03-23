@@ -47,15 +47,29 @@ INT main(INT argc, char* argv[])
          (long long)sc->cc, (long long)sc->bndry_cc);
 
   /* ---- Phase 2: Write to .msh ---- */
-  const char* msh_file = "output/2cubes_original.msh";
+  char msh_file[512], vtu_orig[512], msh_ref[512], vtu_ref[512], mat_ref[512];
+  /* derive base name from input file */
+  {
+    const char *p = strrchr(input_file, '/');
+    const char *base = p ? p + 1 : input_file;
+    char stem[256];
+    snprintf(stem, sizeof(stem), "%s", base);
+    char *dot = strrchr(stem, '.');
+    if (dot) *dot = '\0';
+    snprintf(msh_file, sizeof(msh_file), "output/%s_original.msh", stem);
+    snprintf(vtu_orig, sizeof(vtu_orig), "output/%s_original.vtu", stem);
+    snprintf(msh_ref, sizeof(msh_ref), "output/%s_roundtrip.msh", stem);
+    snprintf(vtu_ref, sizeof(vtu_ref), "output/%s_roundtrip.vtu", stem);
+    snprintf(mat_ref, sizeof(mat_ref), "output/%s_roundtrip.m", stem);
+  }
   printf("\nPhase 2: Writing to %s\n", msh_file);
   sc_write_gmsh(msh_file, sc, 1);
 
   /* Also write VTU for visualization */
-  {
+  if (sc->dim < 4) {
     vtu_data vdata;
     vtu_data_init(sc, &vdata);
-    sc_write_vtk("output/2cubes_original.vtu", &vdata);
+    sc_write_vtk(vtu_orig, &vdata);
     vtu_data_free(&vdata);
   }
 
@@ -91,23 +105,34 @@ INT main(INT argc, char* argv[])
   if (nerr)
     fprintf(stderr, "  FAIL: non-conforming (%lld errors)\n", (long long)nerr);
 
-  /* ---- Phase 4: Refine twice ---- */
-  printf("\nPhase 4: Refine (2 levels, newest vertex bisection)\n");
-  INT dim = sc->dim;
-
-  /* First refinement: uniform */
-  refine(1, sc, NULL);
-  /* Extract leaf mesh — this destroys the hierarchy, giving a flat mesh */
-  scfinalize(sc, NULL, (INT)1);
-  /* Reset level and generations so refine treats this as a fresh mesh */
-  sc->level = 0;
-  for (i = 0; i < sc->ns; i++) sc->gen[i] = 0;
-
-  /* Second refinement: uniform on the leaf mesh */
-  refine(1, sc, NULL);
-
-  /* Finalize: compact to leaves only */
-  scfinalize(sc, NULL, (INT)1);
+  /* ---- Phase 4: Refine with marked Bey + closure ---- */
+  printf("\nPhase 4: Marked Bey refinement (2 levels, near origin)\n");
+  INT dim = sc->dim, n1 = dim + 1;
+  REAL threshold = 1.0;
+  for (INT lvl = 0; lvl < 2; lvl++) {
+    ivector mark = ivec_create(sc->ns);
+    INT nmarked = 0;
+    for (INT k = 0; k < sc->ns; k++) {
+      REAL dist2 = 0.0;
+      for (INT dd = 0; dd < dim; dd++) {
+        REAL c = 0.0;
+        for (INT vv = 0; vv < n1; vv++)
+          c += sc->x[sc->nbig * sc->nodes[n1 * k + vv] + dd];
+        c /= (REAL)n1;
+        dist2 += c * c;
+      }
+      mark.val[k] = (dist2 < threshold * threshold) ? 1 : 0;
+      if (mark.val[k]) nmarked++;
+    }
+    printf("  Level %lld: ns=%lld, marked=%lld",
+           (long long)lvl, (long long)sc->ns, (long long)nmarked);
+    uniformrefine_marked(sc, &mark);
+    ivec_free(&mark);
+    sc_vols(sc);
+    printf(" -> ns=%lld, nv=%lld\n", (long long)sc->ns, (long long)sc->nv);
+    threshold *= 0.6;
+  }
+  find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
   sc_vols(sc);
 
   printf("  Refined mesh: ns=%lld, nv=%lld\n",
@@ -138,24 +163,18 @@ INT main(INT argc, char* argv[])
 
   /* ---- Phase 5: Write refined mesh ---- */
   printf("\nPhase 5: Writing refined mesh\n");
-  sc_write_gmsh("output/2cubes_refined.msh", sc, 1);
+  sc_write_gmsh(msh_ref, sc, 1);
 
-  {
+  if (dim < 4) {
     vtu_data vdata;
     vtu_data_init(sc, &vdata);
-    sc_write_vtk("output/2cubes_refined.vtu", &vdata);
+    sc_write_vtk(vtu_ref, &vdata);
     vtu_data_free(&vdata);
   }
 
-  /* Also write MATLAB file */
-  sc_matlab_write(sc, "output/2cubes_refined.m");
-
   printf("\nOutput files:\n");
-  printf("  output/2cubes_original.msh  (initial mesh)\n");
-  printf("  output/2cubes_original.vtu  (initial mesh, VTK)\n");
-  printf("  output/2cubes_refined.msh   (refined mesh)\n");
-  printf("  output/2cubes_refined.vtu   (refined mesh, VTK)\n");
-  printf("  output/2cubes_refined.m     (refined mesh, MATLAB)\n");
+  printf("  %s  (initial mesh)\n", msh_file);
+  printf("  %s  (refined mesh)\n", msh_ref);
 
   /* ---- Cleanup ---- */
   haz_scomplex_free(sc);

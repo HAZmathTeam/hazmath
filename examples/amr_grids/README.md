@@ -18,7 +18,6 @@ Output filenames are generated automatically from the input filename:
 
 produces:
 
-    output/3d_fichera_rl3_rt20.haz   (HAZmath grid format)
     output/3d_fichera_rl3_rt20.msh   (Gmsh MSH 2.0; custom element types for dim >= 4
                                       because Gmsh MSH 2.0 only defines elements up to dim 3)
     output/3d_fichera_rl3_rt20.vtu   (VTK/ParaView, dim < 4 only)
@@ -39,10 +38,75 @@ Rules:
 | `title{...}` | Title string |
 | `dimension{d}` | Spatial dimension |
 | `print_level{p}` | Output verbosity (0 = quiet) |
-| `refinement_type{rt}` | 20 = DGS + criss-cross; 21 = DGS + consistent diagonals |
+| `refinement_type{rt}` | See table below |
 | `num_refinements{n}` | Number of refinement levels |
-| `amr_marking_type{m}` | 0 = uniform; nonzero = user-defined marking |
+| `amr_marking_type{m}` | 0 = refinement controlled by `refinement_type`; 1 = solve/estimate/mark/refine loop; 33 = refine near specified points; 44 = refine around features from file |
 | `err_stop_refinement{e}` | Stopping tolerance for AMR (not used in examples) |
+
+### Refinement types (`refinement_type`)
+
+| Value | Method | Description |
+|---|---|---|
+| 0 | DGS bisection | Adaptive bisection refinement (any dimension). Uses vertex coloring from Diening-Gehring-Storn (2025). |
+| 20 | Uniform Bey | Freudenthal uniform refinement: each simplex is subdivided into 2^d children (any dimension). |
+| 21 | Marked Bey (test) | Selective Bey refinement on odd-indexed simplices with conforming closure. Checkerboard test pattern. |
+| 22 | Marked Bey (corner) | Selective Bey refinement on simplices near the origin, with conforming closure. Threshold shrinks per level for graded meshes (e.g., re-entrant corners). |
+
+When `amr_marking_type{0}` and `refinement_type` is 0, DGS bisection
+refines all simplices uniformly. When `refinement_type` is 20, Bey's
+uniform refinement subdivides every simplex into 2^d children.
+
+### Refinement algorithms
+
+**Bey (Freudenthal) uniform refinement** (`refinement_type{20}`).
+Midpoints are inserted on every edge. Each d-simplex is subdivided
+into 2^d children using the Freudenthal partition described in [Bey 2000].
+The children are enumerated by binary vectors s in {0,...,2^d-1}.
+For a parent simplex with vertices v_0,...,v_d, child s has vertices
+w_0,...,w_d where each w_k is either an original vertex v_i or the
+midpoint m(v_i,v_j) of an edge, determined by a recurrence on
+L_k, U_k driven by the bits of s. When applied to all simplices
+simultaneously, the face patterns match across neighbors and the
+resulting mesh is conforming. Works in any spatial dimension.
+
+**DGS bisection** (`refinement_type{0}`).
+Newest-vertex bisection using the generalized vertex coloring of
+[Diening, Gehring, Storn 2025]. On the initial mesh, vertices are
+colored with N+1 greedy colors and each simplex is reordered by
+decreasing vertex generation number. Bisection splits a simplex
+into two children across its tagged edge (determined by Algorithm 4
+of [DGS 2025]). Conforming closure propagates bisections to
+neighbors sharing the tagged edge. Works for any conforming initial
+triangulation in any dimension, including adaptive refinement with
+marking.
+
+### Combining Bey and DGS: selective Bey with conforming closure
+
+The selective Bey refinement (`refinement_type{21}` or `{22}`) combines
+both algorithms. Only marked simplices are Bey-refined; the rest of
+the mesh is closed to restore conformity using a two-phase procedure:
+
+1. **Face-Bey closure.** A neighbor sharing a full (d-1)-face with a
+   Bey-refined simplex has all C(d,2) edges of that face midpointed.
+   Simple bisection cannot match the Bey face pattern (the 2^(d-1)
+   sub-faces include a central simplex whose vertices are all
+   midpoints, unreachable by bisection cuts which always connect a
+   midpoint to an existing vertex). Instead, the (d-1)-dimensional
+   Bey subdivision is applied to the non-conforming face and each
+   sub-face is coned to the apex vertex, producing 2^(d-1) children
+   whose faces match the Bey pattern exactly.
+
+2. **Bisection closure.** After face-Bey closure, remaining
+   non-conformity consists of single-edge hanging nodes (an edge with
+   a midpoint not yet absorbed by the simplex). These are resolved by
+   simple bisection: replace the simplex with two children, one for
+   each half of the split edge. Bisection propagates along the strip
+   of simplices sharing the affected edge, exactly as in standard
+   DGS closure.
+
+The loop iterates until no non-conforming simplices remain. The
+algorithm works in any spatial dimension and has been verified on
+2D through 5D meshes.
 
 ### Geometry specification
 
@@ -83,8 +147,24 @@ input/2d_SQ+L.input         input/5d_cube.input
 input/2d_square.input
 ```
 
+## Source files
+
+| File | Contents |
+|---|---|
+| `src/amr/uniform_refinement.c` | `get_edge_nd`, `uniformrefine` (Bey/Freudenthal, any dim), `uniformrefine_marked` (selective Bey + closure) |
+| `src/amr/amr_core.c` | `refine` (DGS bisection), `haz_refine_simplex`, `haz_bisect_new/reuse`, `make_uniform_mesh` |
+| `src/amr/scomplex.c` | Simplicial complex: init, free, geometry, volumes, FEM data, boundary, conformity check |
+
 ## References
 
-L. Diening, L. Gehring, J. Storn, *Adaptive Mesh Refinement for
-Arbitrary Initial Triangulations*, Found. Comput. Math., 2025.
+[Bey 2000] J. Bey, *Simplicial grid refinement: on Freudenthal's
+algorithm and the optimal number of congruence classes*,
+Numer. Math., 85(1):1-29, 2000.
+DOI: [10.1007/s002110050477](https://doi.org/10.1007/s002110050477)
+
+[DGS 2025] L. Diening, L. Gehring, J. Storn, *Adaptive Mesh Refinement
+for Arbitrary Initial Triangulations*, Found. Comput. Math., 2025.
 DOI: [10.1007/s10208-024-09642-1](https://doi.org/10.1007/s10208-024-09642-1)
+
+[Freudenthal 1942] H. Freudenthal, *Simplizialzerlegungen von
+beschrankter Flachheit*, Ann. of Math., 43(3):580-582, 1942.

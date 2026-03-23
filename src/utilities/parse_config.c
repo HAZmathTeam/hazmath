@@ -453,6 +453,13 @@ void config2vars_amr(config_z* config, input_grid* gz)
       for (j = 0; j < dim; j++)
         gz->xv[i * dim + j] = data_vertices[i * row_w + 2 + j];
     }
+    /* Convert degree angles to radians for polar coordinate systems */
+    for (i = 0; i < gz->nv; i++) {
+      if (gz->systypes[gz->csysv[i]] == 1) {
+        for (j = 1; j < dim; j++)
+          gz->xv[i * dim + j] = zero_twopi_deg(gz->xv[i * dim + j]);
+      }
+    }
   }
 
   /* data_edges: [v1][v2][divisions], row_width = 3 */

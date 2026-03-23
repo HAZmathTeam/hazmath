@@ -34,7 +34,7 @@ boundary_codes    = 1   % Will set the boundary codes
 %---------------%
 
 nquad		= 3	% Quadrature nodes each direction
-FE_type = 20
+FE_type = 30
 
 %---------------%
 % time stepping

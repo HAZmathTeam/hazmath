@@ -1,11 +1,13 @@
-/*! \file examples/amr_grids/amr_grids_supporting.h
+/*! \file examples/amr_grids/supporting_amr_grids.h
  *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov 2019/01/09.
- *  Copyright 2015_HAZMATH__. All rights reserved.
+ *  Authors: James Adler, Xiaozhe Hu, and Ludmil Zikatanov
+ *           HAZmath (https://hazmath.net)
+ *           Created with the help of Claude (Anthropic)
  *
- * \brief This program generates simplicial grids in 2,3,4... dimension.
+ *  Created 2019/01/09.  Copyright 2015_HAZMATH__. All rights reserved.
  *
- * \note mock code for solve-estimate-mark and refinement.
+ * \note Supporting code for amr_grids: mock solve-estimate-mark routines,
+ *       marking strategies, and feature-based refinement.
  */
 /* #ifndef MAX_NODES_PER_SIMPLEX */
 /* #define MAX_NODES_PER_SIMPLEX 10 */

@@ -1,10 +1,16 @@
 /*! \file src/amr/uniform_refinement.c
  *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20170715.
- *  Copyright 2017__HAZMATH__. All rights reserved.
+ *  Authors: James Adler, Xiaozhe Hu, and Ludmil Zikatanov
+ *           HAZmath (https://hazmath.net)
+ *           Created with the help of Claude (Anthropic)
  *
- *  \note containing all essentials routines for uniform refinement in 2D and 3D.
- *  Ludmil, Yuwen 20210604
+ *  Created 20170715.  Copyright 2017__HAZMATH__. All rights reserved.
+ *
+ *  \note Uniform and selective Bey (Freudenthal) refinement in any
+ *        spatial dimension: get_edge_nd, uniformrefine,
+ *        uniformrefine_marked (selective Bey + face-Bey/bisection closure).
+ *        Original 2D/3D routines by Ludmil and Yuwen (20210604).
+ *        N-dimensional generalization 20260322.
  */
 #include "hazmath.h"
 /********************************************************************************/
@@ -455,4 +461,525 @@ void uniformrefine3d(scomplex* sc) {
   haz_scomplex_realloc(sc);
   //  find_nbr(sc->ns,sc->nv,sc->dim,sc->nodes,sc->nbr);
   return;
+}
+/***********************************************************************************************/
+/*!
+ * \fn void get_edge_nd(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
+ *
+ * \brief Returns the edge-to-vertex matrix e2v and the element-to-edge
+ *        matrix el2e for an n-dimensional simplicial complex.
+ *        Generalizes get_edge2d and get_edge3d to arbitrary dimension.
+ *
+ *        Edges are ordered in global ascending lexicographic order.
+ *        Each row of el2e lists edges in local lexicographic order:
+ *        (0,1),(0,2),...,(0,n),(1,2),...,(n-1,n).
+ *
+ * \param e2v   Pointer to iCSRmat edge-to-vertex matrix (ne x nv)
+ * \param el2e  Pointer to iCSRmat element-to-edge matrix (ns x ne)
+ * \param sc    Pointer to scomplex
+ *
+ * \note Ludmil 20260322.
+ */
+void get_edge_nd(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
+{
+  INT dim = sc->dim;
+  INT n1 = dim + 1;                     /* vertices per simplex */
+  INT ne_local = dim * n1 / 2;          /* edges per simplex = C(n1,2) */
+  INT nv = sc->nv, ns = sc->ns;
+  INT total_pairs = ne_local * ns;
+  INT i, j, k, p, q, ih, counter;
+  INT *el2v = sc->nodes;
+  /* --- build (ii,jj) pairs: for each simplex, sort vertices ascending,
+         enumerate all C(n1,2) pairs (vi,vj) with i<j --- */
+  ivector ii = ivec_create(total_pairs);
+  ivector jj = ivec_create(total_pairs);
+  iCSRmat U = icsr_create(0, 0, 0);
+  iCSRmat el2v_csr = icsr_create(ns, nv, n1 * ns);
+  iCSRmat v2e, el2e0;
+  el2v_csr.IA[0] = 0;
+  INT *sv = (INT *)malloc(n1 * sizeof(INT)); /* sorted local vertices */
+  for (k = 0; k < ns; k++) {
+    /* copy and sort the n1 vertex indices of simplex k */
+    memcpy(sv, el2v + n1 * k, n1 * sizeof(INT));
+    /* insertion sort (n1 is small) */
+    for (i = 1; i < n1; i++) {
+      INT tmp = sv[i];
+      j = i - 1;
+      while (j >= 0 && sv[j] > tmp) { sv[j + 1] = sv[j]; j--; }
+      sv[j + 1] = tmp;
+    }
+    /* enumerate C(n1,2) pairs in lexicographic order */
+    counter = 0;
+    for (p = 0; p < n1; p++) {
+      for (q = p + 1; q < n1; q++) {
+        ii.val[k + counter * ns] = sv[p];
+        jj.val[k + counter * ns] = sv[q];
+        counter++;
+      }
+    }
+    el2v_csr.IA[k + 1] = el2v_csr.IA[k] + n1;
+  }
+  free(sv);
+  memcpy(el2v_csr.JA, el2v, n1 * ns * sizeof(INT));
+  for (i = 0; i < n1 * ns; i++) el2v_csr.val[i] = 1;
+  icsr_uniqueij(&U, &ii, &jj);
+  ivec_free(&ii); ivec_free(&jj);
+  /* --- form e2v (ne x nv, 2 entries per row) --- */
+  INT ne = U.nnz;
+  e2v->row = ne; e2v->col = nv; e2v->nnz = 2 * ne;
+  INT *ia = U.IA, *ja = U.JA;
+  INT nv_U = U.row; /* may be < nv if highest-numbered vertices never appear first in a sorted pair */
+  e2v->JA  = (INT *)malloc(2 * ne * sizeof(INT));
+  e2v->val = (INT *)malloc(2 * ne * sizeof(INT));
+  for (i = 0; i < 2 * ne; i++) e2v->val[i] = 1;
+  counter = 0;
+  for (i = 0; i < nv_U; i++) {
+    ih = ia[i + 1] - ia[i];
+    for (j = 0; j < ih; j++) {
+      e2v->JA[counter + 2 * j]     = i;
+      e2v->JA[counter + 2 * j + 1] = ja[ia[i] + j];
+    }
+    counter += 2 * ih;
+  }
+  e2v->IA = (INT *)malloc((ne + 1) * sizeof(INT));
+  e2v->IA[0] = 0;
+  for (i = 0; i < ne; i++) e2v->IA[i + 1] = e2v->IA[i] + 2;
+  icsr_free(&U);
+  /* --- el2e via sparse multiply: el2v * v2e, keep entries == 2 --- */
+  icsr_trans(e2v, &v2e);
+  icsr_mxm(&el2v_csr, &v2e, &el2e0);
+  icsr_free(&v2e);
+  icsr_free(&el2v_csr);
+  ia = el2e0.IA; ja = el2e0.JA;
+  INT *val = el2e0.val;
+  el2e->row = ns; el2e->col = ne; el2e->nnz = ne_local * ns;
+  el2e->IA  = (INT *)malloc((ns + 1) * sizeof(INT));
+  el2e->JA  = (INT *)malloc(ne_local * ns * sizeof(INT));
+  el2e->val = NULL;
+  el2e->IA[0] = 0;
+  counter = 0;
+  for (i = 0; i < ns; i++) {
+    el2e->IA[i + 1] = el2e->IA[i] + ne_local;
+    ih = ia[i + 1] - ia[i];
+    for (j = 0; j < ih; j++) {
+      if (val[ia[i] + j] == 2) {
+        el2e->JA[counter] = ja[ia[i] + j];
+        counter++;
+      }
+    }
+  }
+  /* --- reorder each row of el2e to local lexicographic order --- */
+  INT *jtmp = (INT *)malloc(ne_local * sizeof(INT));
+  for (i = 0; i < ns; i++) {
+    INT row_off = ne_local * i;
+    INT el_off  = n1 * i;
+    memcpy(jtmp, el2e->JA + row_off, ne_local * sizeof(INT));
+    for (j = 0; j < ne_local; j++) {
+      INT ej1 = e2v->JA[2 * jtmp[j]];
+      INT ej2 = e2v->JA[2 * jtmp[j] + 1];
+      /* find which local pair (p,q) this edge matches */
+      INT loc = 0;
+      for (p = 0; p < n1; p++) {
+        for (q = p + 1; q < n1; q++) {
+          INT vp = el2v[el_off + p], vq = el2v[el_off + q];
+          if ((vp == ej1 && vq == ej2) || (vp == ej2 && vq == ej1)) {
+            el2e->JA[row_off + loc] = jtmp[j];
+            goto next_edge;
+          }
+          loc++;
+        }
+      }
+      next_edge: ;
+    }
+  }
+  free(jtmp);
+  icsr_free(&el2e0);
+}
+/***********************************************************************************************/
+/*!
+ * \fn void uniformrefine(scomplex *sc)
+ *
+ * \brief Uniform (Freudenthal) refinement in arbitrary dimension.
+ *        Each n-simplex is subdivided into 2^n children by inserting
+ *        midpoints on all edges. Uses binary-vector enumeration of
+ *        children consistent with Bey's algorithm for n=3.
+ *
+ * \param sc  Pointer to scomplex grid structure.
+ *
+ * \note Ludmil 20260322.
+ */
+void uniformrefine(scomplex *sc)
+{
+  INT dim  = sc->dim;
+  INT n1   = dim + 1;
+  INT ne_local = dim * n1 / 2;
+  INT nv   = sc->nv;
+  INT ns   = sc->ns;
+  INT nbig = sc->nbig;
+  iCSRmat e2v, el2e;
+  get_edge_nd(&e2v, &el2e, sc);
+  INT ne = e2v.row;
+  INT nchildren = (1 << dim);  /* 2^dim */
+  INT ns_new = nchildren * ns;
+  INT nv_new = nv + ne;
+  INT i, d, nnz_p;
+  /* --- compute midpoint coordinates --- */
+  sc->x = (REAL *)realloc(sc->x, nbig * nv_new * sizeof(REAL));
+  for (i = 0; i < ne; i++) {
+    INT va = e2v.JA[2 * i], vb = e2v.JA[2 * i + 1];
+    for (d = 0; d < nbig; d++) {
+      sc->x[nbig * (nv + i) + d] =
+        0.5 * (sc->x[nbig * va + d] + sc->x[nbig * vb + d]);
+    }
+  }
+  /* --- update parent_v --- */
+  sc->parent_v->row = nv_new;
+  sc->parent_v->col = nv;
+  nnz_p = sc->parent_v->IA[nv];
+  sc->parent_v->nnz += 2 * ne;
+  sc->parent_v->IA  = (INT *)realloc(sc->parent_v->IA,  (nv_new + 1) * sizeof(INT));
+  sc->parent_v->JA  = (INT *)realloc(sc->parent_v->JA,  sc->parent_v->nnz * sizeof(INT));
+  sc->parent_v->val = (INT *)realloc(sc->parent_v->val, sc->parent_v->nnz * sizeof(INT));
+  for (i = 0; i < ne; i++) {
+    sc->parent_v->JA[nnz_p]  = e2v.JA[2 * i];
+    sc->parent_v->val[nnz_p] = 0;
+    nnz_p++;
+    sc->parent_v->JA[nnz_p]  = e2v.JA[2 * i + 1];
+    sc->parent_v->val[nnz_p] = 0;
+    nnz_p++;
+    sc->parent_v->IA[nv + i + 1] = nnz_p;
+  }
+  icsr_free(&e2v);
+  /* --- save old connectivity and allocate new --- */
+  INT *el2v_old = (INT *)malloc(n1 * ns * sizeof(INT));
+  memcpy(el2v_old, sc->nodes, n1 * ns * sizeof(INT));
+  free(sc->nodes);
+  sc->nodes = (INT *)calloc(n1 * ns_new, sizeof(INT));
+  sc->ns = ns_new;
+  sc->nv = nv_new;
+  /* --- precompute local edge-index lookup: rank(p,q) for 0<=p<q<=dim --- */
+  /* rank(p,q) = p*(2*dim - p - 1)/2 + (q - p - 1) */
+  /* --- fill child connectivity using binary-vector formula --- */
+  for (i = 0; i < ns; i++) {
+    INT el_off  = ne_local * i;   /* offset into el2e.JA */
+    INT *old_verts = el2v_old + n1 * i;
+    INT *edges = el2e.JA + el_off;
+    for (INT s = 0; s < nchildren; s++) {
+      INT child_off = n1 * (nchildren * i + s);
+      /* popcount of s */
+      INT pc = 0;
+      { INT tmp = s; while (tmp) { pc += tmp & 1; tmp >>= 1; } }
+      /* compute L[0], U[0] */
+      INT L = 0, U = pc;
+      /* vertex w_0 */
+      if (L == U)
+        sc->nodes[child_off] = old_verts[L];
+      else {
+        INT rank_lu = L * (2 * dim - L + 1) / 2 + (U - L - 1);
+        sc->nodes[child_off] = nv + edges[rank_lu];
+      }
+      /* vertices w_1 .. w_dim */
+      for (INT kk = 1; kk <= dim; kk++) {
+        INT bit_k = (s >> (dim - kk)) & 1;
+        if (bit_k == 0) {
+          /* L stays, U increments */
+          U = U + 1;
+        } else {
+          /* L increments, U stays */
+          L = L + 1;
+        }
+        if (L == U)
+          sc->nodes[child_off + kk] = old_verts[L];
+        else {
+          INT rank_lu = L * (2 * dim - L + 1) / 2 + (U - L - 1);
+          sc->nodes[child_off + kk] = nv + edges[rank_lu];
+        }
+      }
+    }
+  }
+  icsr_free(&el2e);
+  free(el2v_old);
+  /* reallocate auxiliary arrays */
+  haz_scomplex_realloc(sc);
+}
+/***********************************************************************************************/
+/* Hash table mapping edge (va,vb) → midpoint vertex index.                                    */
+/* Used by uniformrefine_marked for closure lookups.                                            */
+/***********************************************************************************************/
+typedef struct {
+  INT *ka, *kb, *val;
+  INT cap;
+} edge_mid_ht;
+
+static void emht_init(edge_mid_ht *h, INT cap)
+{
+  h->cap = cap;
+  h->ka  = (INT *)malloc(cap * sizeof(INT));
+  h->kb  = (INT *)malloc(cap * sizeof(INT));
+  h->val = (INT *)malloc(cap * sizeof(INT));
+  for (INT i = 0; i < cap; i++) { h->ka[i] = -1; h->kb[i] = -1; h->val[i] = -1; }
+}
+
+static void emht_put(edge_mid_ht *h, INT a, INT b, INT v)
+{
+  if (a > b) { INT t = a; a = b; b = t; }
+  INT idx = (INT)(((unsigned long long)a * 1000003ULL + (unsigned long long)b) % (unsigned long long)h->cap);
+  while (h->ka[idx] >= 0) idx = (idx + 1) % h->cap;
+  h->ka[idx] = a; h->kb[idx] = b; h->val[idx] = v;
+}
+
+static INT emht_get(edge_mid_ht *h, INT a, INT b)
+{
+  if (a > b) { INT t = a; a = b; b = t; }
+  INT idx = (INT)(((unsigned long long)a * 1000003ULL + (unsigned long long)b) % (unsigned long long)h->cap);
+  while (h->ka[idx] >= 0) {
+    if (h->ka[idx] == a && h->kb[idx] == b) return h->val[idx];
+    idx = (idx + 1) % h->cap;
+  }
+  return -1;
+}
+
+static void emht_free(edge_mid_ht *h) { free(h->ka); free(h->kb); free(h->val); }
+/***********************************************************************************************/
+/*!
+ * \fn void uniformrefine_marked(scomplex *sc, ivector *marked)
+ *
+ * \brief Selective Bey (Freudenthal) refinement with conforming closure.
+ *        Marked simplices are subdivided into 2^dim children (Bey).
+ *        Neighbors sharing a full face with a Bey-refined simplex get
+ *        face-Bey closure (2^(dim-1) children per non-conforming face).
+ *        Remaining single-edge hanging nodes are resolved by bisection.
+ *        Works in any dimension.
+ *
+ * \param sc      Pointer to scomplex grid structure.
+ * \param marked  ivector of length sc->ns; nonzero entries = marked for Bey.
+ *                If NULL, equivalent to uniformrefine (refine all).
+ *
+ * \note Ludmil 20260322.
+ */
+void uniformrefine_marked(scomplex *sc, ivector *marked)
+{
+  if (!marked) { uniformrefine(sc); return; }
+  INT dim = sc->dim, n1 = dim + 1, nbig = sc->nbig;
+  INT ne_local = dim * n1 / 2;
+  INT nv_old = sc->nv, ns_old = sc->ns;
+  INT i, j, k, d;
+  /* count marked */
+  INT ns_marked = 0;
+  for (i = 0; i < ns_old; i++) if (marked->val[i]) ns_marked++;
+  if (ns_marked == 0) return;
+  if (ns_marked == ns_old) { uniformrefine(sc); return; }
+  /* ================================================================ */
+  /*  Phase 1: Selective Bey on marked simplices                      */
+  /* ================================================================ */
+  iCSRmat e2v, el2e;
+  get_edge_nd(&e2v, &el2e, sc);
+  INT ne = e2v.row;
+  /* which edges need midpoints (edges of any marked simplex) */
+  INT *edge_need = (INT *)calloc(ne, sizeof(INT));
+  for (i = 0; i < ns_old; i++) {
+    if (!marked->val[i]) continue;
+    for (j = 0; j < ne_local; j++)
+      edge_need[el2e.JA[ne_local * i + j]] = 1;
+  }
+  INT ne_mid = 0;
+  INT *edge_to_mid = (INT *)malloc(ne * sizeof(INT));
+  for (i = 0; i < ne; i++) {
+    if (edge_need[i]) { edge_to_mid[i] = nv_old + ne_mid; ne_mid++; }
+    else edge_to_mid[i] = -1;
+  }
+  free(edge_need);
+  INT nv_new = nv_old + ne_mid;
+  /* midpoint coordinates */
+  sc->x = (REAL *)realloc(sc->x, nbig * nv_new * sizeof(REAL));
+  for (i = 0; i < ne; i++) {
+    if (edge_to_mid[i] < 0) continue;
+    INT va = e2v.JA[2 * i], vb = e2v.JA[2 * i + 1];
+    for (d = 0; d < nbig; d++)
+      sc->x[nbig * edge_to_mid[i] + d] =
+        0.5 * (sc->x[nbig * va + d] + sc->x[nbig * vb + d]);
+  }
+  /* update parent_v */
+  sc->parent_v->row = nv_new;
+  sc->parent_v->col = nv_old;
+  INT nnz_p = sc->parent_v->IA[nv_old];
+  sc->parent_v->nnz += 2 * ne_mid;
+  sc->parent_v->IA  = (INT *)realloc(sc->parent_v->IA,  (nv_new + 1) * sizeof(INT));
+  sc->parent_v->JA  = (INT *)realloc(sc->parent_v->JA,  sc->parent_v->nnz * sizeof(INT));
+  sc->parent_v->val = (INT *)realloc(sc->parent_v->val, sc->parent_v->nnz * sizeof(INT));
+  for (i = 0; i < ne; i++) {
+    if (edge_to_mid[i] < 0) continue;
+    sc->parent_v->JA[nnz_p] = e2v.JA[2 * i];   sc->parent_v->val[nnz_p] = 0; nnz_p++;
+    sc->parent_v->JA[nnz_p] = e2v.JA[2 * i + 1]; sc->parent_v->val[nnz_p] = 0; nnz_p++;
+    sc->parent_v->IA[edge_to_mid[i] + 1] = nnz_p;
+  }
+  /* build hash table for (va,vb) → midpoint vertex */
+  edge_mid_ht mmap;
+  emht_init(&mmap, 4 * ne_mid + 7);
+  for (i = 0; i < ne; i++) {
+    if (edge_to_mid[i] < 0) continue;
+    emht_put(&mmap, e2v.JA[2 * i], e2v.JA[2 * i + 1], edge_to_mid[i]);
+  }
+  icsr_free(&e2v);
+  /* build new nodes: unmarked → copy, marked → 2^dim Bey children */
+  INT nchildren = (1 << dim);
+  INT ns_phase1 = (ns_old - ns_marked) + nchildren * ns_marked;
+  INT *nodes_new = (INT *)calloc(n1 * ns_phase1, sizeof(INT));
+  INT ns_new = 0;
+  for (i = 0; i < ns_old; i++) {
+    if (!marked->val[i]) {
+      memcpy(nodes_new + n1 * ns_new, sc->nodes + n1 * i, n1 * sizeof(INT));
+      ns_new++;
+    } else {
+      INT *ov = sc->nodes + n1 * i;
+      INT *edges = el2e.JA + ne_local * i;
+      for (INT s = 0; s < nchildren; s++) {
+        INT off = n1 * ns_new;
+        INT pc = 0;
+        { INT t = s; while (t) { pc += t & 1; t >>= 1; } }
+        INT L = 0, U = pc;
+        if (L == U) nodes_new[off] = ov[L];
+        else {
+          INT r = L * (2 * dim - L + 1) / 2 + (U - L - 1);
+          nodes_new[off] = edge_to_mid[edges[r]];
+        }
+        for (INT kk = 1; kk <= dim; kk++) {
+          INT bit = (s >> (dim - kk)) & 1;
+          if (bit == 0) U++; else L++;
+          if (L == U) nodes_new[off + kk] = ov[L];
+          else {
+            INT r = L * (2 * dim - L + 1) / 2 + (U - L - 1);
+            nodes_new[off + kk] = edge_to_mid[edges[r]];
+          }
+        }
+        ns_new++;
+      }
+    }
+  }
+  icsr_free(&el2e);
+  free(edge_to_mid);
+  free(sc->nodes);
+  sc->nodes = nodes_new;
+  sc->ns = ns_new;
+  sc->nv = nv_new;
+  /* ================================================================ */
+  /*  Phase 2+3: Closure loop (face-Bey + bisection)                  */
+  /*                                                                    */
+  /*  Each pass scans all simplices:                                    */
+  /*    - face with ALL edges midpointed → face-Bey (2^(d-1) children) */
+  /*    - single edge with midpoint      → bisect   (2 children)       */
+  /*  Repeat until no non-conforming simplices remain.                  */
+  /* ================================================================ */
+  INT nch_face = (1 << (dim - 1));  /* 2^(d-1) */
+  INT face_ne = (dim - 1) * dim / 2; /* C(d,2) edges per face */
+  for (INT pass = 0; pass < 200; pass++) {
+    INT ns_cur = sc->ns;
+    /* action[i]: 0=keep, 1=bisect, -(k+1)=face-Bey opposite vertex k */
+    INT *action   = (INT *)calloc(ns_cur, sizeof(INT));
+    INT *bsct_pa  = (INT *)calloc(ns_cur, sizeof(INT)); /* local pos of va */
+    INT *bsct_pb  = (INT *)calloc(ns_cur, sizeof(INT)); /* local pos of vb */
+    INT *bsct_mid = (INT *)calloc(ns_cur, sizeof(INT)); /* midpoint vertex */
+    INT changed = 0;
+    for (i = 0; i < ns_cur; i++) {
+      INT *v = sc->nodes + n1 * i;
+      /* --- check each face for full midpoint coverage --- */
+      INT done = 0;
+      for (k = 0; k < n1 && !done; k++) {
+        INT all_mid = 1, any_hanging = 0;
+        for (INT p = 0; p < n1 && all_mid; p++) {
+          if (p == k) continue;
+          for (INT q = p + 1; q < n1; q++) {
+            if (q == k) continue;
+            INT m = emht_get(&mmap, v[p], v[q]);
+            if (m < 0) { all_mid = 0; break; }
+            /* check if m is already a vertex of this simplex */
+            INT found = 0;
+            for (INT r = 0; r < n1; r++) if (v[r] == m) { found = 1; break; }
+            if (!found) any_hanging = 1;
+          }
+        }
+        if (all_mid && any_hanging) {
+          action[i] = -(k + 1);
+          changed = 1;
+          done = 1;
+        }
+      }
+      if (done) continue;
+      /* --- check for single-edge hanging midpoints --- */
+      for (INT p = 0; p < n1 && !done; p++) {
+        for (INT q = p + 1; q < n1; q++) {
+          INT m = emht_get(&mmap, v[p], v[q]);
+          if (m < 0) continue;
+          INT found = 0;
+          for (INT r = 0; r < n1; r++) if (v[r] == m) { found = 1; break; }
+          if (!found) {
+            action[i] = 1;
+            bsct_pa[i] = p; bsct_pb[i] = q; bsct_mid[i] = m;
+            changed = 1; done = 1; break;
+          }
+        }
+      }
+    }
+    if (!changed) {
+      free(action); free(bsct_pa); free(bsct_pb); free(bsct_mid);
+      break;
+    }
+    /* count output simplices */
+    INT ns_out = 0;
+    for (i = 0; i < ns_cur; i++) {
+      if (action[i] == 0) ns_out++;
+      else if (action[i] == 1) ns_out += 2;
+      else ns_out += nch_face;
+    }
+    INT *out = (INT *)calloc(n1 * ns_out, sizeof(INT));
+    INT oi = 0;
+    for (i = 0; i < ns_cur; i++) {
+      INT *v = sc->nodes + n1 * i;
+      if (action[i] == 0) {
+        memcpy(out + n1 * oi, v, n1 * sizeof(INT));
+        oi++;
+      } else if (action[i] == 1) {
+        /* bisect: child1 = v with v[pb]→m, child2 = v with v[pa]→m */
+        INT pa = bsct_pa[i], pb = bsct_pb[i], m = bsct_mid[i];
+        memcpy(out + n1 * oi, v, n1 * sizeof(INT));
+        out[n1 * oi + pb] = m;
+        oi++;
+        memcpy(out + n1 * oi, v, n1 * sizeof(INT));
+        out[n1 * oi + pa] = m;
+        oi++;
+      } else {
+        /* face-Bey: apply (d-1)-dim Bey to face, cone to apex */
+        INT k_apex = -(action[i] + 1);
+        INT apex = v[k_apex];
+        /* extract face vertices (skip apex) */
+        INT f[64]; /* dim <= 63 */
+        INT fi = 0;
+        for (j = 0; j < n1; j++) if (j != k_apex) f[fi++] = v[j];
+        /* fi == dim */
+        INT fdim = dim - 1;
+        for (INT s = 0; s < nch_face; s++) {
+          INT off = n1 * oi;
+          INT pc = 0;
+          { INT t = s; while (t) { pc += t & 1; t >>= 1; } }
+          INT L = 0, U = pc;
+          if (L == U) out[off] = f[L];
+          else out[off] = emht_get(&mmap, f[L], f[U]);
+          for (INT kk = 1; kk <= fdim; kk++) {
+            INT bit = (s >> (fdim - kk)) & 1;
+            if (bit == 0) U++; else L++;
+            if (L == U) out[off + kk] = f[L];
+            else out[off + kk] = emht_get(&mmap, f[L], f[U]);
+          }
+          out[off + dim] = apex; /* apex goes last */
+          oi++;
+        }
+      }
+    }
+    free(sc->nodes);
+    sc->nodes = out;
+    sc->ns = ns_out;
+    free(action); free(bsct_pa); free(bsct_pb); free(bsct_mid);
+  }
+  emht_free(&mmap);
+  haz_scomplex_realloc(sc);
 }

@@ -1,14 +1,14 @@
 /*! \file examples/amr_grids/amr_grids.c
  *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov 2019/01/09.
- *  Copyright 2015_HAZMATH__. All rights reserved.
+ *  Authors: James Adler, Xiaozhe Hu, and Ludmil Zikatanov
+ *           HAZmath (https://hazmath.net)
+ *           Created with the help of Claude (Anthropic)
  *
- * \brief This program generates simplicial grids in 2,3,4... dimension.
+ *  Created 2019/01/09.  Copyright 2015_HAZMATH__. All rights reserved.
  *
- * \note This example highlights some of the features of the simple
- * mesh generator included with HAZmath. It is only to illustrate how
- * to use the mesh refinement.
- *  \modified 20260307 (ltz with the help of Claude (Anthropic))
+ * \brief Generates simplicial grids in 2, 3, 4, ... dimensions.
+ *        Supports DGS bisection, uniform Bey, and selective Bey
+ *        refinement with conforming closure.
  */
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
@@ -46,7 +46,7 @@ INT main(INT argc, char* argv[]) {
   ivector marked;
   void* all = NULL;
   REAL* xstar = NULL;
-  INT nstar, dim = sc->dim;
+  INT nstar, dim = sc->dim, n1 = dim + 1;
   features feat;
   feat.n = 0; feat.nbig = 0; feat.x = NULL; feat.fill = -1e20; feat.fpf = NULL;
   iCSRmat node_ins;
@@ -65,8 +65,55 @@ INT main(INT argc, char* argv[]) {
   }
   //NNNNNNNNNNNNNNNN
   if (amr_marking_type == 0) {
-    // refine ref_levels;
-    refine(ref_levels, sc, NULL);
+    if (sc->ref_type == 21 || sc->ref_type == 22) {
+      // Marked Bey + face-Bey/bisection closure
+      // ref_type 21: mark odd-indexed simplices (checkerboard test)
+      // ref_type 22: mark simplices near the origin (re-entrant corner)
+      for (j = 0; j < ref_levels; j++) {
+        ivector mark = ivec_create(sc->ns);
+        INT nmarked = 0;
+        if (sc->ref_type == 21) {
+          for (k = 0; k < sc->ns; k++) { mark.val[k] = (k % 2); if (mark.val[k]) nmarked++; }
+        } else {
+          /* mark simplices whose barycenter is within threshold of origin */
+          /* threshold shrinks each level so refinement concentrates */
+          REAL threshold = 1.0;
+          for (INT jj = 0; jj < j; jj++) threshold *= 0.6;
+          for (k = 0; k < sc->ns; k++) {
+            REAL dist2 = 0.0;
+            for (INT dd = 0; dd < dim; dd++) {
+              REAL c = 0.0;
+              for (INT vv = 0; vv < n1; vv++)
+                c += sc->x[sc->nbig * sc->nodes[n1 * k + vv] + dd];
+              c /= (REAL)n1;
+              dist2 += c * c;
+            }
+            mark.val[k] = (dist2 < threshold * threshold) ? 1 : 0;
+            if (mark.val[k]) nmarked++;
+          }
+        }
+        fprintf(stdout, "\n%% Marked Bey (lvl %lld): ns=%lld, marked=%lld",
+          (long long)j, (long long)sc->ns, (long long)nmarked);
+        uniformrefine_marked(sc, &mark);
+        ivec_free(&mark);
+        sc_vols(sc);
+        fprintf(stdout, " -> ns=%lld, nv=%lld", (long long)sc->ns, (long long)sc->nv);
+      }
+      fprintf(stdout, "\n");
+      find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
+      sc_vols(sc);
+    } else if (sc->ref_type > 10) {
+      // uniform (Freudenthal) refinement — works in any dimension
+      for (j = 0; j < ref_levels; j++) {
+        uniformrefine(sc);
+        sc_vols(sc);
+      }
+      find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
+      sc_vols(sc);
+    } else {
+      // DGS bisection refinement
+      refine(ref_levels, sc, NULL);
+    }
   } else if (amr_marking_type == 44) {
     node_ins = icsr_create(0, 0, 0);
     nstar = feat.nf;

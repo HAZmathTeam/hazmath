@@ -8,9 +8,9 @@ dimension{4}   % spatial dimension in which the grid has to be generated
 print_level{10}	% how much information to print out: 0 little | >0 more
 %---------------%
 
-num_refinements{0}
+num_refinements{2}
 
-%%%%% SHOULD NOT BE USED HERE: refinement_type{20}
+refinement_type{20}
 
 err_stop_refinement{        -1.e-10        }
 %%% files:  should be writeable by the user
@@ -100,5 +100,5 @@ data_coordsystems{0 0. 0.  0. 0. 0}
 %%%  marking strategy as in the examples given in the file
 %%%  solve_estimate_mark.h
 
-amr_marking_type{1}
+amr_marking_type{0}
 
