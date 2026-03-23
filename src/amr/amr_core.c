@@ -551,7 +551,7 @@ INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
 void refine(const INT ref_levels, scomplex* sc, ivector* marked) {
   if (ref_levels <= 0) return;
   /*somethind to be done*/
-  INT j = -1, i, nsold, print_level = 0, nsfine = -1;
+  INT j = -1, i, nsold, nsfine = -1;
   if (!sc->level) {
     /* sc->level this is set to 0 in haz_scomplex_init */
     /* form neighboring list on the coarsest level */
@@ -675,10 +675,10 @@ scomplex* make_uniform_mesh(const INT dim,const INT mesh_ref_levels,const INT me
 {
 
   // Loop Counters
-  INT jlevel,k;
+  INT jlevel;
 
   // Create a simplicial complex
-  scomplex **sc_all=NULL,*sc=NULL,*sctop=NULL;
+  scomplex **sc_all=NULL,*sc=NULL;
   fprintf(stdout,"\n%%%%---------------------------------------------------------------------");
   fprintf(stdout,"\n%%%%Meshing...");
   // Get the coarsest mesh on the cube in dimension dim and set the refinement type.

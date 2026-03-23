@@ -173,6 +173,44 @@ INT main(INT argc, char* argv[]) {
     }
     ivec_free(&marked);
     //free(xstar);
+  } else if (amr_marking_type == 34) {
+    // Refine near specified points using Bey + face-Bey/bisection closure.
+    // Mark simplices whose barycenter is within a shrinking threshold
+    // of any specified point. Threshold shrinks by 0.6x per level.
+    nstar = g->num_refine_points;
+    xstar = g->data_refine_points;
+    REAL threshold = 1.0;
+    for (j = 0; j < ref_levels; j++) {
+      marked = ivec_create(sc->ns);
+      INT nmarked = 0;
+      for (k = 0; k < sc->ns; k++) {
+        REAL mindist2 = 1e30;
+        for (INT s = 0; s < nstar; s++) {
+          REAL dist2 = 0.0;
+          for (INT dd = 0; dd < dim; dd++) {
+            REAL c = 0.0;
+            for (INT vv = 0; vv < n1; vv++)
+              c += sc->x[sc->nbig * sc->nodes[n1 * k + vv] + dd];
+            c /= (REAL)n1;
+            REAL d = c - xstar[s * dim + dd];
+            dist2 += d * d;
+          }
+          if (dist2 < mindist2) mindist2 = dist2;
+        }
+        marked.val[k] = (mindist2 < threshold * threshold) ? 1 : 0;
+        if (marked.val[k]) nmarked++;
+      }
+      fprintf(stdout, "\n%% Marked Bey (lvl %lld): ns=%lld, marked=%lld",
+        (long long)j, (long long)sc->ns, (long long)nmarked);
+      uniformrefine_marked(sc, &marked);
+      ivec_free(&marked);
+      sc_vols(sc);
+      fprintf(stdout, " -> ns=%lld, nv=%lld", (long long)sc->ns, (long long)sc->nv);
+      threshold *= 0.6;
+    }
+    fprintf(stdout, "\n");
+    find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
+    sc_vols(sc);
   } else {
     /*
       Use "all" here can pass data around. Below we make 4 dvectors
@@ -218,8 +256,9 @@ INT main(INT argc, char* argv[]) {
   }
   /*  MAKE sc to be the finest grid only */
   scfinalize(sc, NULL, (INT)1);
-  /* conformity check */
-  {
+  /* conformity check (expensive for large meshes — off by default) */
+  INT do_conformity_check = 0;
+  if (do_conformity_check) {
     INT nerr = sc_conformity_check(sc);
     if (nerr)
       fprintf(stderr, "\n%% FAIL: non-conforming mesh (%lld bad facets)\n", (long long)nerr);

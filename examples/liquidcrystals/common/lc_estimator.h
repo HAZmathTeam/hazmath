@@ -135,7 +135,7 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,scomplex *sc,qcoordin
         for (j = 0; j < n1dofpelm; j++) dn1[d] += fe_data.u_local[offset_n1+j] * fe_data.dphi[0][j*dim+d];
       }
       // P2 2nd derivatives (kept on old scomplex path for now)
-      P2_2ndDerivativeInterpolation(ddn1,u,qx,fe_data.local_dof,FE->var_spaces[0],sc);
+      fe_2ndderiv_interp_to_x(ddn1, fe_data.u_local+offset_n1, qx, &fe_data, &elm_data, 0);
 
       // Interpolate n2, dn2
       n2 = 0.0;
@@ -144,7 +144,7 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,scomplex *sc,qcoordin
         dn2[d] = 0.0;
         for (j = 0; j < n2dofpelm; j++) dn2[d] += fe_data.u_local[offset_n2+j] * fe_data.dphi[1][j*dim+d];
       }
-      P2_2ndDerivativeInterpolation(ddn2,u+FE->var_spaces[0]->ndof,qx,fe_data.local_dof+n1dofpelm,FE->var_spaces[1],sc);
+      fe_2ndderiv_interp_to_x(ddn2, fe_data.u_local+offset_n2, qx, &fe_data, &elm_data, 1);
 
       // Interpolate n3, dn3
       n3 = 0.0;
@@ -153,7 +153,7 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,scomplex *sc,qcoordin
         dn3[d] = 0.0;
         for (j = 0; j < n3dofpelm; j++) dn3[d] += fe_data.u_local[offset_n3+j] * fe_data.dphi[2][j*dim+d];
       }
-      P2_2ndDerivativeInterpolation(ddn3,u+FE->var_spaces[0]->ndof+FE->var_spaces[1]->ndof,qx,fe_data.local_dof+n1dofpelm+n2dofpelm,FE->var_spaces[2],sc);
+      fe_2ndderiv_interp_to_x(ddn3, fe_data.u_local+offset_n3, qx, &fe_data, &elm_data, 2);
 
       // lambda
       lam = 0.0;

@@ -528,7 +528,6 @@ void initialize_fesystem(block_fespace *FE,INT nspaces,INT nun,INT ndof,INT nelm
 */
 void initialize_localdata_elm(simplex_local_data *simplex_data,fe_local_data *fe_data,scomplex* sc,block_fespace *FE,INT nq1d)
 {
-  sc_fem *fem = sc->fem;
   INT dim = sc->dim;
 
   // counters
@@ -711,7 +710,7 @@ void get_elmlocaldata(simplex_local_data* elm_data,scomplex* sc,INT elm)
 */
 void get_felocaldata_elm(fe_local_data *fe_data, block_fespace *FE, dvector *old_sol, INT elm)
 {
-  INT i, j, k, rowa, rowb, jcntr, global_offset;
+  INT j, k, rowa, rowb, jcntr, global_offset;
   INT nspaces = fe_data->nspaces;
 
   // Gather DOF for all spaces on this element
@@ -752,7 +751,6 @@ void get_felocaldata_elm(fe_local_data *fe_data, block_fespace *FE, dvector *old
 */
 void initialize_localdata_face(simplex_local_data *simplex_data,fe_local_data *fe_data,scomplex* sc,block_fespace *FE,INT nq1d)
 {
-  sc_fem *fem = sc->fem;
   INT dim = sc->dim;
 
   // counters
@@ -891,7 +889,6 @@ void get_facelocaldata(simplex_local_data* face_data,scomplex* sc,INT face)
 */
 void initialize_localdata_edge(simplex_local_data *simplex_data,fe_local_data *fe_data,scomplex* sc,block_fespace *FE,INT nq1d)
 {
-  sc_fem *fem = sc->fem;
   INT dim = sc->dim;
 
   // counters
@@ -1544,7 +1541,6 @@ void set_dirichlet_bdry_block(block_fespace* FE,scomplex* sc)
 */
 void set_periodic_bdry(fespace* FE,scomplex* sc,const REAL minx,const REAL maxx,const REAL miny,const REAL maxy,const REAL minz,const REAL maxz)
 {
-  sc_fem *fem = sc->fem;
   INT dim = sc->dim;
 
   // Flag for errors

@@ -3094,7 +3094,6 @@ void dump_qcoords(qcoordinates *q)
 REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,scomplex *sc,REAL time,INT elm)
 {
   sc_fem *fem = sc->fem;
-  INT dim = sc->dim;
 
   // Loop indices
   INT quad;
@@ -3201,7 +3200,6 @@ REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,I
 REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,scomplex *sc,REAL time,INT face)
 {
   sc_fem *fem = sc->fem;
-  INT dim = sc->dim;
   // Loop indices
   INT quad;
 
@@ -3272,7 +3270,6 @@ REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT
 REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,scomplex *sc,REAL time,INT edge)
 {
   sc_fem *fem = sc->fem;
-  INT dim = sc->dim;
   // Loop indices
   INT quad;
 

@@ -45,7 +45,10 @@ typedef struct /* FEM-derived data for a simplicial complex */
   REAL *ed_len, *ed_tau, *ed_mid;
   REAL *f_area, *f_norm, *f_mid;
   INT *el_flag;         /* leaf-element flags (extracted from flags[]) */
-  INT *ed_flag, *f_flag;
+  INT *ed_flag, *f_flag; /* f_flag[f] = macroface code (0 = no code) */
+  INT n_coded_faces;    /* number of faces with nonzero f_flag */
+  INT *coded_faces;     /* [n_coded_faces] global face indices */
+  INT *coded_f_btype;   /* [n_coded_faces] 0=boundary, 1=interior */
   REAL *dwork;
   INT *iwork;
 } sc_fem;

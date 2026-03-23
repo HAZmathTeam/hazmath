@@ -256,6 +256,7 @@ void mgcycle(AMG_data *mgl,
 
     // Schwarz parameters
     Schwarz_param swzparam;
+    (void)swzparam;
 
     // local variables
     REAL alpha = 1.0;
@@ -709,6 +710,7 @@ void mgcycle_add(AMG_data *mgl,
 
     // Schwarz parameters
     Schwarz_param swzparam;
+    (void)swzparam;
 
     // local variables
     REAL alpha = 1.0;
@@ -842,6 +844,7 @@ void mgcycle_add_update(AMG_data *mgl,
 
     // Schwarz parameters
     Schwarz_param swzparam;
+    (void)swzparam;
 
     // local variables
     REAL alpha = 1.0;

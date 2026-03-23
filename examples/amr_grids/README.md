@@ -40,7 +40,9 @@ Rules:
 | `print_level{p}` | Output verbosity (0 = quiet) |
 | `refinement_type{rt}` | See table below |
 | `num_refinements{n}` | Number of refinement levels |
-| `amr_marking_type{m}` | 0 = refinement controlled by `refinement_type`; 1 = solve/estimate/mark/refine loop; 33 = refine near specified points; 44 = refine around features from file |
+| `amr_marking_type{m}` | See marking types below |
+| `num_refine_points{n}` | Number of points for marking types 33/34 |
+| `data_refine_points{...}` | Point coordinates for marking types 33/34 (format: `csys type x y [z]`) |
 | `err_stop_refinement{e}` | Stopping tolerance for AMR (not used in examples) |
 
 ### Refinement types (`refinement_type`)
@@ -108,6 +110,28 @@ The loop iterates until no non-conforming simplices remain. The
 algorithm works in any spatial dimension and has been verified on
 2D through 5D meshes.
 
+### Marking types (`amr_marking_type`)
+
+| Value | Method | Description |
+|---|---|---|
+| 0 | Controlled by `refinement_type` | Uses `refinement_type` to select DGS (0), uniform Bey (20), or selective Bey (21/22) |
+| 1 | Solve/estimate/mark/refine | Generic adaptive loop with user-defined solve, estimate, and mark functions |
+| 33 | DGS near points | Mark simplices containing specified points, refine with DGS bisection |
+| 34 | Bey+DGS near points | Mark simplices near specified points (barycenter distance with shrinking threshold), refine with selective Bey + face-Bey/bisection closure |
+| 44 | Features from file | Refine around features read from an external data file |
+
+Types 33 and 34 use `num_refine_points` and `data_refine_points` from the
+input file. Type 34 starts with threshold 1.0 and shrinks by 0.6× per
+level, producing graded meshes concentrated near the specified points.
+
+**Example** — Fichera corner refined near the re-entrant point (0,0,0):
+```
+amr_marking_type{34}
+num_refinements{6}
+num_refine_points{1}
+data_refine_points{0 0   0.0 0.0   0.0}
+```
+
 ### Geometry specification
 
 **Coordinate systems** (`num_coordsystems`, `data_coordsystems`):
@@ -125,8 +149,11 @@ Each row = `v[0] ... v[2^d-1]  material_code`. Vertices must be ordered so
 the macroelement maps to the unit cube without singularity (see below).
 
 **Macrofaces** (`num_macrofaces`, `data_macrofaces`):
-Each row = `v[0] ... v[2^(d-1)-1]  boundary_code`. Unlisted boundary faces
-get code 1 (Dirichlet); unlisted interior faces get code 0.
+Each row = `v[0] ... v[2^(d-1)-1]  boundary_code`. A macroface can be
+on the geometric boundary or shared between two macroelements (interior
+face with a prescribed code, e.g., material interface). Unlisted
+boundary faces get a default code `(face_number % 8) + 1`; unlisted
+interior faces get code 0.
 
 ### Vertex ordering for macroelements
 
@@ -154,6 +181,42 @@ input/2d_square.input
 | `src/amr/uniform_refinement.c` | `get_edge_nd`, `uniformrefine` (Bey/Freudenthal, any dim), `uniformrefine_marked` (selective Bey + closure) |
 | `src/amr/amr_core.c` | `refine` (DGS bisection), `haz_refine_simplex`, `haz_bisect_new/reuse`, `make_uniform_mesh` |
 | `src/amr/scomplex.c` | Simplicial complex: init, free, geometry, volumes, FEM data, boundary, conformity check |
+
+## Face codes and boundary data
+
+After `sc_build_fem_data(sc)`, face codes are stored in `sc->fem->f_flag[f]`
+for every face in the mesh. Faces with nonzero codes are listed in
+`sc->fem->coded_faces[]` with a boundary/interior indicator in
+`sc->fem->coded_f_btype[]` (0 = boundary, 1 = interior).
+
+Face codes are inherited from the macroface definitions in the input
+file. A mesh face has code C if all its vertices belong to macroface C
+(tracked via `sc->bndry_v`). Interior faces between macroelements can
+have nonzero codes (e.g., material interfaces, re-entrant cavity walls).
+All coded faces (boundary + interior) survive Gmsh `.msh` round-trips.
+
+Boundary faces without a prescribed code get a default of
+`(face_number % 8) + 1`, ensuring every boundary face has a nonzero code.
+
+Vertex codes (`sc->bndry[v]`) are the minimum of the face codes meeting
+at vertex `v`, computed in `scfinalize()`.
+
+### Boundary condition convention (`include/fem.h`)
+
+| Range | Macro | Meaning |
+|-------|-------|---------|
+| 0 | — | Interior (no BC) |
+| 1-16 | `MARKER_DIRICHLET` | Dirichlet |
+| 17-32 | `MARKER_NEUMANN` | Neumann |
+| 33-64 | `MARKER_ROBIN` | Robin |
+| 65+ | `MARKER_BOUNDARY_NO` | No BC applied |
+
+See `HAZMATH_MESH_RW.md` for C code examples of looping over coded
+faces and applying Dirichlet, Neumann, and Robin conditions using
+`simplex_local_data` and `fe_local_data`.
+
+The test program `test_bndry_codes.c` demonstrates writing boundary
+faces as VTU with face codes for ParaView visualization.
 
 ## References
 

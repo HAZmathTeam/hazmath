@@ -871,7 +871,6 @@ void uniformrefine_marked(scomplex *sc, ivector *marked)
   /*  Repeat until no non-conforming simplices remain.                  */
   /* ================================================================ */
   INT nch_face = (1 << (dim - 1));  /* 2^(d-1) */
-  INT face_ne = (dim - 1) * dim / 2; /* C(d,2) edges per face */
   for (INT pass = 0; pass < 200; pass++) {
     INT ns_cur = sc->ns;
     /* action[i]: 0=keep, 1=bisect, -(k+1)=face-Bey opposite vertex k */

@@ -84,7 +84,6 @@ void local_assembly_rhs_only(REAL *ALoc, REAL *bLoc, REAL *u_local,
 */
 void assemble_global_single(dCSRmat* A,dvector *b,fespace *FE,scomplex *sc,qcoordinates *cq,void (*local_assembly)(REAL *,REAL *,REAL *,simplex_local_data *,fe_local_data *,void (*)(REAL *,REAL *,REAL,void *),void (*)(REAL *,REAL *,REAL,void *),REAL),dvector *old_sol,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
-  INT dim = sc->dim;
   INT dof_per_elm = FE->dof_per_elm;
   INT i,j;
 
@@ -197,7 +196,6 @@ void assemble_global_single(dCSRmat* A,dvector *b,fespace *FE,scomplex *sc,qcoor
 void assemble_global_system(block_dCSRmat* A,dvector *b,block_fespace *FE,scomplex *sc,qcoordinates *cq,void (*local_assembly)(REAL *,REAL *,REAL *,simplex_local_data *,fe_local_data *,void (*)(REAL *,REAL *,REAL,void *),void (*)(REAL *,REAL *,REAL,void *),REAL),dvector *old_sol,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
   sc_fem *fem = sc->fem;
-  INT dim = sc->dim;
   INT dof_per_elm = 0;
   INT i,j,k,testdof,trialdof;
 

@@ -1060,7 +1060,6 @@ void set_unknown_component(dvector* u, dvector* ublock, block_fespace* FE,
  */
 void get_grad_H1toNed(dCSRmat* Grad, scomplex* sc) {
   sc_fem* fem = sc->fem;
-  INT dim = sc->dim;
   INT i, j, k, rowa;
   INT nedge = fem->nedge;
   REAL oneoverlen;
@@ -1230,7 +1229,6 @@ void get_curl_NedtoRT(dCSRmat* Curl, scomplex* sc) {
  */
 void get_div_RTtoL2(dCSRmat* Div, scomplex* sc) {
   sc_fem* fem = sc->fem;
-  INT dim = sc->dim;
   INT i, j, rowa, rowb, rowc, rowd, face, elm1, elm2, elm_big, n_felm;
   INT nelm = fem->ns_leaf;
   REAL oneovervol = 0.0;
@@ -1508,211 +1506,41 @@ void get_Pigrad_H1toRT(dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl,
 }
 /* ProjectOut_Grad removed — was unused */
 /******************************************************************************/
-/**********************Deprecated versions*************************************/
-/******************************************************************************/
-
 /*!
- * \fn void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT
- * *v_on_elm,fespace *FE,scomplex *sc)
+ * \fn void fe_2ndderiv_interp_to_x(REAL* val, REAL* u_local, REAL* x,
+ *       fe_local_data* fe_data, simplex_local_data* elm_data, INT space_index)
  *
- * \brief Interpolate a finite-element approximation to any other point in the
- * given element using the given type of elements.
+ * \brief Interpolate the 2nd derivative of a P2 FE approximation at point x
+ *        using the local-data interface (no scomplex dependency).
  *
- * \param u 	      Approximation to interpolate
- * \param x           Coordinates where to compute value
- * \param dof_on_elm  DOF belonging to particular element
- * \param v_on_elm    Vertices belonging to particular element
- * \param FE          FE Space
- * \param mesh        Mesh Data
- * \param val         Pointer to value of approximation at given values
+ * \param u_local       Local solution values on element (for one space)
+ * \param x             Coordinates where to evaluate
+ * \param fe_data       Local FE data
+ * \param elm_data      Local mesh data
+ * \param space_index   Index of FE space
  *
- * \note This will be deprecated soon.
- *
+ * \return val          2nd derivatives: uxx, uxy, uyy [, uxz, uyz, uzz]
  */
-void FE_Interpolation(REAL* val, REAL* u, REAL* x, INT* dof_on_elm,
-                      INT* v_on_elm, fespace* FE, scomplex* sc) {
-  sc_fem* fem = sc->fem;
-  INT dim = sc->dim;
-  INT i, j, dof;
-
-  // Get FE and Mesh data
-  INT dof_per_elm = FE->dof_per_elm;
-  // INT FEtype = FE->FEtype;
-  INT scal_or_vec = FE->scal_or_vec;
-
-  REAL coef[dim];
-
-  get_FEM_basis(FE->phi, FE->dphi, x, v_on_elm, dof_on_elm, sc, FE);
-
-  if (scal_or_vec == 0) {  // Scalar Element
-    coef[0] = 0.0;
-    for (j = 0; j < dof_per_elm; j++) {
-      dof = dof_on_elm[j];
-      coef[0] += u[dof] * FE->phi[j];
-    }
-    val[0] = coef[0];
-  } else {  // Vector Element
-    for (i = 0; i < dim; i++) {
-      coef[i] = 0.0;
-      for (j = 0; j < dof_per_elm; j++) {
-        dof = dof_on_elm[j];
-        coef[i] += u[dof] * FE->phi[j * dim + i];
-      }
-      val[i] = coef[i];
-    }
-  }
-
-  return;
-}
-/******************************************************************************/
-
-/*!
- * \fn void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT
- * *dof_on_elm,INT *v_on_elm,fespace *FE,scomplex *sc)
- *
- * \brief Interpolate the "derivative" of a finite-element approximation to any
- * other point in the given element using the given type of elements. Note that
- * for Lagrange Elements this means the Gradient, grad u, for Nedelec it means
- * the Curl, curl u, and for RT it is the Divergence, div u.
- *
- * \param u 	      Approximation to interpolate
- * \param x           Coordinates where to compute value
- * \param dof_on_elm  DOF belonging to particular element
- * \param v_on_elm    Vertices belonging to particular element
- * \param FE          FE Space
- * \param mesh        Mesh Data
- * \param val         Pointer to value of approximation at given values
- *
- * \note This will be deprecated soon.
- *
- */
-void FE_DerivativeInterpolation(REAL* val, REAL* u, REAL* x, INT* dof_on_elm,
-                                INT* v_on_elm, fespace* FE, scomplex* sc) {
-  sc_fem* fem = sc->fem;
-  INT dim = sc->dim;
-  INT dof, j, k, i;
-
-  // Get FE and Mesh data
-  INT dof_per_elm = FE->dof_per_elm;
-  INT FEtype = FE->FEtype;
-
-  // Basis Functions and its derivatives if necessary
-  // REAL coef[dim];
-  REAL coef[dim * dim];
-
-  get_FEM_basis(FE->phi, FE->dphi, x, v_on_elm, dof_on_elm, sc, FE);
-
-  if (FEtype == 0 ||
-      FEtype == 99) {  // Don't compute derivatives of P0 elements (set to 0)
-    for (j = 0; j < dim; j++) {
-      val[j] = 0.0;
-    }
-  } else if ((FEtype < 20 && FEtype != 0) || FEtype == 103) {  // Scalar Element
-    for (j = 0; j < dim; j++) {
-      coef[j] = 0.0;
-      for (k = 0; k < dof_per_elm; k++) {
-        dof = dof_on_elm[k];
-        coef[j] += u[dof] * FE->dphi[k * dim + j];
-      }
-      val[j] = coef[j];
-    }
-  } else if (FEtype == 20) {  // Nedelec
-    for (j = 0; j < dim; j++) coef[j] = 0.0;
-    if (dim == 2) {  // Curl is scalar
-      for (j = 0; j < dof_per_elm; j++) {
-        dof = dof_on_elm[j];
-        coef[0] += u[dof] * FE->dphi[j];
-      }
-      val[0] = coef[0];
-    } else if (dim == 3) {  // Curl is vector
-      for (j = 0; j < dof_per_elm; j++) {
-        dof = dof_on_elm[j];
-        coef[0] += u[dof] * FE->dphi[j * dim + 0];
-        coef[1] += u[dof] * FE->dphi[j * dim + 1];
-        coef[2] += u[dof] * FE->dphi[j * dim + 2];
-      }
-      val[0] = coef[0];
-      val[1] = coef[1];
-      val[2] = coef[2];
-    }
-  } else if (FEtype == 30) {  // Raviart-Thomas (div is scalar)
-    coef[0] = 0.0;
-
-    for (j = 0; j < dof_per_elm; j++) {
-      dof = dof_on_elm[j];
-      coef[0] += u[dof] * FE->dphi[j];
-    }
-    val[0] = coef[0];
-  } else if (FEtype >= 60) {  // Vector Lagrange Functions (i.e. bubbles) ->
-                              // gradients of vectors -> tensor
-    for (j = 0; j < dim; j++) {
-      for (i = 0; i < dim; i++) {
-        coef[j * dim + i] = 0.0;
-        for (k = 0; k < dof_per_elm; k++) {
-          dof = dof_on_elm[k];
-          coef[j * dim + i] += u[dof] * FE->dphi[k * dim * dim + j * dim + i];
-        }
-        val[j * dim + i] = coef[j * dim + i];
-      }
-    }
-
-  } else {
-    check_error(ERROR_FE_TYPE, __FUNCTION__);
-  }
-
-  return;
-}
-/******************************************************************************/
-
-/* blockFE_Interpolation removed — use blockfe_interpolation_to_x/quadpt instead */
-/* blockFE_DerivativeInterpolation removed — use blockfe_dinterp_to_x/quadpt instead */
-/******************************************************************************/
-
-/******************************************************************************/
-/* Some special interpolation routines needed for some error estimators */
-/******************************************************************************/
-/*!
- * \fn void P2_2ndDerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT
- * *dof_on_elm,INT *v_on_elm,fespace *FE,scomplex *sc)
- *
- * \brief Interpolate the "second derivative" of a P2 finite-element
- * approximation to any other point in the given element
- *
- * \param u 	        Approximation to interpolate
- * \param x           Coordinates where to compute value
- * \param dof_on_elm  DOF belonging to particular element
- * \param v_on_elm    Vertices belonging to particular element
- * \param FE          FE Space
- * \param mesh        Mesh Data
- * \param val         Pointer 2nd derivatives (uxx, uxy, uyy, uxz, uyz, uzz) of
- * approximation at given values
- *
- */
-void P2_2ndDerivativeInterpolation(REAL* val, REAL* u, REAL* x, INT* dof_on_elm,
-                                   fespace* FE, scomplex* sc) {
-  sc_fem* fem = sc->fem;
-  INT dim = sc->dim;
-  INT dof, j, k;
-
-  // Get FE and Mesh data
-  INT dof_per_elm = FE->dof_per_elm;
+void fe_2ndderiv_interp_to_x(REAL* val, REAL* u_local, REAL* x,
+    fe_local_data* fe_data, simplex_local_data* elm_data, INT space_index)
+{
+  INT dim = elm_data->dim;
+  INT dof_per_elm = fe_data->n_dof_per_space[space_index];
   INT twoders = 3 * (dim - 1);
 
-  REAL* ddp = (REAL*)calloc(3 * (dim - 1) * dof_per_elm, sizeof(REAL));
+  REAL *p = (REAL *)calloc(dof_per_elm, sizeof(REAL));
+  REAL *dp = (REAL *)calloc(dof_per_elm * dim, sizeof(REAL));
+  REAL *ddp = (REAL *)calloc(twoders * dof_per_elm, sizeof(REAL));
 
-  // Basis Functions and its derivatives
-  P2_basis_2der(FE->phi, FE->dphi, ddp, x, dof_on_elm, sc);
+  /* Call P2_basis_2der_xv with vertex coordinates from elm_data */
+  P2_basis_2der_xv(p, dp, ddp, x, elm_data->xv, dim);
 
-  for (j = 0; j < twoders; j++) {
+  for (INT j = 0; j < twoders; j++) {
     val[j] = 0.0;
-    for (k = 0; k < dof_per_elm; k++) {
-      dof = dof_on_elm[k];
-      val[j] += u[dof] * ddp[k * twoders + j];
-    }
+    for (INT k = 0; k < dof_per_elm; k++)
+      val[j] += u_local[k] * ddp[k * twoders + j];
   }
 
-  if (ddp) free(ddp);
-
-  return;
+  free(p); free(dp); free(ddp);
 }
 /******************************************************************************/

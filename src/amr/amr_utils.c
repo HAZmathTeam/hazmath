@@ -706,6 +706,21 @@ void scfinalize(scomplex* sc, scomplex* sc_leaf, const INT set_bndry_codes) {
     /* Build connectivity and boundary info on leaf mesh */
     find_nbr(leaf->ns, leaf->nv, leaf->dim, leaf->nodes, leaf->nbr);
     find_cc_bndry_cc(leaf, set_bndry_codes);
+    /* Set vertex codes = min of face codes meeting at each vertex */
+    if (leaf->bndry_f2v) {
+      memset(leaf->bndry, 0, leaf->nv * sizeof(INT));
+      for (INT ii = 0; ii < leaf->bndry_f2v->row; ++ii) {
+        INT fa = leaf->bndry_f2v->IA[ii], fb = leaf->bndry_f2v->IA[ii + 1];
+        if (fa >= fb) continue;
+        INT fc = leaf->bndry_f2v->val[fa];
+        if (!fc) continue;
+        for (INT kk = fa; kk < fb; ++kk) {
+          INT v = leaf->bndry_f2v->JA[kk];
+          if (v < leaf->nv && (!leaf->bndry[v] || abs(fc) < abs(leaf->bndry[v])))
+            leaf->bndry[v] = fc;
+        }
+      }
+    }
     /* Copy result to caller's struct */
     *sc_leaf = *leaf;
     /* Free the wrapper (but not its contents, which are now in *sc_leaf) */
@@ -735,6 +750,21 @@ void scfinalize(scomplex* sc, scomplex* sc_leaf, const INT set_bndry_codes) {
     sc->flags = realloc(sc->flags, ns * sizeof(INT));
     find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
     find_cc_bndry_cc(sc, (INT)1);
+    /* Set vertex codes = min of face codes meeting at each vertex */
+    if (sc->bndry_f2v) {
+      memset(sc->bndry, 0, sc->nv * sizeof(INT));
+      for (INT ii = 0; ii < sc->bndry_f2v->row; ++ii) {
+        INT fa = sc->bndry_f2v->IA[ii], fb = sc->bndry_f2v->IA[ii + 1];
+        if (fa >= fb) continue;
+        INT fc = sc->bndry_f2v->val[fa];
+        if (!fc) continue;
+        for (INT kk = fa; kk < fb; ++kk) {
+          INT v = sc->bndry_f2v->JA[kk];
+          if (v < sc->nv && (!sc->bndry[v] || abs(fc) < abs(sc->bndry[v])))
+            sc->bndry[v] = fc;
+        }
+      }
+    }
     /* Free hierarchy data */
     if (sc->bndry_v) { icsr_free(sc->bndry_v); free(sc->bndry_v); sc->bndry_v = NULL; }
     if (sc->parent_v) { icsr_free(sc->parent_v); free(sc->parent_v); sc->parent_v = NULL; }
@@ -1129,8 +1159,9 @@ void find_cc_bndry_cc(scomplex* sc, const INT set_bndry_codes) {
             (long long)nbf, (long long)nbfnew, __FUNCTION__);
     exit(65);
   }
-  /* Save boundary f2v with global vertex indices before renumbering.
-     Face codes (val) will be filled in after sc->bndry is set. */
+  INT nbf_bndry = nbf; /* save count of geometric boundary faces */
+  /* Save boundary f2v (boundary faces only) for DFS and bndry_f2v.
+     Interior coded faces will be appended AFTER the DFS. */
   if (sc->bndry_f2v) {
     icsr_free(sc->bndry_f2v);
     free(sc->bndry_f2v);
@@ -1374,34 +1405,147 @@ void find_cc_bndry_cc(scomplex* sc, const INT set_bndry_codes) {
   // fprintf(stdout,"\nbndry_v2=[");
   // icsr_print_matlab(stdout,sc->bndry_v);
   // fprintf(stdout,"];\n");  fflush(stdout);
-  // set all boundary vertices as interior:
-  memset(sc->bndry, 0, sc->nv * sizeof(INT));
-  for (i = 0; i < sc->bndry_v->row; ++i) {
-    iaa = sc->bndry_v->IA[i];
-    iab = sc->bndry_v->IA[i + 1];
-    if ((iab - iaa) <= 0) continue;
-    m = sc->bndry_v->val[iaa];
-    for (INT k = iaa + 1; k < iab; ++k) {
-      // j=sc->bndry_v->JA[k];
-      if (m > sc->bndry_v->val[k]) m = sc->bndry_v->val[k];
+  /* ----------------------------------------------------------------
+   * Append interior coded faces to bndry_f2v.
+   * An interior face (nbr >= 0) has code C if ALL its dim vertices
+   * share code C in bndry_v. Done AFTER the DFS so boundary
+   * connected component count is not affected.
+   * ---------------------------------------------------------------- */
+  if (sc->bndry_v && sc->bndry_v->nnz > 0 && sc->bndry_f2v) {
+    INT nif = 0;
+    /* First pass: count */
+    for (i = 0; i < ns; i++) {
+      for (j = 0; j < dim1; j++) {
+        if (sc->nbr[i * dim1 + j] < 0) continue;
+        if (sc->nbr[i * dim1 + j] <= i) continue;
+        INT fverts[64]; INT nfv = 0;
+        for (m = 0; m < dim1; m++) {
+          if (m == j) continue;
+          fverts[nfv++] = sc->nodes[i * dim1 + m];
+        }
+        INT v0 = fverts[0];
+        if (v0 >= sc->bndry_v->row) continue;
+        INT ba0 = sc->bndry_v->IA[v0], bb0 = sc->bndry_v->IA[v0 + 1];
+        INT has_code = 0;
+        for (INT c = ba0; c < bb0 && !has_code; ++c) {
+          INT cand = sc->bndry_v->val[c];
+          if (!cand) continue;
+          INT all = 1;
+          for (INT kk = 1; kk < nfv && all; ++kk) {
+            INT vk = fverts[kk];
+            if (vk >= sc->bndry_v->row) { all = 0; break; }
+            INT bak = sc->bndry_v->IA[vk], bbk = sc->bndry_v->IA[vk + 1];
+            INT found = 0;
+            for (INT cc = bak; cc < bbk; ++cc)
+              if (sc->bndry_v->val[cc] == cand) { found = 1; break; }
+            if (!found) all = 0;
+          }
+          if (all) has_code = 1;
+        }
+        if (has_code) nif++;
+      }
     }
-    // this check should not be needed
-    if (i < sc->nv) sc->bndry[i] = m;
+    if (nif > 0) {
+      INT old_nbf = sc->bndry_f2v->row;
+      INT old_nnz = sc->bndry_f2v->nnz;
+      INT new_nbf = old_nbf + nif;
+      INT new_nnz = old_nnz + nif * dim;
+      sc->bndry_f2v->IA = realloc(sc->bndry_f2v->IA, (new_nbf + 1) * sizeof(INT));
+      sc->bndry_f2v->JA = realloc(sc->bndry_f2v->JA, new_nnz * sizeof(INT));
+      sc->bndry_f2v->val = realloc(sc->bndry_f2v->val, new_nnz * sizeof(INT));
+      INT nnz_cur = old_nnz;
+      INT row_cur = old_nbf;
+      /* Second pass: append */
+      for (i = 0; i < ns; i++) {
+        for (j = 0; j < dim1; j++) {
+          if (sc->nbr[i * dim1 + j] < 0) continue;
+          if (sc->nbr[i * dim1 + j] <= i) continue;
+          INT fverts[64]; INT nfv = 0;
+          for (m = 0; m < dim1; m++) {
+            if (m == j) continue;
+            fverts[nfv++] = sc->nodes[i * dim1 + m];
+          }
+          INT v0 = fverts[0];
+          if (v0 >= sc->bndry_v->row) continue;
+          INT ba0 = sc->bndry_v->IA[v0], bb0 = sc->bndry_v->IA[v0 + 1];
+          INT has_code = 0;
+          for (INT c = ba0; c < bb0 && !has_code; ++c) {
+            INT cand = sc->bndry_v->val[c];
+            if (!cand) continue;
+            INT all = 1;
+            for (INT kk = 1; kk < nfv && all; ++kk) {
+              INT vk = fverts[kk];
+              if (vk >= sc->bndry_v->row) { all = 0; break; }
+              INT bak = sc->bndry_v->IA[vk], bbk = sc->bndry_v->IA[vk + 1];
+              INT found = 0;
+              for (INT cc = bak; cc < bbk; ++cc)
+                if (sc->bndry_v->val[cc] == cand) { found = 1; break; }
+              if (!found) all = 0;
+            }
+            if (all) has_code = 1;
+          }
+          if (!has_code) continue;
+          for (INT kk = 0; kk < nfv; kk++) {
+            sc->bndry_f2v->JA[nnz_cur] = fverts[kk];
+            sc->bndry_f2v->val[nnz_cur] = 0;
+            nnz_cur++;
+          }
+          row_cur++;
+          sc->bndry_f2v->IA[row_cur] = nnz_cur;
+        }
+      }
+      sc->bndry_f2v->row = new_nbf;
+      sc->bndry_f2v->nnz = new_nnz;
+    }
   }
-  // haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
-  /* Fill in face codes in bndry_f2v from sc->bndry.
-     For each boundary face, the code is the minimum bndry code
-     of its vertices (consistent with how sc->bndry is set). */
-  if (sc->bndry_f2v) {
+  /* ----------------------------------------------------------------
+   * Face codes are INHERITED from the macroface each boundary face
+   * was born from (stored in bndry_v->val for every vertex).
+   * A face has code C if ALL its vertices carry C in bndry_v.
+   * Vertex codes are set LATER in scfinalize as the minimum of
+   * the face codes meeting at each vertex.
+   * ---------------------------------------------------------------- */
+  if (sc->bndry_f2v && sc->bndry_v) {
     for (i = 0; i < sc->bndry_f2v->row; ++i) {
       INT fa = sc->bndry_f2v->IA[i], fb = sc->bndry_f2v->IA[i + 1];
+      INT nvf = fb - fa;
       INT fcode = 0;
-      if (fa < fb) fcode = sc->bndry[sc->bndry_f2v->JA[fa]];
-      for (k = fa + 1; k < fb; ++k) {
-        INT vc = sc->bndry[sc->bndry_f2v->JA[k]];
-        if (vc && (!fcode || vc < fcode)) fcode = vc;
+      if (nvf <= 0) continue;
+      /* For each code of the first vertex, check if ALL other face
+         vertices also carry that code in bndry_v.
+         A (d-1)-face belongs to exactly one macroface, so exactly
+         one code should qualify. */
+      INT v0 = sc->bndry_f2v->JA[fa];
+      if (v0 >= sc->bndry_v->row) goto next_face;
+      INT ba0 = sc->bndry_v->IA[v0], bb0 = sc->bndry_v->IA[v0 + 1];
+      for (INT c = ba0; c < bb0; ++c) {
+        INT candidate = sc->bndry_v->val[c];
+        if (!candidate) continue;
+        INT all_have = 1;
+        for (INT kk = 1; kk < nvf && all_have; ++kk) {
+          INT vk = sc->bndry_f2v->JA[fa + kk];
+          if (vk >= sc->bndry_v->row) { all_have = 0; break; }
+          INT bak = sc->bndry_v->IA[vk], bbk = sc->bndry_v->IA[vk + 1];
+          INT found = 0;
+          for (INT cc = bak; cc < bbk; ++cc) {
+            if (sc->bndry_v->val[cc] == candidate) { found = 1; break; }
+          }
+          if (!found) all_have = 0;
+        }
+        if (all_have) fcode = candidate;
       }
+      next_face:
       for (k = fa; k < fb; ++k) sc->bndry_f2v->val[k] = fcode;
+    }
+    /* Any BOUNDARY face (first nbf_bndry rows) with code 0 gets a default:
+       (face_number % 8) + 1 so it has a nonzero code for visualization */
+    for (i = 0; i < nbf_bndry && i < sc->bndry_f2v->row; ++i) {
+      INT fa = sc->bndry_f2v->IA[i];
+      if (sc->bndry_f2v->val[fa] == 0) {
+        INT fb = sc->bndry_f2v->IA[i + 1];
+        INT defcode = (i % 8) + 1;
+        for (k = fa; k < fb; ++k) sc->bndry_f2v->val[k] = defcode;
+      }
     }
   }
   //

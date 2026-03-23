@@ -1772,11 +1772,13 @@ void sc_write_gmsh(const char *namemsh,scomplex *sc, const INT shift0)
   }
   fprintf(fmesh,"%s\n","$EndNodes");
   fprintf(fmesh,"%s\n","$Elements");
-  /* count boundary faces */
+  /* count coded faces (boundary + interior with codes) in bndry_f2v */
   INT nbf_out=0;
   if(sc->bndry_f2v) nbf_out=sc->bndry_f2v->row;
   fprintf(fmesh,"%lld\n",(long long )(nbf_out+ns));
-  /* write boundary faces as lower-dimensional elements */
+  /* write coded faces as lower-dimensional elements.
+     tag1 = face code, tag2 = face code (same convention as Gmsh physical+elementary).
+     Interior vs boundary is recomputed from element adjacency on read. */
   if(nbf_out>0){
     int face_type;
     switch(dim){
@@ -1841,7 +1843,7 @@ scomplex* sc_read_gmsh(const char *namemsh)
 {
   FILE *fmesh = HAZ_fopen(namemsh, "r");
   char line[1024];
-  INT i, j, k;
+  INT i, j;
 
   /* 1. Skip $MeshFormat ... $EndMeshFormat */
   while (fgets(line, sizeof(line), fmesh)) {
@@ -1870,6 +1872,7 @@ scomplex* sc_read_gmsh(const char *namemsh)
       if (i == 0) coords_per_node = nc;
     }
   }
+  (void)coords_per_node;
   while (fgets(line, sizeof(line), fmesh)) {
     if (strstr(line, "$EndNodes")) break;
   }

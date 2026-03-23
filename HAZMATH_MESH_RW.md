@@ -299,30 +299,142 @@ The four boundary edges with distinct codes:
 
 Each line follows the pattern: `elm_id  elm_type  num_tags  phys_tag  elem_tag  node1  node2`.
 The physical tag (first tag) becomes the HAZMATH boundary code.
-HAZMATH uses boundary codes 1-16 for Dirichlet and 17-32 for Neumann by convention.
+HAZMATH boundary code convention (defined in `include/fem.h`):
+0 = interior, 1-16 = Dirichlet, 17-32 = Neumann, 33-64 = Robin, 65+ = no BC.
 
 ### In HAZMATH After Reading
 
 `sc_read_gmsh()` stores boundary data in three structures:
 
-1. `sc->bndry_f2v` — iCSRmat, rows = boundary faces, `JA` = vertex
-   indices, `val` = face code (same for all vertices of a face)
+1. `sc->bndry_f2v` — iCSRmat, rows = coded faces (boundary + interior
+   with prescribed codes), `JA` = vertex indices, `val` = face code
+   (same for all vertices of a face). Interior coded faces arise from
+   macrofaces shared between macroelements (material interfaces,
+   re-entrant cavity walls). These are written to and read from `.msh`
+   files, enabling full round-trip preservation of face codes.
 
 2. `sc->bndry_v` — iCSRmat (transpose of `bndry_f2v`), rows = vertices,
    `JA` = boundary face indices, `val` = face codes. A corner vertex
    belonging to two boundary faces will have two entries.
 
 3. `sc->bndry[v]` — per-vertex code, derived as the **minimum** code
-   over all boundary faces touching vertex `v`. Interior vertices have
-   code 0.
+   over all boundary faces touching vertex `v`, computed in
+   `scfinalize()`. Interior vertices have code 0.
+
+### Face Codes in `sc_fem`
+
+After calling `sc_build_fem_data(sc)`, face codes are available in
+`sc->fem`:
+
+- `sc->fem->f_flag[f]` — code for global face `f`. Nonzero for faces
+  with a macroface code (boundary or interior). Boundary faces that
+  have no prescribed code get a default of `(face_number % 8) + 1`.
+- `sc->fem->f_v` — iCSRmat, face-to-vertex connectivity (all faces).
+- `sc->fem->n_coded_faces` — number of faces with nonzero `f_flag`.
+- `sc->fem->coded_faces[i]` — global face index of the i-th coded face.
+- `sc->fem->coded_f_btype[i]` — 0 if the face is on the geometric
+  boundary, 1 if it is an interior face with a prescribed code.
+
+Interior faces with codes arise when a macroface is shared between
+two macroelements but has a prescribed boundary code (e.g., the
+re-entrant faces of a Fichera corner domain).
+
+### Looping Over Coded Faces
+
+Boundary condition convention (defined in `include/fem.h`):
+- `MARKER_DIRICHLET` = 1: codes 1-16 are Dirichlet
+- `MARKER_NEUMANN` = 17: codes 17-32 are Neumann
+- `MARKER_ROBIN` = 33: codes 33-64 are Robin
+- `MARKER_BOUNDARY_NO` = 65: codes 65+ have no BC
+
+```c
+sc_build_fem_data(sc);
+sc_fem *fem = sc->fem;
+
+/* Initialize local data structures (once) */
+simplex_local_data face_data;
+fe_local_data fe_face_data;
+memset(&face_data, 0, sizeof(simplex_local_data));
+memset(&fe_face_data, 0, sizeof(fe_local_data));
+initialize_localdata_face(&face_data, &fe_face_data, sc, FE, nq1d);
+
+/* Wrap solution in dvector for get_felocaldata_face */
+dvector sol_dvec;
+sol_dvec.row = FE->var_spaces[0]->ndof;
+sol_dvec.val = u;  /* pointer to solution array */
+
+for (INT ci = 0; ci < fem->n_coded_faces; ci++) {
+  INT face = fem->coded_faces[ci];
+  INT code = fem->f_flag[face];
+  INT is_interior = fem->coded_f_btype[ci];
+
+  /* Get local mesh and FE data on this face */
+  get_facelocaldata(&face_data, sc, face);
+  get_felocaldata_face(&fe_face_data, FE, &sol_dvec, face);
+  INT dof_per_face = fe_face_data.n_dof_per_space[0];
+
+  /* --- Dirichlet (codes 1-16): handled by strong enforcement,
+         not by face integration. Skip here. --- */
+  if (code >= MARKER_DIRICHLET && code < MARKER_NEUMANN) continue;
+
+  /* --- Neumann (codes 17-32): int_f g_N * v ds → RHS only --- */
+  if (code >= MARKER_NEUMANN && code < MARKER_ROBIN) {
+    for (INT q = 0; q < face_data.quad_local->nq; q++) {
+      REAL w = face_data.quad_local->w[q];
+      get_FEM_basis_at_quadpt(&face_data, &fe_face_data, 0, q);
+      REAL *qx = face_data.quad_local->x + q * sc->dim;
+      REAL g_N = g_neumann(qx);
+      for (INT i = 0; i < dof_per_face; i++)
+        b_local[i] += w * g_N * fe_face_data.phi[0][i];
+    }
+  }
+
+  /* --- Robin (codes 33-64): alpha*u + du/dn = g_R
+         Adds alpha * int_f u*v ds to stiffness matrix
+         and  int_f g_R * v ds to RHS --- */
+  if (code >= MARKER_ROBIN && code < MARKER_BOUNDARY_NO) {
+    REAL alpha = 1.0;
+    for (INT q = 0; q < face_data.quad_local->nq; q++) {
+      REAL w = face_data.quad_local->w[q];
+      get_FEM_basis_at_quadpt(&face_data, &fe_face_data, 0, q);
+
+      /* Interpolate u_h at quadrature point */
+      REAL u_h = 0.0;
+      for (INT i = 0; i < dof_per_face; i++)
+        u_h += fe_face_data.u_local[i] * fe_face_data.phi[0][i];
+
+      REAL *qx = face_data.quad_local->x + q * sc->dim;
+      REAL g_R = g_robin(qx);
+
+      for (INT i = 0; i < dof_per_face; i++) {
+        REAL phi_i = fe_face_data.phi[0][i];
+        b_local[i] += w * g_R * phi_i;
+        for (INT j = 0; j < dof_per_face; j++)
+          A_local[i * dof_per_face + j] += w * alpha * phi_i * fe_face_data.phi[0][j];
+      }
+    }
+  }
+
+  /* Scatter A_local, b_local into global system using fe_face_data.local_dof */
+  /* ... */
+}
+
+free_simplexlocaldata(&face_data);
+free_felocaldata(&fe_face_data);
+```
 
 ### After Refinement
 
 When the mesh is refined, new boundary vertices inherit codes from their
 parent vertices via `sc->bndry_v`. The function `find_cc_bndry_cc()`
 computes the intersection of boundary face memberships of the two parent
-vertices. This ensures boundary codes are preserved correctly through
-any number of refinement levels.
+vertices. Face codes in `bndry_f2v` are inherited from the macroface
+each face was born from: a face has code C if ALL its vertices carry
+code C in `bndry_v`. Interior faces with macroface codes are included
+in `bndry_f2v` alongside boundary faces.
+
+Vertex codes (`sc->bndry[v]`) are derived as the minimum of the face
+codes of all faces meeting at vertex `v`, computed in `scfinalize()`.
 
 ---
 

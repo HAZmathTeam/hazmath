@@ -541,6 +541,8 @@ void sc_free_fem_data(scomplex* sc) {
   if (fem->el_flag) free(fem->el_flag);
   if (fem->ed_flag) free(fem->ed_flag);
   if (fem->f_flag) free(fem->f_flag);
+  if (fem->coded_faces) free(fem->coded_faces);
+  if (fem->coded_f_btype) free(fem->coded_f_btype);
   if (fem->dwork) free(fem->dwork);
   if (fem->iwork) free(fem->iwork);
   free(fem);
@@ -677,23 +679,18 @@ void sc_build_fem_data(scomplex* sc) {
     REAL* ed_tau = (REAL*)calloc(nedge * dim, sizeof(REAL));
     REAL* ed_mid = (REAL*)calloc(nedge * dim, sizeof(REAL));
     edge_stats_all(ed_len, ed_tau, ed_mid, sc, &ed_v, dim);
-    /* Compute number of faces via Euler characteristic */
-    INT nconn_bdry = sc->bndry_cc;
-    INT nholes = nconn_bdry - 1;
+    /* Compute number of faces by counting from the neighbor array.
+       Each interior face appears twice in nbr (once per element),
+       each boundary face once. */
     INT nface = 0;
-    INT euler = -10;
     if (dim == 2) {
       nface = nedge;
-      euler = nv - nedge + ns_leaf + nholes;
-    } else if (dim == 3) {
-      nface = 1 + nedge - nv + ns_leaf;
-      nface = nface + nholes;
-      euler = nv - nedge + nface - ns_leaf - nholes;
-    }
-    if (euler != 1) {
-      printf("ERROR HAZMATH DANGER: in function %s, Euler Characteristic doesn't equal 1+nholes! euler=%lld nholes=%lld.\n\n",
-             __FUNCTION__, (long long)euler, (long long)nholes);
-      exit(ERROR_DIM);
+    } else {
+      INT n_bndry_slots = 0;
+      for (INT ii = 0; ii < ns_leaf * n1; ii++) {
+        if (sc->nbr[ii] < 0) n_bndry_slots++;
+      }
+      nface = (ns_leaf * n1 - n_bndry_slots) / 2 + n_bndry_slots;
     }
     /* Face ordering */
     INT f_per_elm = n1;
@@ -743,6 +740,52 @@ void sc_build_fem_data(scomplex* sc) {
     fem->f_norm = f_norm;
     fem->ed_flag = ed_flag;
     fem->f_flag = f_flag;
+    /* Overwrite f_flag with macroface codes from bndry_f2v.
+       For each boundary face in bndry_f2v, find the matching global face
+       in f_v by vertex-set comparison, and set f_flag to the face code. */
+    if (sc->bndry_f2v && sc->bndry_f2v->row > 0) {
+      iCSRmat *fv = fem->f_v;
+      for (INT bf = 0; bf < sc->bndry_f2v->row; ++bf) {
+        INT ba = sc->bndry_f2v->IA[bf], bb = sc->bndry_f2v->IA[bf + 1];
+        INT nvf = bb - ba;
+        INT fcode = sc->bndry_f2v->val[ba];
+        if (!fcode || nvf != dim) continue;
+        /* Find matching face in f_v */
+        for (INT gf = 0; gf < nface; ++gf) {
+          INT ga = fv->IA[gf], gb = fv->IA[gf + 1];
+          if (gb - ga != nvf) continue;
+          INT match = 1;
+          for (INT p = ba; p < bb && match; ++p) {
+            INT found = 0;
+            for (INT q = ga; q < gb; ++q)
+              if (sc->bndry_f2v->JA[p] == fv->JA[q]) { found = 1; break; }
+            if (!found) match = 0;
+          }
+          if (match) { f_flag[gf] = fcode; break; }
+        }
+      }
+    }
+    /* Build coded-faces list: faces with nonzero f_flag.
+       Also determine boundary/interior using el_f transpose (face degree). */
+    {
+      iCSRmat f_el;
+      icsr_trans(fem->el_f, &f_el);
+      INT ncf = 0;
+      for (INT f = 0; f < nface; ++f) if (f_flag[f]) ncf++;
+      fem->n_coded_faces = ncf;
+      fem->coded_faces = (INT *)malloc(ncf * sizeof(INT));
+      fem->coded_f_btype = (INT *)malloc(ncf * sizeof(INT));
+      INT ci = 0;
+      for (INT f = 0; f < nface; ++f) {
+        if (!f_flag[f]) continue;
+        fem->coded_faces[ci] = f;
+        /* boundary if face has only 1 adjacent element */
+        INT deg = f_el.IA[f + 1] - f_el.IA[f];
+        fem->coded_f_btype[ci] = (deg >= 2) ? 1 : 0;
+        ci++;
+      }
+      icsr_free(&f_el);
+    }
     if (fel_order) free(fel_order);
   } else if (dim == 1) {
     fem->nedge = 0;
@@ -1094,9 +1137,10 @@ scomplex sc_bndry(scomplex* sc) {
     }
   }
   dsc.ns = ns_b;
-  // end: computation of the nuumber of boundary faces. now store the vertices
-  // for every face.
+  // end: computation of the number of boundary faces. now store the vertices
+  // for every face, and look up face codes from bndry_f2v.
   INT* fnodes = calloc(ns_b * dim, sizeof(INT));
+  INT* fcodes = calloc(ns_b, sizeof(INT)); /* face code per boundary face */
   ns_b1 = 0;
   for (i = 0; i < ns; i++) {
     for (j = 0; j < dim1; j++) {
@@ -1106,6 +1150,25 @@ scomplex sc_bndry(scomplex* sc) {
           if (m == j) continue;
           fnodes[ns_b1 * dim + k] = sc->nodes[i * dim1 + m];
           k++;
+        }
+        /* Look up face code from bndry_f2v by matching vertex set */
+        fcodes[ns_b1] = 0;
+        if (sc->bndry_f2v) {
+          INT *fv = fnodes + ns_b1 * dim;
+          for (INT bf = 0; bf < sc->bndry_f2v->row; ++bf) {
+            INT ba = sc->bndry_f2v->IA[bf], bb = sc->bndry_f2v->IA[bf + 1];
+            if (bb - ba != dim) continue;
+            /* check if all vertices match (order-independent) */
+            INT match = 1;
+            for (INT p = 0; p < dim && match; ++p) {
+              INT found = 0;
+              for (INT q = ba; q < bb; ++q) {
+                if (fv[p] == sc->bndry_f2v->JA[q]) { found = 1; break; }
+              }
+              if (!found) match = 0;
+            }
+            if (match) { fcodes[ns_b1] = sc->bndry_f2v->val[ba]; break; }
+          }
         }
         ns_b1++;
       }
@@ -1163,6 +1226,9 @@ scomplex sc_bndry(scomplex* sc) {
   free(indx);
   free(indxinv);
   haz_scomplex_realloc(&dsc);
+  /* Set boundary face codes as element flags */
+  for (i = 0; i < ns_b; i++) dsc.flags[i] = fcodes[i];
+  free(fcodes);
   find_nbr(dsc.ns, dsc.nv, dsc.dim, dsc.nodes, dsc.nbr);
   return dsc;
 }
