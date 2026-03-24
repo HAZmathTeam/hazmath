@@ -381,6 +381,7 @@ void LCerror_estimator(REAL* est,REAL *u,block_fespace *FE,scomplex *sc,qcoordin
   free_felocaldata(&fe_nbr_data);
   if(f_on_elm) free(f_on_elm);
   icsr_free(f_el);
+  free(f_el);
   if(ddn1) free(ddn1);
   if(ddn2) free(ddn2);
   if(ddn3) free(ddn3);

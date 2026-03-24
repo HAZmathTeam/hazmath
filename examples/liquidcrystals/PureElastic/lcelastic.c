@@ -389,8 +389,11 @@ int main (int argc, char* argv[])
   /************ Free All the Arrays ***********************************************************/
   // Arrays
   if(energy) free(energy);
+  if(errest) free(errest);
+  if(estname) free(estname);
 
   // FE Spaces
+  free_fespace(&FE_est);
   free_fespace(&FE_nx);
   free_fespace(&FE_ny);
   free_fespace(&FE_nz);
