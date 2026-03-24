@@ -259,6 +259,7 @@ void compute_refelm_mapping(REAL* ref_map,REAL* lamgrads,REAL *xv,INT dim)
   }
 
   if(binv) free(binv);
+  if(wrk) free(wrk);
 
   return;
 }
@@ -364,8 +365,12 @@ void PX_basis(REAL *p,REAL *dp,INT porder,INT dim,REAL* lam, REAL* dlam)
 * \return cphi     Curl of basis functions (1 for each edge in 2D, dim for each edge in 3D)
 *
 */
-void ned0_basis(REAL *phi,REAL *cphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_ed,REAL* ed_len)
+void ned0_basis(REAL *phi,REAL *cphi,REAL* lam,REAL* dlam,simplex_local_data *elm_data)
 {
+  INT dim = elm_data->dim;
+  INT *v_on_elm = elm_data->local_v;
+  INT *v_on_ed = elm_data->v_on_ed;
+  REAL *ed_len = elm_data->ed_len;
   // Get Mesh Data
   INT v_per_elm = dim+1;
   INT ed_per_elm = dim*(dim+1)/2;
@@ -454,8 +459,13 @@ void ned0_basis(REAL *phi,REAL *cphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,
 * \return dphi     Div of basis functions (1 for each face)
 *
 */
-void rt0_basis(REAL *phi,REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_face,REAL* f_area,REAL* xv)
+void rt0_basis(REAL *phi,REAL *dphi,REAL* lam,REAL* dlam,simplex_local_data *elm_data)
 {
+  INT dim = elm_data->dim;
+  INT *v_on_elm = elm_data->local_v;
+  INT *v_on_face = elm_data->v_on_f;
+  REAL *f_area = elm_data->f_area;
+  REAL *xv = elm_data->xv;
   INT v_per_elm = dim+1;
   INT f_per_elm = dim+1;
   INT v_per_f = dim;
@@ -537,8 +547,12 @@ void rt0_basis(REAL *phi,REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,I
 * \return dphiy    d/dy of basis functions (2D only)
 *
 */
-void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_face,REAL* farea)
+void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL* lam,REAL* dlam,simplex_local_data *elm_data)
 {
+  INT dim = elm_data->dim;
+  INT *v_on_elm = elm_data->local_v;
+  INT *v_on_face = elm_data->v_on_f;
+  REAL *farea = elm_data->f_area;
   // Flag for errors
   SHORT status;
 
@@ -638,8 +652,12 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL* lam,REAL* dlam,INT dim,I
 * \return phi      Basis functions (dim for each face from reference triangle)
 * \return dphi     Tensor from gradient of basis functions
 */
-void face_bubble_basis(REAL *phi, REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_face,REAL* f_area,REAL* f_norm)
+void face_bubble_basis(REAL *phi, REAL *dphi,REAL* lam,REAL* dlam,simplex_local_data *elm_data)
 {
+  INT dim = elm_data->dim;
+  INT *v_on_elm = elm_data->local_v;
+  INT *v_on_face = elm_data->v_on_f;
+  REAL *f_norm = elm_data->f_norm;
   // Flag for errors
   SHORT status;
 
@@ -763,11 +781,11 @@ void get_FEM_basis_on_elm(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,
 
   } else if(fe_type==20) { // Nedelec elements
 
-    ned0_basis(phi,dphi,lam,dlam,dim,simplex_data->local_v,simplex_data->v_on_ed,simplex_data->ed_len);
+    ned0_basis(phi,dphi,lam,dlam,simplex_data);
 
   } else if(fe_type==30) { // Raviart-Thomas elements
 
-    rt0_basis(phi,dphi,lam,dlam,dim,simplex_data->local_v,simplex_data->v_on_f,simplex_data->f_area,simplex_data->xv);
+    rt0_basis(phi,dphi,lam,dlam,simplex_data);
 
   } else if(fe_type==60) { // Vector element
 
@@ -775,7 +793,7 @@ void get_FEM_basis_on_elm(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,
 
   } else if(fe_type==61) { // Bubble element
 
-    face_bubble_basis(phi,dphi,lam,dlam,dim,simplex_data->local_v,simplex_data->v_on_f,simplex_data->f_area,simplex_data->f_norm);
+    face_bubble_basis(phi,dphi,lam,dlam,simplex_data);
 
   } else if(fe_type==99) { // Constraint Single DOF Space
 

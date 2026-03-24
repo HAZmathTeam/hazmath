@@ -1678,9 +1678,7 @@ void vtu_data_init(scomplex* sc, vtu_data* vdata) {
   vdata->ipt = malloc(vdata->nipt * sizeof(INT*));
   vdata->icell = malloc(vdata->nicell * sizeof(INT*));
   vdata->names_ipt = malloc(vdata->nipt * sizeof(char*));
-  vdata->names_dpt = malloc(vdata->nicell * sizeof(INT*));
-  vdata->names_icell = malloc(vdata->nipt * sizeof(char*));
-  vdata->names_dcell = malloc(vdata->nicell * sizeof(INT*));
+  vdata->names_icell = malloc(vdata->nicell * sizeof(char*));
   //
   vdata->ipt[0] = sc->bndry;
   vdata->icell[0] = sc->flags;

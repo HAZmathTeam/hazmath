@@ -522,14 +522,16 @@ void sc_free_fem_data(scomplex* sc) {
   if (!sc || !sc->fem) return;
   sc_fem* fem = sc->fem;
   if (fem->leaf2global) free(fem->leaf2global);
-  /* el_v, el_ed, ed_v are owned by sc->inc — freed there, not here. */
-  fem->el_v = NULL;
-  fem->el_ed = NULL;
-  fem->ed_v = NULL;
-  /* el_f and f_v are separate allocations for all dimensions */
-  if (fem->el_f) { icsr_free(fem->el_f); free(fem->el_f); }
-  if (fem->f_v) { icsr_free(fem->f_v); free(fem->f_v); }
-  if (fem->f_ed) { icsr_free(fem->f_ed); free(fem->f_ed); }
+  /* Free all iCSRmat pointers via fem. el_v->JA aliases sc->nodes
+     (freed by haz_scomplex_free), so null it before icsr_free. */
+  if (fem->el_v) { fem->el_v->JA = NULL; icsr_free(fem->el_v); free(fem->el_v); fem->el_v = NULL; }
+  if (fem->el_ed) { icsr_free(fem->el_ed); free(fem->el_ed); fem->el_ed = NULL; }
+  if (fem->ed_v) { icsr_free(fem->ed_v); free(fem->ed_v); fem->ed_v = NULL; }
+  if (fem->el_f && fem->el_f != fem->el_ed) { icsr_free(fem->el_f); free(fem->el_f); }
+  fem->el_f = NULL;
+  if (fem->f_v && fem->f_v != fem->ed_v) { icsr_free(fem->f_v); free(fem->f_v); }
+  fem->f_v = NULL;
+  if (fem->f_ed) { icsr_free(fem->f_ed); free(fem->f_ed); fem->f_ed = NULL; }
   if (fem->el_vol) free(fem->el_vol);
   if (fem->el_mid) free(fem->el_mid);
   if (fem->ed_len) free(fem->ed_len);
@@ -547,7 +549,8 @@ void sc_free_fem_data(scomplex* sc) {
   if (fem->iwork) free(fem->iwork);
   free(fem);
   sc->fem = NULL;
-  sc->inc = NULL;
+  /* Free inc pointer array only — entries were freed via fem above */
+  if (sc->inc) { free(sc->inc); sc->inc = NULL; }
 }
 /**********************************************************************/
 /*!

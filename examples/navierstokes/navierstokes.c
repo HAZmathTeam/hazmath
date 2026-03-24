@@ -339,10 +339,10 @@ int main (int argc, char* argv[])
   /************ Free All the Arrays ***********************************************************/
 
   // CSR
-  // dcsr_free( &Mp);
-  // for(i=0;i<dim+1;i++)
-  // dcsr_free( &A_diag[i] );
-  // if(A_diag) free(A_diag);
+  dcsr_free(&Mp);
+  for(i=0;i<dim+1;i++)
+    dcsr_free(&A_diag[i]);
+  if(A_diag) free(A_diag);
 
   // Vectors
   if(solerrL2) free(solerrL2);
