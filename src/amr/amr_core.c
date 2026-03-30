@@ -391,21 +391,20 @@ static INT haz_bisect_new(scomplex* sc, INT is) {
 /*!
  * \brief Bisect simplex is using Algorithm 4, REUSING existing midpoint.
  */
-static void haz_bisect_reuse(scomplex* sc, INT is, INT nodnew) {
-  INT dim = sc->dim, n1 = dim + 1, N = sc->dgs_N;
+static void haz_bisect_reuse(scomplex* sc, INT is, INT nodnew,
+                             INT edge_va, INT edge_vb) {
+  INT dim = sc->dim, n1 = dim + 1;
   INT *el = sc->nodes + is * n1;
-  INT vm = el[dim], vm1 = el[dim - 1];
-  INT lvl_m = dgs_lvl_N(sc->gen_N[vm], N);
-  INT lvl_m1 = dgs_lvl_N(sc->gen_N[vm1], N);
-  INT va_idx;
-  if (lvl_m != lvl_m1) {
-    va_idx = dim - 1;
-  } else {
-    va_idx = dim;
-    for (INT k = 0; k < n1; k++)
-      if (dgs_lvl_N(sc->gen_N[el[k]], N) == lvl_m) { va_idx = k; break; }
+  /* Find the local indices of the shared edge endpoints in this simplex.
+     We bisect along the shared edge {edge_va, edge_vb}, NOT along the
+     simplex's own bse — the bse may differ for children created during
+     the conforming closure of a different edge. */
+  INT ia = -1, ib = -1;
+  for (INT k = 0; k < n1; k++) {
+    if (el[k] == edge_va) ia = k;
+    if (el[k] == edge_vb) ib = k;
   }
-  INT v_a = el[va_idx], v_b = el[dim];
+  INT v_a = edge_va, v_b = edge_vb;
   INT nsnew = sc->ns + 2, nvnew = sc->nv;
   INT pv[2] = {v_a, v_b};
   INT ks0 = sc->ns, ksn = sc->ns + 1;
@@ -416,9 +415,9 @@ static void haz_bisect_reuse(scomplex* sc, INT is, INT nodnew) {
   INT *c0 = sc->nodes + ks0 * n1;
   INT *cn = sc->nodes + ksn * n1;
   for (INT j = 0; j < n1; j++) c0[j] = el[j];
-  c0[va_idx] = nodnew;
+  c0[ia] = nodnew;
   for (INT j = 0; j < n1; j++) cn[j] = el[j];
-  cn[dim] = nodnew;
+  cn[ib] = nodnew;
   for (INT i = 0; i < n1; i++)
     for (INT j = i+1; j < n1; j++) {
       if (sc->gen_N[c0[i]] < sc->gen_N[c0[j]]) { INT t=c0[i]; c0[i]=c0[j]; c0[j]=t; }
@@ -467,21 +466,24 @@ INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
   INT dim = sc->dim, n1 = dim + 1;
   INT v0, vg;
   dgs_get_bse(sc, is, &v0, &vg);
-  /* Conforming closure (Algorithm 3) using static v2s index.
-     Children are NOT in v2s — they don't share the parent's bse
-     because the midpoint replaces one of the bse endpoints. */
-  if (sc->v2s_head && v0 < sc->v2s_nv) {
+  /* Conforming closure (Algorithm 3): scan ALL simplices (including
+     children created during closure) for leaves sharing edge {v0,vg}
+     whose bse differs — these must be refined before we bisect {v0,vg}.
+     The static v2s index misses children created during closure, so we
+     use a full scan to ensure correctness. */
+  {
     INT restart = 1;
     while (restart) {
       restart = 0;
-      for (INT k = sc->v2s_head[v0]; k >= 0; k = sc->v2s_next[k]) {
-        INT s = sc->v2s_simp[k];
+      for (INT s = 0; s < sc->ns; s++) {
         if (s == is || sc->child0[s] >= 0) continue;
         INT *el = sc->nodes + s * n1;
-        INT hg = 0;
-        for (INT a = 0; a < n1; a++)
-          if (el[a] == vg) { hg = 1; break; }
-        if (!hg) continue;
+        INT h0 = 0, hg = 0;
+        for (INT a = 0; a < n1; a++) {
+          if (el[a] == v0) h0 = 1;
+          if (el[a] == vg) hg = 1;
+        }
+        if (!h0 || !hg) continue;
         INT bv0, bvg;
         dgs_get_bse(sc, s, &bv0, &bvg);
         if ((bv0 == v0 && bvg == vg) || (bv0 == vg && bvg == v0)) continue;
@@ -494,28 +496,21 @@ INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
   if (sc->child0[is] >= 0) return 0;
   /* Bisect is, creating new midpoint */
   INT vnew = haz_bisect_new(sc, is);
-  /* Bisect all remaining pre-existing leaves sharing {v0,vg} */
-  if (sc->v2s_head) {
-    if (v0 < sc->v2s_nv) {
-      for (INT k = sc->v2s_head[v0]; k >= 0; k = sc->v2s_next[k]) {
-        INT s = sc->v2s_simp[k];
-        if (sc->child0[s] >= 0) continue;
-        INT *el = sc->nodes + s * n1;
-        INT hg = 0;
-        for (INT a = 0; a < n1; a++)
-          if (el[a] == vg) { hg = 1; break; }
-        if (hg) haz_bisect_reuse(sc, s, vnew);
+  /* Bisect ALL remaining leaf simplices sharing edge {v0,vg}.
+     This includes children created during the closure phase above,
+     which are not in the static v2s index. */
+  {
+    INT nscan = sc->ns;
+    for (INT s = 0; s < nscan; s++) {
+      if (s == is || sc->child0[s] >= 0) continue;
+      INT *el = sc->nodes + s * n1;
+      INT h0 = 0, hg = 0;
+      for (INT a = 0; a < n1; a++) {
+        if (el[a] == v0) h0 = 1;
+        if (el[a] == vg) hg = 1;
       }
-    }
-    if (vg < sc->v2s_nv) {
-      for (INT k = sc->v2s_head[vg]; k >= 0; k = sc->v2s_next[k]) {
-        INT s = sc->v2s_simp[k];
-        if (sc->child0[s] >= 0) continue;
-        INT *el = sc->nodes + s * n1;
-        INT h0 = 0;
-        for (INT a = 0; a < n1; a++)
-          if (el[a] == v0) { h0 = 1; break; }
-        if (h0) haz_bisect_reuse(sc, s, vnew);
+      if (h0 && hg) {
+        haz_bisect_reuse(sc, s, vnew, v0, vg);
       }
     }
   }

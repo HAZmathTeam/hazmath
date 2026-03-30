@@ -1510,9 +1510,61 @@ INT sc_conformity_check(scomplex* sc) {
   }
   free(facets);
   free(idx);
+  /* Also check for hanging nodes: vertices that lie on the interior
+     of a facet (edge in 2D, face in 3D) of another simplex. Build
+     an edge set and check if any vertex subdivides an edge. */
+  if (dim == 2) {
+    /* For 2D: collect all edges, then check if any vertex lies on an edge */
+    /* Build a sorted edge list */
+    INT nedges = ns * n1; /* 3 edges per triangle */
+    INT* edges = (INT*)calloc(nedges * 2, sizeof(INT));
+    for (i = 0; i < ns; i++) {
+      INT* el = sc->nodes + i * n1;
+      for (j = 0; j < n1; j++) {
+        INT fi = i * n1 + j;
+        INT v1 = el[(j + 1) % n1], v2 = el[(j + 2) % n1];
+        if (v1 > v2) { INT t = v1; v1 = v2; v2 = t; }
+        edges[fi * 2] = v1;
+        edges[fi * 2 + 1] = v2;
+      }
+    }
+    /* For each edge, check if any vertex lies strictly between endpoints */
+    INT nv = sc->nv, nbig = sc->nbig;
+    REAL* x = sc->x;
+    INT nhanging = 0;
+    for (i = 0; i < nedges; i++) {
+      INT va = edges[i * 2], vb = edges[i * 2 + 1];
+      REAL ax = x[va * nbig], ay = x[va * nbig + 1];
+      REAL bx = x[vb * nbig], by = x[vb * nbig + 1];
+      REAL ablen = sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
+      if (ablen < 1e-14) continue;
+      for (k = 0; k < nv; k++) {
+        if (k == va || k == vb) continue;
+        REAL px = x[k * nbig], py = x[k * nbig + 1];
+        REAL aplen = sqrt((px - ax) * (px - ax) + (py - ay) * (py - ay));
+        REAL pblen = sqrt((bx - px) * (bx - px) + (by - py) * (by - py));
+        if (fabs(aplen + pblen - ablen) < 1e-10 * ablen) {
+          nhanging++;
+          if (sc->print_level > 0 || nhanging <= 5) {
+            fprintf(stderr,
+                    "\n%%WARNING: hanging node v%lld on edge (%lld,%lld)",
+                    (long long)k, (long long)va, (long long)vb);
+          }
+        }
+      }
+    }
+    if (nhanging) {
+      fprintf(stderr,
+              "\n%%***CONFORMITY CHECK FAILED: %lld hanging nodes "
+              "(ns=%lld, nv=%lld, dim=%lld)\n",
+              (long long)nhanging, (long long)ns, (long long)sc->nv, (long long)dim);
+      nerr += nhanging;
+    }
+    free(edges);
+  }
   if (nerr) {
     fprintf(stderr,
-            "\n%%***CONFORMITY CHECK FAILED: %lld non-conforming facets "
+            "\n%%***CONFORMITY CHECK FAILED: %lld non-conforming issues "
             "(ns=%lld, nv=%lld, dim=%lld)\n",
             (long long)nerr, (long long)ns, (long long)sc->nv, (long long)dim);
   } else {

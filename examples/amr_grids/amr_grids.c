@@ -211,6 +211,65 @@ INT main(INT argc, char* argv[]) {
     fprintf(stdout, "\n");
     find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
     sc_vols(sc);
+  } else if (amr_marking_type == 35) {
+    /* Bey refinement near refine points, then DGS adaptive completion.
+       Split refinement levels: half Bey, half DGS. */
+    nstar = g->num_refine_points;
+    xstar = g->data_refine_points;
+    INT bey_levels = ref_levels / 2;
+    if (bey_levels < 2) bey_levels = 2;
+    INT dgs_levels = ref_levels - bey_levels;
+    if (dgs_levels < 1) dgs_levels = 1;
+    /* Phase 1: Bey refinement near points */
+    REAL threshold = 1.0;
+    fprintf(stdout, "\n%% Phase 1: Bey refinement (%lld levels)\n", (long long)bey_levels);
+    for (j = 0; j < bey_levels; j++) {
+      marked = ivec_create(sc->ns);
+      INT nmarked = 0;
+      for (k = 0; k < sc->ns; k++) {
+        REAL mindist2 = 1e30;
+        for (INT s = 0; s < nstar; s++) {
+          REAL dist2 = 0.0;
+          for (INT dd = 0; dd < dim; dd++) {
+            REAL c = 0.0;
+            for (INT vv = 0; vv < n1; vv++)
+              c += sc->x[sc->nbig * sc->nodes[n1 * k + vv] + dd];
+            c /= (REAL)n1;
+            REAL d = c - xstar[s * dim + dd];
+            dist2 += d * d;
+          }
+          if (dist2 < mindist2) mindist2 = dist2;
+        }
+        marked.val[k] = (mindist2 < threshold * threshold) ? 1 : 0;
+        if (marked.val[k]) nmarked++;
+      }
+      fprintf(stdout, "%% Bey lvl %lld: ns=%lld, marked=%lld",
+        (long long)j, (long long)sc->ns, (long long)nmarked);
+      uniformrefine_marked(sc, &marked);
+      ivec_free(&marked);
+      sc_vols(sc);
+      fprintf(stdout, " -> ns=%lld, nv=%lld\n", (long long)sc->ns, (long long)sc->nv);
+      threshold *= 0.5;
+    }
+    find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
+    sc_vols(sc);
+    /* Phase 2: DGS adaptive refinement near points */
+    fprintf(stdout, "%% Phase 2: DGS adaptive refinement (%lld levels)\n", (long long)dgs_levels);
+    REAL h = 0.05;
+    REAL dgs_threshold = h;
+    for (j = 0; j < dgs_levels; j++) {
+      sctop = scfinest(sc);
+      marked = mark_near_points(sctop, nstar, xstar, dgs_threshold);
+      kmarked = 0;
+      for (k = 0; k < marked.row; ++k)
+        if (marked.val[k]) kmarked++;
+      fprintf(stdout, "%% DGS lvl %lld: total_ns=%lld, leaves=%lld, marked=%lld\n",
+        (long long)j, (long long)sc->ns, (long long)sctop->ns, (long long)kmarked);
+      refine(1, sc, &marked);
+      ivec_free(&marked);
+      haz_scomplex_free(sctop);
+    }
+    ivec_free(&marked);
   } else {
     /*
       Use "all" here can pass data around. Below we make 4 dvectors
