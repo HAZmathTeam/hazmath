@@ -6,7 +6,7 @@
 %%%  marking strategy as in the examples given in the file
 %%%  solve_estimate_mark.h
 
-title{Unit square in 2D}
+title{Circle in 2D}
 
 amr_marking_type{0} %% 0 means uniform refinement everywhere.
 

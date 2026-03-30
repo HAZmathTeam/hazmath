@@ -118,10 +118,11 @@ algorithm works in any spatial dimension and has been verified on
 | 1 | Solve/estimate/mark/refine | Generic adaptive loop with user-defined solve, estimate, and mark functions |
 | 33 | DGS near points | Mark simplices containing specified points, refine with DGS bisection |
 | 34 | Bey+DGS near points | Mark simplices near specified points (barycenter distance with shrinking threshold), refine with selective Bey + face-Bey/bisection closure |
+| 35 | Bey then DGS near points | Bey refinement near points, then DGS adaptive completion |
 | 44 | Features from file | Refine around features read from an external data file |
 
-Types 33 and 34 use `num_refine_points` and `data_refine_points` from the
-input file. Type 34 starts with threshold 1.0 and shrinks by 0.6× per
+Types 33, 34, and 35 use `num_refine_points` and `data_refine_points` from
+the input file. Types 34 and 35 start with threshold 1.0 and shrink per
 level, producing graded meshes concentrated near the specified points.
 
 **Example** — Fichera corner refined near the re-entrant point (0,0,0):
@@ -164,15 +165,24 @@ d-k fixed bits). The resulting d-linear map must have nonzero Jacobian.
 
 ## Input files included
 
-```
-input/2d_2L.input           input/3d_2cubes_edge.input
-input/2d_ann.input          input/3d_2cubes_vertex.input
-input/2d_circle.input       input/3d_cube.input
-input/2d_grid.input         input/3d_fichera.input
-input/2d_L.input            input/4d_cube.input
-input/2d_SQ+L.input         input/5d_cube.input
-input/2d_square.input
-```
+| File | Title |
+|------|-------|
+| `input/2d_2L.input` | 2 Lshaped domains with connected boundaries |
+| `input/2d_ann.input` | Annulus in 2D |
+| `input/2d_circle.input` | Circle in 2D |
+| `input/2d_grid.input` | 2D Sector (polar coords) |
+| `input/2d_L.input` | L-shaped domain |
+| `input/2d_L_adaptive.input` | L-shaped domain (adaptive near corner) |
+| `input/2d_SQ+L.input` | Grid with two connected components and connected bndry |
+| `input/2d_square.input` | Unit square in 2D |
+| `input/3d_2cubes_edge.input` | Two cubes sharing an edge |
+| `input/3d_2cubes_vertex.input` | Two cubes sharing a vertex |
+| `input/3d_cube.input` | Grid on the cube (0,1)^3 |
+| `input/3d_fichera.input` | Fichera corner |
+| `input/3d_fichera_adaptive.input` | Fichera corner (adaptive near corner) |
+| `input/3d_fichera_bey_dgs.input` | Fichera corner (Bey + DGS) |
+| `input/4d_cube.input` | Grid on the 4d cube (-1,1)^4 |
+| `input/5d_cube.input` | Grid on the 5d cube (-1,1)^5 |
 
 ## Source files
 
