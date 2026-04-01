@@ -130,11 +130,17 @@ void rs_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) {
 
   mgl[0].num_levels = nlev;
 
-  /* Compute ichol on the coarsest level for the coarse solver */
+  /* Coarsest-level solver: try ichol, fall back to direct if it fails */
   rs_level_aux* coarsest_aux = RS_AUX(mgl, nlev - 1);
+  memset(&coarsest_aux->L_ichol, 0, sizeof(dCSRmat));
   ichol_compute(&mgl[nlev - 1].A, &coarsest_aux->L_ichol);
-  fprintf(stderr, "RS hierarchy complete: %d levels (coarsest ichol nnz=%d)\n\n",
-          nlev, coarsest_aux->L_ichol.nnz);
+  if (coarsest_aux->L_ichol.nnz > 0) {
+    fprintf(stderr, "RS hierarchy complete: %d levels (coarsest ichol nnz=%d)\n\n",
+            nlev, coarsest_aux->L_ichol.nnz);
+  } else {
+    fprintf(stderr, "RS hierarchy complete: %d levels (coarsest: direct solve)\n\n",
+            nlev);
+  }
 }
 
 /* ======================================================================
@@ -207,11 +213,13 @@ void rs_amg_rebuild_values(AMG_data* mgl, AMG_param* param, const dCSRmat* A_new
     compute_l1_diag(&mgl[k + 1].A, &next_aux->l1_diag);
   }
 
-  /* Recompute ichol on the coarsest level */
+  /* Recompute coarsest-level solver */
   rs_level_aux* coarsest_aux = RS_AUX(mgl, nlev - 1);
-  ichol_compute(&mgl[nlev - 1].A, &coarsest_aux->L_ichol);
-  fprintf(stderr, "AMG values rebuilt: %d levels (coarsest ichol nnz=%d)\n\n",
-          nlev, coarsest_aux->L_ichol.nnz);
+  if (coarsest_aux->L_ichol.nnz > 0) {
+    dcsr_free(&coarsest_aux->L_ichol);
+    ichol_compute(&mgl[nlev - 1].A, &coarsest_aux->L_ichol);
+  }
+  fprintf(stderr, "AMG values rebuilt: %d levels\n", nlev);
 }
 
 /* ====================================================================== */

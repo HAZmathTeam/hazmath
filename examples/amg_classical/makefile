@@ -23,6 +23,6 @@ CFLAGS = -O3
 FFLAGS =
 
 WITH_SUITESPARSE=0
-WITH_LAPACK=0
+WITH_LAPACK=1
 
 sinclude ../examples.mk

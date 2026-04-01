@@ -16,15 +16,21 @@ static void ichol_precond_coarse(REAL* r, REAL* z, void* data) {
   ichol_solve(L, r, z);
 }
 
-/* Coarsest-level solve using hazmath dcsr_pcg with ichol preconditioner */
+/* Coarsest-level solve: direct (UMFPACK) or ichol-PCG */
 static void coarse_solve(dCSRmat* A, const REAL* b, REAL* x,
                          const dCSRmat* L_ichol, INT n) {
-  precond pc;
-  pc.data = (void*)L_ichol;
-  pc.fct  = ichol_precond_coarse;
   dvector bv = {n, (REAL*)b};
   dvector uv = {n, x};
-  dcsr_pcg(A, &bv, &uv, &pc, 1e-12, n, STOP_REL_PRECRES, 0);
+  if (L_ichol && L_ichol->nnz > 0) {
+    /* ichol-preconditioned PCG (for SPD matrices) */
+    precond pc;
+    pc.data = (void*)L_ichol;
+    pc.fct  = ichol_precond_coarse;
+    dcsr_pcg(A, &bv, &uv, &pc, 1e-12, n, STOP_REL_PRECRES, 0);
+  } else {
+    /* Direct solve via UMFPACK (works for non-symmetric) */
+    directsolve_HAZ(A, &bv, &uv, 0);
+  }
 }
 
 /* ======================================================================
