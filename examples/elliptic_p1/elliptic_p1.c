@@ -18,11 +18,11 @@
  *                  (typically 0) is the newest vertex bisection
 */
 #ifndef SPATIAL_DIMENSION
-#define SPATIAL_DIMENSION 4
+#define SPATIAL_DIMENSION 2
 #endif
 /**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 1
+#define REFINEMENT_LEVELS 9
 #endif
 /**/
 #ifndef REFINEMENT_TYPE
@@ -30,6 +30,7 @@
 #endif
 /****************************************************************************/
 int main(int argc, char* argv[]) {
+  setvbuf(stdout, NULL, _IONBF, 0);
   // Overall CPU Timing
   clock_t clk_all_start = clock();
   //
@@ -68,14 +69,14 @@ int main(int argc, char* argv[]) {
   /********************************************************/
   call_assembly(sc, &A, &rhs, alpha, gamma);
   //dcsr_write_dcoo("A.dat",&A);
-  short todraw = 1;
-  draw_grids(todraw, sc, &sol);
-  /* write the output mesh file:    */
-  /* hazw("output/mesh.haz",sc,0); */
   clock_t clk_assembly_end = clock(); // End of timing for mesh and FE setup
   /*Solve*/
   clock_t clk_solver_start = clock(); // End of timing for mesh and FE setup
   solveit(&A, &rhs, &sol);
+  short todraw = (INT )(A.row<128*128);
+  fprintf(stdout,"\n%%%%%%Drawing the grid and solution: %s\n", todraw ? "ON" : "OFF");
+  fflush(stdout);
+  draw_grids(todraw, sc, &sol);
   clock_t clk_solver_end = clock(); // End of timing for mesh and FE setup
   // err computation |u_I-u_h|_{1} and use rhs as a working space
   REAL err1, err0, uinterp;

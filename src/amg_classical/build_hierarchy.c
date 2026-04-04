@@ -31,6 +31,131 @@ static rs_level_aux* rs_aux_create(void) {
 }
 
 /* ======================================================================
+ *  VMB+RS hierarchy: VMB coarsening on finest level, RS on all others.
+ *  Both use RS standard interpolation.
+ * ====================================================================== */
+void vmb_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) {
+  REAL threshold = param->strong_coupled;
+  INT min_size   = param->coarse_dof;
+  INT max_levels = param->max_levels;
+
+  dcsr_alloc(A->row, A->col, A->nnz, &mgl[0].A);
+  dcsr_cp((dCSRmat*)A, &mgl[0].A);
+
+  rs_level_aux* aux0 = rs_aux_create();
+  compute_l1_diag(&mgl[0].A, &aux0->l1_diag);
+  mgl[0].wdata = aux0;
+
+  fprintf(stderr,
+    "Building VMB+RS hierarchy (threshold=%.2f, min_size=%d)\n",
+    threshold, min_size);
+  fprintf(stderr, "  Level 1: n = %d, nnz = %d\n", A->row, A->nnz);
+
+  INT nlev = 1;
+  const dCSRmat* Ac = &mgl[0].A;
+
+  while (Ac->row >= min_size && nlev < max_levels) {
+    INT n_fine = Ac->row;
+    rs_level_aux* cur_aux = RS_AUX(mgl, nlev - 1);
+
+    rs_strength(Ac, threshold, &cur_aux->A_filtered);
+
+    INT* cf = (INT*)calloc(n_fine, sizeof(INT));
+    INT n_coarse = 0;
+
+    /* VMB on finest level, RS on all coarser levels */
+    if (nlev == 1) {
+      vmb_coarsening(&cur_aux->A_filtered, cf, &n_coarse);
+      fprintf(stderr, "    coarsening: VMB (n_coarse=%d, ratio=%.2f)\n",
+              n_coarse, (REAL)n_fine / n_coarse);
+    } else {
+      rs_coarsening(&cur_aux->A_filtered, cf, &n_coarse);
+      fprintf(stderr, "    coarsening: RS  (n_coarse=%d, ratio=%.2f)\n",
+              n_coarse, (REAL)n_fine / n_coarse);
+    }
+
+    if (n_coarse == 0 || n_coarse >= n_fine) {
+      fprintf(stderr, "  Coarsening stalled at level %d (n_coarse=%d)\n",
+              nlev, n_coarse);
+      free(cf);
+      break;
+    }
+
+    cur_aux->mis = (INT*)calloc(n_fine, sizeof(INT));
+    cur_aux->isolated = (INT*)calloc(n_fine, sizeof(INT));
+    for (INT i = 0; i < n_fine; i++)
+      cur_aux->mis[i] = (cf[i] == 1) ? 1 : 0;
+
+    cur_aux->cf_order = (INT*)malloc(n_fine * sizeof(INT));
+    INT idx = 0;
+    for (INT i = 0; i < n_fine; i++)
+      if (cf[i] == 1) cur_aux->cf_order[idx++] = i;
+    for (INT i = 0; i < n_fine; i++)
+      if (cf[i] != 1) cur_aux->cf_order[idx++] = i;
+
+    fprintf(stderr, "    interpolation ... "); fflush(stderr);
+    clock_t clk_interp = clock();
+    rs_standard_interpolation(&mgl[nlev - 1].A, &cur_aux->A_filtered, cf, &mgl[nlev - 1].P);
+    fprintf(stderr, "done (%.3f s, P: %d x %d, nnz=%d)\n",
+            (double)(clock() - clk_interp) / CLOCKS_PER_SEC,
+            mgl[nlev - 1].P.row, mgl[nlev - 1].P.col, mgl[nlev - 1].P.nnz);
+    fflush(stderr);
+
+    free(cf);
+
+    fprintf(stderr, "    RAP (P^T A P) ... "); fflush(stderr);
+    clock_t clk_rap = clock();
+    dCSRmat Pt;
+    dcsr_alloc(mgl[nlev - 1].P.col, mgl[nlev - 1].P.row, mgl[nlev - 1].P.nnz, &Pt);
+    dcsr_transz(&mgl[nlev - 1].P, NULL, &Pt);
+    dCSRmat Ac_new;
+    dcsr_rap(&Pt, &mgl[nlev - 1].A, &mgl[nlev - 1].P, &Ac_new);
+    dcsr_free(&Pt);
+    fprintf(stderr, "done (%.3f s)\n", (double)(clock() - clk_rap) / CLOCKS_PER_SEC);
+    fflush(stderr);
+
+    fprintf(stderr, "    symmetrize ... "); fflush(stderr);
+    clock_t clk_sym = clock();
+    {
+      dCSRmat Ac_t;
+      dcsr_alloc(Ac_new.col, Ac_new.row, Ac_new.nnz, &Ac_t);
+      dcsr_transz(&Ac_new, NULL, &Ac_t);
+      dCSRmat Ac_sum;
+      dcsr_add(&Ac_new, 0.5, &Ac_t, 0.5, &Ac_sum);
+      dcsr_free(&Ac_new);
+      dcsr_free(&Ac_t);
+      Ac_new = Ac_sum;
+    }
+    fprintf(stderr, "done (%.3f s)\n", (double)(clock() - clk_sym) / CLOCKS_PER_SEC);
+    fflush(stderr);
+
+    fprintf(stderr, "  Level %d: n = %d, nnz = %d (ratio %.2f)\n",
+            nlev + 1, n_coarse, Ac_new.nnz, (REAL)n_fine / n_coarse);
+
+    mgl[nlev].A = Ac_new;
+    rs_level_aux* next_aux = rs_aux_create();
+    compute_l1_diag(&mgl[nlev].A, &next_aux->l1_diag);
+    mgl[nlev].wdata = next_aux;
+
+    nlev++;
+    Ac = &mgl[nlev - 1].A;
+  }
+
+  mgl[0].num_levels = nlev;
+
+  rs_level_aux* coarsest_aux = RS_AUX(mgl, nlev - 1);
+  memset(&coarsest_aux->L_ichol, 0, sizeof(dCSRmat));
+  ichol_compute(&mgl[nlev - 1].A, &coarsest_aux->L_ichol);
+  if (coarsest_aux->L_ichol.nnz > 0) {
+    fprintf(stderr, "VMB+RS hierarchy complete: %d levels (coarsest ichol nnz=%d)\n\n",
+            nlev, coarsest_aux->L_ichol.nnz);
+  } else {
+    fprintf(stderr, "VMB+RS hierarchy complete: %d levels (coarsest: direct solve)\n\n",
+            nlev);
+  }
+}
+
+/* ======================================================================
  *  Classical Ruge-Stuben hierarchy
  * ====================================================================== */
 void rs_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) {
@@ -88,11 +213,19 @@ void rs_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) {
       if (cf[i] != 1) cur_aux->cf_order[idx++] = i;
 
     /* Step 3: Standard interpolation */
+    fprintf(stderr, "    interpolation ... "); fflush(stderr);
+    clock_t clk_interp = clock();
     rs_standard_interpolation(&mgl[nlev - 1].A, &cur_aux->A_filtered, cf, &mgl[nlev - 1].P);
+    fprintf(stderr, "done (%.3f s, P: %d x %d, nnz=%d)\n",
+            (double)(clock() - clk_interp) / CLOCKS_PER_SEC,
+            mgl[nlev - 1].P.row, mgl[nlev - 1].P.col, mgl[nlev - 1].P.nnz);
+    fflush(stderr);
 
     free(cf);
 
     /* Step 4: Galerkin coarse-grid operator Ac = P^T A P */
+    fprintf(stderr, "    RAP (P^T A P) ... "); fflush(stderr);
+    clock_t clk_rap = clock();
     dCSRmat Pt;
     dcsr_alloc(mgl[nlev - 1].P.col, mgl[nlev - 1].P.row, mgl[nlev - 1].P.nnz, &Pt);
     dcsr_transz(&mgl[nlev - 1].P, NULL, &Pt);
@@ -100,8 +233,12 @@ void rs_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) {
     dCSRmat Ac_new;
     dcsr_rap(&Pt, &mgl[nlev - 1].A, &mgl[nlev - 1].P, &Ac_new);
     dcsr_free(&Pt);
+    fprintf(stderr, "done (%.3f s)\n", (double)(clock() - clk_rap) / CLOCKS_PER_SEC);
+    fflush(stderr);
 
     /* Symmetrize: Ac = (Ac + Ac') / 2 */
+    fprintf(stderr, "    symmetrize ... "); fflush(stderr);
+    clock_t clk_sym = clock();
     {
       dCSRmat Ac_t;
       dcsr_alloc(Ac_new.col, Ac_new.row, Ac_new.nnz, &Ac_t);
@@ -114,6 +251,8 @@ void rs_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) {
       dcsr_free(&Ac_t);
       Ac_new = Ac_sum;
     }
+    fprintf(stderr, "done (%.3f s)\n", (double)(clock() - clk_sym) / CLOCKS_PER_SEC);
+    fflush(stderr);
 
     fprintf(stderr, "  Level %d: n = %d, nnz = %d (ratio %.2f)\n",
             nlev + 1, n_coarse, Ac_new.nnz, (REAL)n_fine / n_coarse);

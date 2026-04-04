@@ -232,6 +232,63 @@ void rs_coarsening(const dCSRmat* S, INT* cf, INT* n_coarse) {
 }
 
 /* ======================================================================
+ *  2b. VMB (Vertex-based Matching/Blocking) Coarsening on strength graph
+ *
+ *  Grow aggregates from seed vertices using strong connections.
+ *  Seeds become C-points, all other vertices become F-points.
+ *  Every F-point is guaranteed at least one strong C-neighbor (seed).
+ *
+ *  Input:
+ *    S        - strength-of-connection matrix (from rs_strength)
+ *
+ *  Output:
+ *    cf[i]    = RS_C_PT (1) for seeds, RS_F_PT (-1) for others
+ *    n_coarse = number of C-points (seeds)
+ * ====================================================================== */
+void vmb_coarsening(const dCSRmat* S, INT* cf, INT* n_coarse) {
+  INT n = S->row;
+  INT i, k;
+
+  /* All vertices start undecided */
+  for (i = 0; i < n; i++) cf[i] = RS_UNDECIDED;
+
+  /* Greedy seed selection: walk through vertices, pick unmarked as seed,
+     assign its strong neighbors to the aggregate (mark as F) */
+  INT nc = 0;
+  for (i = 0; i < n; i++) {
+    if (cf[i] != RS_UNDECIDED) continue;
+
+    /* i is the seed (C-point) */
+    cf[i] = RS_C_PT;
+    nc++;
+
+    /* Mark undecided strong neighbors as F-points in this aggregate */
+    for (k = S->IA[i]; k < S->IA[i + 1]; k++) {
+      INT j = S->JA[k];
+      if (j != i && cf[j] == RS_UNDECIDED) {
+        cf[j] = RS_F_PT;
+      }
+    }
+  }
+
+  /* Safety: every F-point must have at least one strong C-neighbor.
+     If not (shouldn't happen with VMB), promote to C. */
+  for (i = 0; i < n; i++) {
+    if (cf[i] != RS_F_PT) continue;
+    INT has_c = 0;
+    for (k = S->IA[i]; k < S->IA[i + 1]; k++) {
+      if (cf[S->JA[k]] == RS_C_PT) { has_c = 1; break; }
+    }
+    if (!has_c) {
+      cf[i] = RS_C_PT;
+      nc++;
+    }
+  }
+
+  *n_coarse = nc;
+}
+
+/* ======================================================================
  *  3. Standard (Direct) Interpolation
  * ====================================================================== */
 

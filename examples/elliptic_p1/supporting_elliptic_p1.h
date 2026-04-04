@@ -56,7 +56,7 @@ static void solveit(dCSRmat* A, dvector* rhs, dvector* sol) {
   amgparam.maxit                = 1;
   amgparam.max_levels           = 10;
   amgparam.coarse_dof           = 20;
-  amgparam.cycle_type           = V_CYCLE;
+  amgparam.cycle_type           = W_CYCLE;
   amgparam.smoother             = SMOOTHER_GS;
   amgparam.presmooth_iter       = 2;
   amgparam.postsmooth_iter      = 2;
