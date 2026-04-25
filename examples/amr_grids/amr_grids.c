@@ -12,6 +12,7 @@
  */
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
+#include <sys/resource.h>
 /* This macro definition below is amr_marking_type=44; and SHOULD BE
    MOVED TO MACROS or elseware later (ltz)*/
 /*
@@ -343,5 +344,16 @@ INT main(INT argc, char* argv[]) {
   input_grid_free(g);
   haz_scomplex_free(sc);
   free(sc_all);
+  /* Peak RAM usage */
+  {
+    struct rusage ru;
+    getrusage(RUSAGE_SELF, &ru);
+#ifdef __APPLE__
+    double peak_mb = (double)ru.ru_maxrss / (1024.0 * 1024.0); /* bytes on macOS */
+#else
+    double peak_mb = (double)ru.ru_maxrss / 1024.0; /* KB on Linux */
+#endif
+    printf("\nPeak RSS = %.2f MB\n", peak_mb);
+  }
   return 0;
 }

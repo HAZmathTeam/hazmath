@@ -10,25 +10,14 @@
  */
 #include "hazmath.h"
 
-/* ichol preconditioner wrapper for coarsest-level solve */
-static void ichol_precond_coarse(REAL* r, REAL* z, void* data) {
-  const dCSRmat* L = (const dCSRmat*)data;
-  ichol_solve(L, r, z);
-}
-
-/* Coarsest-level solve: direct (UMFPACK) or ichol-PCG */
+/* Coarsest-level solve using pre-factorized UMFPACK */
 static void coarse_solve(dCSRmat* A, const REAL* b, REAL* x,
-                         const dCSRmat* L_ichol, INT n) {
+                         rs_level_aux* aux, INT n) {
   dvector bv = {n, (REAL*)b};
   dvector uv = {n, x};
-  if (L_ichol && L_ichol->nnz > 0) {
-    /* ichol-preconditioned PCG (for SPD matrices) */
-    precond pc;
-    pc.data = (void*)L_ichol;
-    pc.fct  = ichol_precond_coarse;
-    dcsr_pcg(A, &bv, &uv, &pc, 1e-12, n, STOP_REL_PRECRES, 0);
+  if (aux->Numeric) {
+    hazmath_solve(&aux->At_coarse, &bv, &uv, aux->Numeric, 0);
   } else {
-    /* Direct solve via UMFPACK (works for non-symmetric) */
     directsolve_HAZ(A, &bv, &uv, 0);
   }
 }
@@ -155,8 +144,7 @@ static void backslash_rec(AMG_data* mgl, AMG_param* param, INT lev,
   INT n = mgl[lev].A.row;
 
   if (lev == nlev - 1) {
-    /* Coarsest level: ichol-preconditioned PCG */
-    coarse_solve(&mgl[lev].A, b, x, &RS_AUX(mgl, lev)->L_ichol, n);
+    coarse_solve(&mgl[lev].A, b, x, RS_AUX(mgl, lev), n);
     return;
   }
 
@@ -172,12 +160,20 @@ static void backslash_rec(AMG_data* mgl, AMG_param* param, INT lev,
   REAL* rc = (REAL*)calloc(nc, sizeof(REAL));
   dcsr_mxv_trans(&mgl[lev].P, r, rc);
 
-  /* Solve on coarse grid */
+  /* Solve on coarse grid (repeat for W-cycle) */
+  INT ncycles = (param->cycle_type >= 2) ? param->cycle_type : 1;
   REAL* ec = (REAL*)calloc(nc, sizeof(REAL));
-  backslash_rec(mgl, param, lev + 1, rc, ec, nu);
-
-  /* Prolongate: x = x + P * ec */
-  dcsr_aAxpy(1.0, &mgl[lev].P, ec, x);
+  for (INT ic = 0; ic < ncycles; ic++) {
+    if (ic > 0) {
+      /* re-compute residual and restrict for subsequent cycles */
+      array_cp(n, (REAL*)b, r); dcsr_aAxpy(-1.0, &mgl[lev].A, x, r);
+      array_set(nc, rc, 0.0);
+      dcsr_mxv_trans(&mgl[lev].P, r, rc);
+      array_set(nc, ec, 0.0);
+    }
+    backslash_rec(mgl, param, lev + 1, rc, ec, nu);
+    dcsr_aAxpy(1.0, &mgl[lev].P, ec, x);
+  }
 
   free(r); free(rc); free(ec);
 }
@@ -196,7 +192,7 @@ static void fwdslash_rec(AMG_data* mgl, AMG_param* param, INT lev,
   INT n = mgl[lev].A.row;
 
   if (lev == nlev - 1) {
-    coarse_solve(&mgl[lev].A, b, x, &RS_AUX(mgl, lev)->L_ichol, n);
+    coarse_solve(&mgl[lev].A, b, x, RS_AUX(mgl, lev), n);
     return;
   }
 
@@ -209,12 +205,19 @@ static void fwdslash_rec(AMG_data* mgl, AMG_param* param, INT lev,
   REAL* rc = (REAL*)calloc(nc, sizeof(REAL));
   dcsr_mxv_trans(&mgl[lev].P, r, rc);
 
-  /* Solve on coarse grid */
+  /* Solve on coarse grid (repeat for W-cycle) */
+  INT ncycles = (param->cycle_type >= 2) ? param->cycle_type : 1;
   REAL* ec = (REAL*)calloc(nc, sizeof(REAL));
-  fwdslash_rec(mgl, param, lev + 1, rc, ec, nu);
-
-  /* Prolongate: x = x + P * ec */
-  dcsr_aAxpy(1.0, &mgl[lev].P, ec, x);
+  for (INT ic = 0; ic < ncycles; ic++) {
+    if (ic > 0) {
+      array_cp(n, (REAL*)b, r); dcsr_aAxpy(-1.0, &mgl[lev].A, x, r);
+      array_set(nc, rc, 0.0);
+      dcsr_mxv_trans(&mgl[lev].P, r, rc);
+      array_set(nc, ec, 0.0);
+    }
+    fwdslash_rec(mgl, param, lev + 1, rc, ec, nu);
+    dcsr_aAxpy(1.0, &mgl[lev].P, ec, x);
+  }
 
   /* Post-smoothing */
   smooth_bwd(mgl, param, lev, b, x, nu);

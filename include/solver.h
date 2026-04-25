@@ -177,6 +177,8 @@ typedef struct {
   INT* cf_order;      /**< CF ordering: C-points first, then F-points */
   dCSRmat L_ichol;    /**< ichol factor (lower triangular, coarsest level only) */
   REAL* l1_diag;      /**< l1 row norms for L1 smoother */
+  void* Numeric;      /**< UMFPACK factorization (coarsest level only) */
+  dCSRmat At_coarse;  /**< transpose of coarsest A (needed for solve_HAZ) */
 } rs_level_aux;
 
 /** Helper to access RS auxiliary data at a given level */

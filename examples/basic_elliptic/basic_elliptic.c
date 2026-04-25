@@ -35,6 +35,7 @@
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
+#include <sys/resource.h>
 #include "basic_elliptic_data.h"
 /*********************************************************************/
 
@@ -493,6 +494,17 @@ int main(int argc, char* argv[]) {
   clock_t clk_overall_end = clock();
   printf("\nEnd of Program: Total CPU Time = %f seconds.\n\n",
          (REAL)(clk_overall_end - clk_overall_start) / CLOCKS_PER_SEC);
+  /* Peak RAM usage */
+  {
+    struct rusage ru;
+    getrusage(RUSAGE_SELF, &ru);
+#ifdef __APPLE__
+    double peak_mb = (double)ru.ru_maxrss / (1024.0 * 1024.0); /* bytes on macOS */
+#else
+    double peak_mb = (double)ru.ru_maxrss / 1024.0; /* KB on Linux */
+#endif
+    printf("Peak RSS = %.2f MB\n\n", peak_mb);
+  }
   return 0;
 
 } /* End of Program */

@@ -28,6 +28,8 @@ static void dcsr_sort_columns(dCSRmat* A) {
   dCSRmat At;
   dcsr_alloc(A->col, A->row, A->nnz, &At);
   dcsr_transz(A, NULL, &At);
+  dcsr_free(A);
+  dcsr_alloc(At.col, At.row, At.nnz, A);
   dcsr_transz(&At, NULL, A);
   dcsr_free(&At);
 }
@@ -35,12 +37,7 @@ static void dcsr_sort_columns(dCSRmat* A) {
 void ichol_compute(const dCSRmat* Ain, dCSRmat* L) {
   INT n = Ain->row;
   if (n <= 0) return;
-  /* Sort column indices */
-  dCSRmat As;
-  dcsr_alloc(n, Ain->col, Ain->nnz, &As);
-  dcsr_cp((dCSRmat*)Ain, &As);
-  dcsr_sort_columns(&As);
-  const dCSRmat* A = &As;
+  const dCSRmat* A = Ain;
 
   /* Count lower-triangular entries (including diagonal) */
   INT nnz_lower = 0;
@@ -125,7 +122,6 @@ void ichol_compute(const dCSRmat* Ain, dCSRmat* L) {
   }
 
   free(w); free(w_marker); free(diag_pos);
-  dcsr_free(&As);
 }
 
 /* Solve L * L' * x = b  =>  L*y = b (fwd), L'*x = y (bwd) */

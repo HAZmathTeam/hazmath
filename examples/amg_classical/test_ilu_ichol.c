@@ -10,6 +10,7 @@
  */
 #include "hazmath.h"
 #include <time.h>
+#include <sys/resource.h>
 
 /* --- ichol(0) preconditioner wrapper --- */
 static void ichol0_precond_fct(REAL* r, REAL* z, void* data) {
@@ -188,5 +189,16 @@ int main(int argc, char** argv) {
   dcsr_free(&A);
   free(b); free(x); free(r);
 
+  /* Peak RAM usage */
+  {
+    struct rusage ru;
+    getrusage(RUSAGE_SELF, &ru);
+#ifdef __APPLE__
+    double peak_mb = (double)ru.ru_maxrss / (1024.0 * 1024.0); /* bytes on macOS */
+#else
+    double peak_mb = (double)ru.ru_maxrss / 1024.0; /* KB on Linux */
+#endif
+    fprintf(stderr, "\nPeak RSS = %.2f MB\n", peak_mb);
+  }
   return 0;
 }

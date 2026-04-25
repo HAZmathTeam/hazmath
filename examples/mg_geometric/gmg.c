@@ -18,6 +18,7 @@
 /***********************************************************************/
 //#include "hazmath.h"
 #include <stdlib.h>
+#include <sys/resource.h>
 #include <stdio.h>
 #include <time.h>
 #include <math.h>
@@ -208,6 +209,17 @@ void main() {
       fprintf(stdout, " a working vector TK()");
     fprintf(stdout, " ****\n\nExiting with code 255...\n\n");
     exit(255);
+  }
+  /* Peak RAM usage */
+  {
+    struct rusage ru;
+    getrusage(RUSAGE_SELF, &ru);
+#ifdef __APPLE__
+    double peak_mb = (double)ru.ru_maxrss / (1024.0 * 1024.0); /* bytes on macOS */
+#else
+    double peak_mb = (double)ru.ru_maxrss / 1024.0; /* KB on Linux */
+#endif
+    printf("Peak RSS = %.2f MB\n", peak_mb);
   }
   return;
 }

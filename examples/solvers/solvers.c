@@ -11,6 +11,7 @@
 
 /************* HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
+#include <sys/resource.h>
 /***********************************************************************/
 // local include (temp)
 // if READ_TO_EOF is 0 the first record in the input files is m,n, nnz and n for dvector
@@ -125,5 +126,16 @@ int main(int argc, char* argv[]) {
   free(A);
   free(b);
   free(x);
+  /* Peak RAM usage */
+  {
+    struct rusage ru;
+    getrusage(RUSAGE_SELF, &ru);
+#ifdef __APPLE__
+    double peak_mb = (double)ru.ru_maxrss / (1024.0 * 1024.0); /* bytes on macOS */
+#else
+    double peak_mb = (double)ru.ru_maxrss / 1024.0; /* KB on Linux */
+#endif
+    printf("\nPeak RSS = %.2f MB\n", peak_mb);
+  }
 } /* End of Program */
 /*******************************************************************/

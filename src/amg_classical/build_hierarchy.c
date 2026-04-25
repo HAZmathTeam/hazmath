@@ -272,14 +272,13 @@ void rs_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) {
   /* Coarsest-level solver: try ichol, fall back to direct if it fails */
   rs_level_aux* coarsest_aux = RS_AUX(mgl, nlev - 1);
   memset(&coarsest_aux->L_ichol, 0, sizeof(dCSRmat));
-  ichol_compute(&mgl[nlev - 1].A, &coarsest_aux->L_ichol);
-  if (coarsest_aux->L_ichol.nnz > 0) {
-    fprintf(stderr, "RS hierarchy complete: %d levels (coarsest ichol nnz=%d)\n\n",
-            nlev, coarsest_aux->L_ichol.nnz);
-  } else {
-    fprintf(stderr, "RS hierarchy complete: %d levels (coarsest: direct solve)\n\n",
-            nlev);
-  }
+  /* Coarsest-level solver: UMFPACK factorization (factorize once, solve many) */
+  memset(&coarsest_aux->L_ichol, 0, sizeof(dCSRmat));
+  coarsest_aux->Numeric = factorize_HAZ(&mgl[nlev - 1].A, 0);
+  /* Store transpose for solve_HAZ */
+  dcsr_trans(&mgl[nlev - 1].A, &coarsest_aux->At_coarse);
+  fprintf(stderr, "RS hierarchy complete: %d levels (coarsest: UMFPACK direct, n=%d)\n\n",
+          nlev, mgl[nlev - 1].A.row);
 }
 
 /* ======================================================================
@@ -288,9 +287,6 @@ void rs_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) {
 void rs_amg_rebuild_values(AMG_data* mgl, AMG_param* param, const dCSRmat* A_new) {
   INT nlev = mgl[0].num_levels;
   (void)param;
-
-  /* Free old ichol on coarsest level */
-  dcsr_free(&RS_AUX(mgl, nlev - 1)->L_ichol);
 
   /* Replace level 0 matrix */
   dcsr_free(&mgl[0].A);
@@ -354,10 +350,12 @@ void rs_amg_rebuild_values(AMG_data* mgl, AMG_param* param, const dCSRmat* A_new
 
   /* Recompute coarsest-level solver */
   rs_level_aux* coarsest_aux = RS_AUX(mgl, nlev - 1);
-  if (coarsest_aux->L_ichol.nnz > 0) {
-    dcsr_free(&coarsest_aux->L_ichol);
-    ichol_compute(&mgl[nlev - 1].A, &coarsest_aux->L_ichol);
+  if (coarsest_aux->Numeric) {
+    hazmath_free_numeric(&coarsest_aux->Numeric);
+    dcsr_free(&coarsest_aux->At_coarse);
   }
+  coarsest_aux->Numeric = factorize_HAZ(&mgl[nlev - 1].A, 0);
+  dcsr_trans(&mgl[nlev - 1].A, &coarsest_aux->At_coarse);
   fprintf(stderr, "AMG values rebuilt: %d levels\n", nlev);
 }
 
@@ -377,7 +375,11 @@ void rs_amg_free(AMG_data* mgl) {
       if (aux->isolated) free(aux->isolated);
       if (aux->cf_order) free(aux->cf_order);
       if (aux->l1_diag) free(aux->l1_diag);
-      if (k == nlev - 1) dcsr_free(&aux->L_ichol);
+      if (k == nlev - 1) {
+        dcsr_free(&aux->L_ichol);
+        if (aux->Numeric) hazmath_free_numeric(&aux->Numeric);
+        dcsr_free(&aux->At_coarse);
+      }
       free(aux);
       mgl[k].wdata = NULL;
     }
