@@ -134,7 +134,7 @@ data_macrofaces{0 1 2 3 1
 		   }
 
 %%%%%%%%%%%%%%AMR %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-num_refinements{3}
+num_refinements{4}
 
 refinement_type{20}
 

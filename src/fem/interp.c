@@ -513,6 +513,94 @@ void blockfe_dinterp_to_quadpt(REAL* val, fe_local_data* fe_data,
 
 /****************************************************************************************************************************/
 /*!
+ * \fn static REAL rt0_face_basis_normal_trace(scomplex *sc, INT DOF)
+ *
+ * \brief Returns phi_DOF . f_norm on face DOF (constant along the face)
+ *        for the RT0 (FEtype 30) basis as constructed in rt0_basis().
+ *
+ *        Used by FE_Evaluate_DOF / blockFE_Evaluate_DOF for FEtype 30 to
+ *        recover the FE-coefficient interpretation of the DOF: hazmath's
+ *        RT0 basis has phi_DOF . f_norm = sigma * f_area * h_signed
+ *        (= sigma * sign_h * dim * |T|), which is +/- the standard
+ *        normalisation depending on the local face-vertex order vs.
+ *        f_norm.  Without this scaling, blockFE_Evaluate_DOF would return
+ *        the average normal flux instead of the FE coefficient, yielding
+ *        wrong-sign Dirichlet boundary values whenever sigma * sign_h = -1.
+ *
+ *        The value is consistent across the (up to two) elements adjacent
+ *        to face DOF, so we pick the first one we find via el_f.
+ */
+static REAL rt0_face_basis_normal_trace(scomplex *sc, INT DOF)
+{
+  sc_fem *fem = sc->fem;
+  INT dim = sc->dim;
+  INT j, k, c;
+
+  /* Find first element T adjacent to face DOF via el_f.  el_f is small
+   * (dim+1 entries per element) so a linear scan is fine. */
+  INT T = -1;
+  for (INT e = 0; e < fem->ns_leaf; e++) {
+    INT a = fem->el_f->IA[e], b = fem->el_f->IA[e+1];
+    for (k = a; k < b; k++) {
+      if (fem->el_f->JA[k] == DOF) { T = e; break; }
+    }
+    if (T >= 0) break;
+  }
+  if (T < 0) check_error(ERROR_FE_TYPE, __FUNCTION__);
+
+  INT *el_v_T = fem->el_v->JA + fem->el_v->IA[T];
+  INT *f_v_DOF = fem->f_v->JA  + fem->f_v->IA[DOF];
+
+  /* Map face vertices (global) to local indices in T. */
+  INT v_on_face_local[3] = {-1, -1, -1};
+  for (k = 0; k < dim; k++) {
+    for (j = 0; j < dim+1; j++) {
+      if (el_v_T[j] == f_v_DOF[k]) { v_on_face_local[k] = j; break; }
+    }
+  }
+
+  /* Local index of the vertex opposite face DOF. */
+  INT opp = -1;
+  for (j = 0; j < dim+1; j++) {
+    INT on_face = 0;
+    for (k = 0; k < dim; k++) if (v_on_face_local[k] == j) { on_face = 1; break; }
+    if (!on_face) { opp = j; break; }
+  }
+
+  /* Vertices of T and the gradients of the barycentric coordinates. */
+  REAL xv_T[(3+1)*3];
+  for (j = 0; j < dim+1; j++)
+    for (c = 0; c < dim; c++)
+      xv_T[j*dim + c] = sc->x[el_v_T[j]*dim + c];
+
+  REAL ref_map[3*3];
+  REAL dlam[(3+1)*3];
+  compute_refelm_mapping(ref_map, dlam, xv_T, dim);
+
+  /* sigma = (dim-1)! * det(M),  M[c,k] = dlam[v_on_face_local[k]*dim + c]. */
+  REAL M[3*3];
+  for (c = 0; c < dim; c++)
+    for (k = 0; k < dim; k++)
+      M[c*dim+k] = dlam[v_on_face_local[k]*dim + c];
+
+  REAL fac = 1.0;
+  for (k = 2; k < dim; k++) fac *= (REAL)k;
+  REAL sigma = fac * haz_det(dim, M);
+
+  /* h_signed = (x_face_centroid - x_opp) . f_norm. */
+  REAL h_signed = 0.0;
+  for (c = 0; c < dim; c++) {
+    REAL diff = fem->f_mid[DOF*dim + c] - xv_T[opp*dim + c];
+    h_signed += diff * fem->f_norm[DOF*dim + c];
+  }
+
+  /* phi_DOF . f_norm = sigma * f_area * h_signed (constant on face). */
+  return sigma * fem->f_area[DOF] * h_signed;
+}
+/****************************************************************************************************************************/
+
+/****************************************************************************************************************************/
+/*!
  * \fn REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace
  * *FE,scomplex *sc,REAL time,INT DOF)
  *
@@ -566,10 +654,14 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL*, REAL*, REAL, void*), fespace* FE,
         (1.0 / fem->ed_len[DOF]) *
         integrate_edge_vector_tangent(expr, dim, 0, nq1d, NULL, sc, time, DOF);
 
-    // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+    // Raviart-Thomas u[dof] = (1/farea \int_face u*n_face) / (phi_DOF . f_norm)
+    // The division by phi . f_norm (= sigma * f_area * h_signed) recovers
+    // the FE-coefficient interpretation of the DOF for hazmath's RT0
+    // basis, which is NOT scaled to phi . f_norm = +1 on its own face.
   } else if (FEtype == 30) {
     val = (1.0 / fem->f_area[DOF]) *
           integrate_face_vector_normal(expr, dim, 0, nq1d, NULL, sc, time, DOF);
+    val /= rt0_face_basis_normal_trace(sc, DOF);
 
     // Face Bubbles
     // For now, we assume face bubbles only and only in 2D or 3D.
@@ -756,11 +848,14 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL*, REAL*, REAL, void*),
           integrate_edge_vector_tangent(expr, FE->nun, local_dim, nq1d, NULL,
                                         sc, time, DOF);
 
-    // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+    // Raviart-Thomas u[dof] = (1/farea \int_face u*n_face) / (phi_DOF . f_norm)
+    // See note at FE_Evaluate_DOF case 30 above for the rationale on the
+    // basis-normalization division.
   } else if (FEtype == 30) {
     val = (1.0 / fem->f_area[DOF]) *
           integrate_face_vector_normal(expr, FE->nun, local_dim, nq1d, NULL, sc,
                                        time, DOF);
+    val /= rt0_face_basis_normal_trace(sc, DOF);
 
     // Face Bubbles
     // For now, we assume face bubbles only and only in 2D or 3D
