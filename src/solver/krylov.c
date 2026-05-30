@@ -2821,6 +2821,488 @@ FINISHED:  // finish the iterative method
 
 /***********************************************************************************************/
 /**
+ * \fn INT dcsr_pminres_w_cond_est(dCSRmat *A, dvector *b, dvector *u, precond *pc,
+ *                                 const REAL tol, const INT MaxIt,
+ *                                 const SHORT stop_type, const SHORT prtlvl, REAL *condest)
+ *
+ * \brief Preconditioned minimal residual (MINRES) method for solving Au=b with condition number estimation
+ *
+ * \param A            Pointer to dCSRmat: the coefficient matrix
+ * \param b            Pointer to dvector: the right hand side
+ * \param u            Pointer to dvector: the unknowns
+ * \param pc           Pointer to precond: the structure of precondition
+ * \param tol          Tolerance for stopping
+ * \param MaxIt        Maximal number of iterations
+ * \param stop_type    Stopping criteria type
+ * \param prtlvl       How much information to print out
+ * \param condest      Estimated condition number
+ *
+ * \return             Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   05/23/2026
+ *
+ * \note Condition number is estimated from eigenvalues of the symmetric tridiagonal
+ *       matrix built from the Lanczos coefficients accumulated during the iteration.
+ *       Since MINRES handles indefinite systems, condest = max|lambda| / min|lambda|.
+ *       Requires LAPACK (dsterf_).
+ *
+ */
+INT dcsr_pminres_w_cond_est(dCSRmat *A,
+                            dvector *b,
+                            dvector *u,
+                            precond *pc,
+                            const REAL tol,
+                            const INT MaxIt,
+                            const SHORT stop_type,
+                            const SHORT prtlvl,
+                            REAL *condest)
+{
+    const SHORT  MaxStag = MAX_STAG, MaxRestartStep = MAX_RESTART;
+    const INT    m = b->row;
+    const REAL   maxdiff = tol*STAG_RATIO; // stagnation tolerance
+    const REAL   sol_inf_tol = SMALLREAL; // infinity norm tolerance
+
+    // local variables
+    INT          iter = 0, stag = 1, more_step = 1, restart_step = 1;
+    REAL         absres0 = BIGREAL, absres = BIGREAL;
+    REAL         normr0  = BIGREAL, relres  = BIGREAL;
+    REAL         normu2, normuu, normp, infnormu, factor;
+    REAL         alpha, alpha0, alpha1, temp2;
+
+    // allocate temp memory (need 11*m REAL)
+    REAL *work=(REAL *)calloc(11*m,sizeof(REAL));
+    REAL *p0=work, *p1=work+m, *p2=p1+m, *z0=p2+m, *z1=z0+m;
+    REAL *t0=z1+m, *t1=t0+m, *t=t1+m, *tp=t+m, *tz=tp+m, *r=tz+m;
+
+    // for estimating condition number
+    REAL *alpha_all = (REAL *)calloc(MaxIt, sizeof(REAL));
+    REAL *beta_all  = (REAL *)calloc(MaxIt, sizeof(REAL));
+    INT iter_condest = 0;
+    INT i;
+
+    // p0 = 0
+    array_set(m,p0,0.0);
+
+    // r = b-A*u
+    array_cp(m,b->val,r);
+    dcsr_aAxpy(-1.0,A,u->val,r);
+
+    // p1 = B(r)
+    if ( pc != NULL )
+        pc->fct(r,p1,pc->data); /* Apply preconditioner */
+    else
+        array_cp(m,r,p1); /* No preconditioner */
+
+    // compute initial residuals
+    switch ( stop_type ) {
+        case STOP_REL_RES:
+            absres0 = array_norm2(m,r);
+            normr0  = MAX(SMALLREAL,absres0);
+            relres  = absres0/normr0;
+            break;
+        case STOP_REL_PRECRES:
+            absres0 = sqrt(array_dotprod(m,r,p1));
+            normr0  = MAX(SMALLREAL,absres0);
+            relres  = absres0/normr0;
+            break;
+        case STOP_MOD_REL_RES:
+            absres0 = array_norm2(m,r);
+            normu2  = MAX(SMALLREAL,array_norm2(m,u->val));
+            relres  = absres0/normu2;
+            break;
+        default:
+            printf("### ERROR: Unrecognized stopping type for %s!\n", __FUNCTION__);
+            free(alpha_all); free(beta_all);
+            goto FINISHED;
+    }
+
+    // if initial residual is small, no need to iterate!
+    if ( relres < tol || absres0 < 1e-3*tol ) {
+        //free(alpha1_all); free(normp_all);
+        goto FINISHED;
+    }
+
+    // output iteration information if needed
+    print_itsolver_info(prtlvl,stop_type,iter,relres,absres0,0.0);
+
+    // tp = A*p1
+    dcsr_mxv(A,p1,tp);
+
+    // tz = B(tp)
+    if ( pc != NULL )
+        pc->fct(tp,tz,pc->data); /* Apply preconditioner */
+    else
+        array_cp(m,tp,tz); /* No preconditioner */
+
+    // p1 = p1/normp
+    normp = ABS(array_dotprod(m,tz,tp));
+    normp = sqrt(normp);
+    array_cp(m,p1,t);
+    array_set(m,p1,0.0);
+    array_axpy(m,1/normp,t,p1);
+
+    // t0 = A*p0 = 0
+    array_set(m,t0,0.0);
+    array_cp(m,t0,z0);
+    array_cp(m,t0,t1);
+    array_cp(m,t0,z1);
+
+    // t1 = tp/normp, z1 = tz/normp
+    array_axpy(m,1.0/normp,tp,t1);
+    array_axpy(m,1.0/normp,tz,z1);
+
+    // main MinRes loop
+    while ( iter++ < MaxIt ) {
+
+        // alpha = <r,z1>
+        alpha = array_dotprod(m,r,z1);
+
+        // u = u+alpha*p1
+        array_axpy(m,alpha,p1,u->val);
+
+        // r = r-alpha*Ap1
+        array_axpy(m,-alpha,t1,r);
+
+        // compute t = A*z1, alpha1 = <z1,t>  (Lanczos diagonal)
+        dcsr_mxv(A,z1,t);
+        alpha1 = array_dotprod(m,z1,t);
+
+        // compute t = A*z0, alpha0 = <z1,t>
+        dcsr_mxv(A,z0,t);
+        alpha0 = array_dotprod(m,z1,t);
+
+         // store alpha1 for condition number estimation
+        alpha_all[iter-1] = alpha1;
+        beta_all[iter-1] = alpha0;
+
+        // p2 = z1-alpha1*p1-alpha0*p0
+        array_cp(m,z1,p2);
+        array_axpy(m,-alpha1,p1,p2);
+        array_axpy(m,-alpha0,p0,p2);
+
+        // tp = A*p2
+        dcsr_mxv(A,p2,tp);
+
+        // tz = B(tp)
+        if ( pc != NULL )
+            pc->fct(tp,tz,pc->data); /* Apply preconditioner */
+        else
+            array_cp(m,tp,tz); /* No preconditioner */
+
+        // normp = Lanczos off-diagonal (beta_{j+1})
+        normp = ABS(array_dotprod(m,tz,tp));
+        normp = sqrt(normp);
+
+        // p2 = p2/normp
+        array_cp(m,p2,t);
+        array_set(m,p2,0.0);
+        array_axpy(m,1/normp,t,p2);
+
+        // prepare for the next iteration
+        array_cp(m,p1,p0);
+        array_cp(m,p2,p1);
+        array_cp(m,t1,t0);
+        array_cp(m,z1,z0);
+
+        // t1=tp/normp, z1=tz/normp
+        array_set(m,t1,0.0);
+        array_cp(m,t1,z1);
+        array_axpy(m,1/normp,tp,t1);
+        array_axpy(m,1/normp,tz,z1);
+
+        normu2 = array_norm2(m,u->val);
+
+        // compute residuals
+        switch ( stop_type ) {
+            case STOP_REL_RES:
+                temp2  = array_dotprod(m,r,r);
+                absres = sqrt(temp2);
+                relres = absres/normr0;
+                break;
+            case STOP_REL_PRECRES:
+                if (pc == NULL)
+                    array_cp(m,r,t);
+                else
+                    pc->fct(r,t,pc->data);
+                temp2  = ABS(array_dotprod(m,r,t));
+                absres = sqrt(temp2);
+                relres = absres/normr0;
+                break;
+            case STOP_MOD_REL_RES:
+                temp2  = array_dotprod(m,r,r);
+                absres = sqrt(temp2);
+                relres = absres/normu2;
+                break;
+        }
+
+        // compute reduction factor of residual ||r||
+        factor = absres/absres0;
+
+        // output iteration information if needed
+        print_itsolver_info(prtlvl,stop_type,iter,relres,absres,factor);
+
+        // Check I: if solution is close to zero, return ERROR_SOLVER_SOLSTAG
+        infnormu = array_norminf(m, u->val);
+        if (infnormu <= sol_inf_tol) {
+            if ( prtlvl > PRINT_MIN ) ITS_ZEROSOL;
+            iter = ERROR_SOLVER_SOLSTAG;
+            break;
+        }
+
+        // Check II: if stagnated, try to restart
+        normuu = array_norm2(m,p1);
+        normuu = ABS(alpha)*(normuu/normu2);
+
+        if ( normuu < maxdiff ) {
+
+            if ( stag < MaxStag ) {
+                if ( prtlvl >= PRINT_MORE ) {
+                    ITS_DIFFRES(normuu,relres);
+                    ITS_RESTART;
+                }
+            }
+
+            array_cp(m,b->val,r);
+            dcsr_aAxpy(-1.0,A,u->val,r);
+
+            // compute residuals
+            switch (stop_type) {
+                case STOP_REL_RES:
+                    temp2  = array_dotprod(m,r,r);
+                    absres = sqrt(temp2);
+                    relres = absres/normr0;
+                    break;
+                case STOP_REL_PRECRES:
+                    if (pc == NULL)
+                        array_cp(m,r,t);
+                    else
+                        pc->fct(r,t,pc->data);
+                    temp2  = ABS(array_dotprod(m,r,t));
+                    absres = sqrt(temp2);
+                    relres = absres/normr0;
+                    break;
+                case STOP_MOD_REL_RES:
+                    temp2  = array_dotprod(m,r,r);
+                    absres = sqrt(temp2);
+                    relres = absres/normu2;
+                    break;
+            }
+
+            if ( prtlvl >= PRINT_MORE ) ITS_REALRES(relres);
+
+            if ( relres < tol )
+                break;
+            else {
+                if ( stag >= MaxStag ) {
+                    if ( prtlvl > PRINT_MIN ) ITS_STAGGED;
+                    iter = ERROR_SOLVER_STAG;
+                    break;
+                }
+
+                // keep the iteration count for condition number estimation
+                if (stag == 1 && restart_step == 1) iter_condest = iter;
+
+                array_set(m,p0,0.0);
+                ++stag;
+                restart_step=restart_step+1;
+
+                // p1 = B(r)
+                if ( pc != NULL )
+                    pc->fct(r,p1,pc->data); /* Apply preconditioner */
+                else
+                    array_cp(m,r,p1); /* No preconditioner */
+
+                // tp = A*p1
+                dcsr_mxv(A,p1,tp);
+
+                // tz = B(tp)
+                if ( pc != NULL )
+                    pc->fct(tp,tz,pc->data); /* Apply preconditioner */
+                else
+                    array_cp(m,tp,tz); /* No preconditioner */
+
+                // p1 = p1/normp
+                normp = array_dotprod(m,tz,tp);
+                normp = sqrt(normp);
+                array_cp(m,p1,t);
+
+                // t0 = A*p0=0
+                array_set(m,t0,0.0);
+                array_cp(m,t0,z0);
+                array_cp(m,t0,t1);
+                array_cp(m,t0,z1);
+                array_cp(m,t0,p1);
+
+                array_axpy(m,1/normp,t,p1);
+
+                // t1 = tp/normp, z1 = tz/normp
+                array_axpy(m,1/normp,tp,t1);
+                array_axpy(m,1/normp,tz,z1);
+            }
+        } // end of stagnation check!
+
+        // Check III: prevent false convergence
+        if ( relres < tol ) {
+
+            if ( prtlvl >= PRINT_MORE ) ITS_COMPRES(relres);
+
+            // compute residual r = b - Ax again
+            array_cp(m,b->val,r);
+            dcsr_aAxpy(-1.0,A,u->val,r);
+
+            // compute residuals
+            switch (stop_type) {
+                case STOP_REL_RES:
+                    temp2  = array_dotprod(m,r,r);
+                    absres = sqrt(temp2);
+                    relres = absres/normr0;
+                    break;
+                case STOP_REL_PRECRES:
+                    if (pc == NULL)
+                        array_cp(m,r,t);
+                    else
+                        pc->fct(r,t,pc->data);
+                    temp2  = ABS(array_dotprod(m,r,t));
+                    absres = sqrt(temp2);
+                    relres = absres/normr0;
+                    break;
+                case STOP_MOD_REL_RES:
+                    temp2  = array_dotprod(m,r,r);
+                    absres = sqrt(temp2);
+                    relres = absres/normu2;
+                    break;
+            }
+
+            if ( prtlvl >= PRINT_MORE ) ITS_REALRES(relres);
+
+            // check convergence
+            if ( relres < tol ) break;
+
+            if ( more_step >= MaxRestartStep ) {
+                if ( prtlvl > PRINT_MIN ) ITS_ZEROTOL;
+                iter = ERROR_SOLVER_TOLSMALL;
+                break;
+            }
+
+            // keep the iteration count for condition number estimation
+            if (stag == 1 && restart_step == 1) iter_condest = iter;
+
+            // prepare for restarting the method
+            array_set(m,p0,0.0);
+            ++more_step;
+            restart_step=restart_step+1;
+
+            // p1 = B(r)
+            if ( pc != NULL )
+                pc->fct(r,p1,pc->data); /* Apply preconditioner */
+            else
+                array_cp(m,r,p1); /* No preconditioner */
+
+            // tp = A*p1
+            dcsr_mxv(A,p1,tp);
+
+            // tz = B(tp)
+            if ( pc != NULL )
+                pc->fct(tp,tz,pc->data); /* Apply preconditioner */
+            else
+                array_cp(m,tp,tz); /* No preconditioner */
+
+            // p1 = p1/normp
+            normp = array_dotprod(m,tz,tp);
+            normp = sqrt(normp);
+            array_cp(m,p1,t);
+
+            // t0 = A*p0 = 0
+            array_set(m,t0,0.0);
+            array_cp(m,t0,z0);
+            array_cp(m,t0,t1);
+            array_cp(m,t0,z1);
+            array_cp(m,t0,p1);
+
+            array_axpy(m,1/normp,t,p1);
+
+            // t1=tp/normp, z1=tz/normp
+            array_axpy(m,1/normp,tp,t1);
+            array_axpy(m,1/normp,tz,z1);
+
+        } // end of convergence check
+
+        // update relative residual here
+        absres0 = absres;
+
+    } // end of the main loop
+
+    //-----------------------------
+    // Condition number estimation
+    //-----------------------------
+    // keep the iteration count for condition number estimation
+    if (stag == 1 && restart_step == 1) iter_condest = iter;
+
+    if (iter_condest < 1) {
+        printf("### HAZMATH WARNING: %s takes too few iterations for estimating condition number!!!\n", __FUNCTION__);
+        goto FINISHED;
+    }
+    else{
+         printf("Estimating condition number!\n");
+    }
+
+    // reallocate to exact sizes needed
+    alpha_all = (REAL *)realloc(alpha_all, iter_condest * sizeof(REAL));
+    beta_all  = (REAL *)realloc(beta_all,  iter_condest * sizeof(REAL));
+
+    // generate diagonal and off-diagonal for the symmetric tridiagonal matrix
+    // diagonal:     alpha_all[j] = Lanczos alpha_j
+    // off-diagonal: beta_all[j+1]  = Lanczos beta_{j+1}  (for j = 0 .. iter_condest-2)
+    REAL *d0 = (REAL *)calloc(iter_condest, sizeof(REAL));
+    REAL *d1 = (REAL *)calloc(iter_condest-1, sizeof(REAL));
+
+    for (i = 0; i < iter_condest; i++)   d0[i] = alpha_all[i];
+    for (i = 0; i < iter_condest-1; i++) d1[i] = beta_all[i+1];
+
+#if WITH_LAPACK
+    INT info;
+    REAL lambda_max_abs, lambda_min_abs;
+
+    // call symmetric tridiagonal eigensolver (eigenvalues returned in d0, ascending)
+    dsterf_(&iter_condest, d0, d1, &info);
+
+    // condition number: max|lambda| / min|lambda|
+    // eigenvalues can be negative for indefinite systems, so check both ends for max
+    // and scan all for min (closest-to-zero eigenvalue may be interior)
+    lambda_max_abs = MAX(ABS(d0[0]), ABS(d0[iter_condest-1]));
+    lambda_min_abs = BIGREAL;
+    for (i = 0; i < iter_condest; i++)
+        lambda_min_abs = MIN(lambda_min_abs, ABS(d0[i]));
+
+    *condest = lambda_max_abs / lambda_min_abs;
+
+    // clean
+    if(d0) free(d0);
+    if(d1) free(d1);
+#else
+    error_extlib(252, __FUNCTION__, "LAPACK");
+    return iter;
+#endif
+
+FINISHED:  // finish the iterative method
+    if ( prtlvl > PRINT_NONE ) ITS_FINAL(iter,MaxIt,relres);
+
+    // clean up temp memory
+    free(work);
+
+     // free alpha1_all and normp_all
+    free(alpha_all);
+    free(beta_all);
+
+    if ( iter > MaxIt )
+        return ERROR_SOLVER_MAXIT;
+    else
+        return iter;
+}
+
+/***********************************************************************************************/
+/**
  * \fn INT bdcsr_pminres (block_dCSRmat *A, dvector *b, dvector *u, precond *pc,
  *                                    const REAL tol, const INT MaxIt,
  *                                    const SHORT stop_type, const SHORT prtlvl)
@@ -3208,6 +3690,490 @@ FINISHED:  // finish the iterative method
 
     // clean up temp memory
     free(work);
+
+    if ( iter > MaxIt )
+        return ERROR_SOLVER_MAXIT;
+    else
+        return iter;
+}
+
+/***********************************************************************************************/
+/**
+ * \fn INT bdcsr_pminres_w_cond_est(block_dCSRmat *A, dvector *b, dvector *u, precond *pc,
+ *                                  const REAL tol, const INT MaxIt,
+ *                                  const SHORT stop_type, const SHORT prtlvl, REAL *condest)
+ *
+ * \brief Preconditioned minimal residual (MINRES) method for solving Au=b with condition number estimation
+ *
+ * \param A            Pointer to block_dCSRmat: the coefficient matrix
+ * \param b            Pointer to dvector: the right hand side
+ * \param u            Pointer to dvector: the unknowns
+ * \param pc           Pointer to precond: the structure of precondition
+ * \param tol          Tolerance for stopping
+ * \param MaxIt        Maximal number of iterations
+ * \param stop_type    Stopping criteria type
+ * \param prtlvl       How much information to print out
+ * \param condest      Estimated condition number
+ *
+ * \return             Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   05/23/2026
+ *
+ * \note Condition number is estimated from eigenvalues of the symmetric tridiagonal
+ *       matrix built from the Lanczos coefficients accumulated during the iteration.
+ *       Since MINRES handles indefinite systems, condest = max|lambda| / min|lambda|.
+ *       Requires LAPACK (dsterf_).
+ *
+ */
+INT bdcsr_pminres_w_cond_est(block_dCSRmat *A,
+                             dvector *b,
+                             dvector *u,
+                             precond *pc,
+                             const REAL tol,
+                             const INT MaxIt,
+                             const SHORT stop_type,
+                             const SHORT prtlvl,
+                             REAL *condest)
+{
+    const SHORT  MaxStag = MAX_STAG, MaxRestartStep = MAX_RESTART;
+    const INT    m = b->row;
+    const REAL   maxdiff = tol*STAG_RATIO; // stagnation tolerance
+    const REAL   sol_inf_tol = SMALLREAL; // infinity norm tolerance
+
+    // local variables
+    INT          iter = 0, stag = 1, more_step = 1, restart_step = 1;
+    REAL         absres0 = BIGREAL, absres = BIGREAL;
+    REAL         normr0  = BIGREAL, relres  = BIGREAL;
+    REAL         normu2, normuu, normp, infnormu, factor;
+    REAL         alpha, alpha0, alpha1, temp2;
+
+    // allocate temp memory (need 11*m REAL)
+    REAL *work=(REAL *)calloc(11*m,sizeof(REAL));
+    REAL *p0=work, *p1=work+m, *p2=p1+m, *z0=p2+m, *z1=z0+m;
+    REAL *t0=z1+m, *t1=t0+m, *t=t1+m, *tp=t+m, *tz=tp+m, *r=tz+m;
+
+    // for estimating condition number
+    REAL *alpha_all = (REAL *)calloc(MaxIt, sizeof(REAL));
+    REAL *beta_all  = (REAL *)calloc(MaxIt, sizeof(REAL));
+    INT iter_condest = 0;
+    INT i;
+
+    // p0 = 0
+    array_set(m,p0,0.0);
+
+    // r = b-A*u
+    array_cp(m,b->val,r);
+    bdcsr_aAxpy(-1.0,A,u->val,r);
+
+    // p1 = B(r)
+    if ( pc != NULL )
+        pc->fct(r,p1,pc->data); /* Apply preconditioner */
+    else
+        array_cp(m,r,p1); /* No preconditioner */
+
+    // compute initial residuals
+    switch ( stop_type ) {
+        case STOP_REL_RES:
+            absres0 = array_norm2(m,r);
+            normr0  = MAX(SMALLREAL,absres0);
+            relres  = absres0/normr0;
+            break;
+        case STOP_REL_PRECRES:
+            absres0 = sqrt(array_dotprod(m,r,p1));
+            normr0  = MAX(SMALLREAL,absres0);
+            relres  = absres0/normr0;
+            break;
+        case STOP_MOD_REL_RES:
+            absres0 = array_norm2(m,r);
+            normu2  = MAX(SMALLREAL,array_norm2(m,u->val));
+            relres  = absres0/normu2;
+            break;
+        default:
+            printf("### ERROR: Unrecognized stopping type for %s!\n", __FUNCTION__);
+            goto FINISHED;
+    }
+
+    // if initial residual is small, no need to iterate!
+    if ( relres < tol || absres0 < 1e-3*tol ) goto FINISHED;
+
+    // output iteration information if needed
+    print_itsolver_info(prtlvl,stop_type,iter,relres,absres0,0.0);
+
+    // tp = A*p1
+    bdcsr_mxv(A,p1,tp);
+
+    // tz = B(tp)
+    if ( pc != NULL )
+        pc->fct(tp,tz,pc->data); /* Apply preconditioner */
+    else
+        array_cp(m,tp,tz); /* No preconditioner */
+
+    // p1 = p1/normp
+    normp = ABS(array_dotprod(m,tz,tp));
+    normp = sqrt(normp);
+    array_cp(m,p1,t);
+    array_set(m,p1,0.0);
+    array_axpy(m,1/normp,t,p1);
+
+    // t0 = A*p0 = 0
+    array_set(m,t0,0.0);
+    array_cp(m,t0,z0);
+    array_cp(m,t0,t1);
+    array_cp(m,t0,z1);
+
+    // t1 = tp/normp, z1 = tz/normp
+    array_axpy(m,1.0/normp,tp,t1);
+    array_axpy(m,1.0/normp,tz,z1);
+
+    // main MinRes loop
+    while ( iter++ < MaxIt ) {
+
+        // alpha = <r,z1>
+        alpha = array_dotprod(m,r,z1);
+
+        // u = u+alpha*p1
+        array_axpy(m,alpha,p1,u->val);
+
+        // r = r-alpha*Ap1
+        array_axpy(m,-alpha,t1,r);
+
+        // compute t = A*z1, alpha1 = <z1,t>  (Lanczos diagonal)
+        bdcsr_mxv(A,z1,t);
+        alpha1 = array_dotprod(m,z1,t);
+
+        // compute t = A*z0, alpha0 = <z1,t>  (Lanczos off-diagonal)
+        bdcsr_mxv(A,z0,t);
+        alpha0 = array_dotprod(m,z1,t);
+
+        // store Lanczos coefficients for condition number estimation
+        alpha_all[iter-1] = alpha1;
+        beta_all[iter-1]  = alpha0;
+
+        // p2 = z1-alpha1*p1-alpha0*p0
+        array_cp(m,z1,p2);
+        array_axpy(m,-alpha1,p1,p2);
+        array_axpy(m,-alpha0,p0,p2);
+
+        // tp = A*p2
+        bdcsr_mxv(A,p2,tp);
+
+        // tz = B(tp)
+        if ( pc != NULL )
+            pc->fct(tp,tz,pc->data); /* Apply preconditioner */
+        else
+            array_cp(m,tp,tz); /* No preconditioner */
+
+        // normp for normalizing next direction
+        normp = ABS(array_dotprod(m,tz,tp));
+        normp = sqrt(normp);
+
+        // p2 = p2/normp
+        array_cp(m,p2,t);
+        array_set(m,p2,0.0);
+        array_axpy(m,1/normp,t,p2);
+
+        // prepare for the next iteration
+        array_cp(m,p1,p0);
+        array_cp(m,p2,p1);
+        array_cp(m,t1,t0);
+        array_cp(m,z1,z0);
+
+        // t1=tp/normp, z1=tz/normp
+        array_set(m,t1,0.0);
+        array_cp(m,t1,z1);
+        array_axpy(m,1/normp,tp,t1);
+        array_axpy(m,1/normp,tz,z1);
+
+        normu2 = array_norm2(m,u->val);
+
+        // compute residuals
+        switch ( stop_type ) {
+            case STOP_REL_RES:
+                temp2  = array_dotprod(m,r,r);
+                absres = sqrt(temp2);
+                relres = absres/normr0;
+                break;
+            case STOP_REL_PRECRES:
+                if (pc == NULL)
+                    array_cp(m,r,t);
+                else
+                    pc->fct(r,t,pc->data);
+                temp2  = ABS(array_dotprod(m,r,t));
+                absres = sqrt(temp2);
+                relres = absres/normr0;
+                break;
+            case STOP_MOD_REL_RES:
+                temp2  = array_dotprod(m,r,r);
+                absres = sqrt(temp2);
+                relres = absres/normu2;
+                break;
+        }
+
+        // compute reduction factor of residual ||r||
+        factor = absres/absres0;
+
+        // output iteration information if needed
+        print_itsolver_info(prtlvl,stop_type,iter,relres,absres,factor);
+
+        // Check I: if solution is close to zero, return ERROR_SOLVER_SOLSTAG
+        infnormu = array_norminf(m, u->val);
+        if (infnormu <= sol_inf_tol) {
+            if ( prtlvl > PRINT_MIN ) ITS_ZEROSOL;
+            iter = ERROR_SOLVER_SOLSTAG;
+            break;
+        }
+
+        // Check II: if stagnated, try to restart
+        normuu = array_norm2(m,p1);
+        normuu = ABS(alpha)*(normuu/normu2);
+
+        if ( normuu < maxdiff ) {
+
+            if ( stag < MaxStag ) {
+                if ( prtlvl >= PRINT_MORE ) {
+                    ITS_DIFFRES(normuu,relres);
+                    ITS_RESTART;
+                }
+            }
+
+            array_cp(m,b->val,r);
+            bdcsr_aAxpy(-1.0,A,u->val,r);
+
+            // compute residuals
+            switch (stop_type) {
+                case STOP_REL_RES:
+                    temp2  = array_dotprod(m,r,r);
+                    absres = sqrt(temp2);
+                    relres = absres/normr0;
+                    break;
+                case STOP_REL_PRECRES:
+                    if (pc == NULL)
+                        array_cp(m,r,t);
+                    else
+                        pc->fct(r,t,pc->data);
+                    temp2  = ABS(array_dotprod(m,r,t));
+                    absres = sqrt(temp2);
+                    relres = absres/normr0;
+                    break;
+                case STOP_MOD_REL_RES:
+                    temp2  = array_dotprod(m,r,r);
+                    absres = sqrt(temp2);
+                    relres = absres/normu2;
+                    break;
+            }
+
+            if ( prtlvl >= PRINT_MORE ) ITS_REALRES(relres);
+
+            if ( relres < tol )
+                break;
+            else {
+                if ( stag >= MaxStag ) {
+                    if ( prtlvl > PRINT_MIN ) ITS_STAGGED;
+                    iter = ERROR_SOLVER_STAG;
+                    break;
+                }
+
+                // keep the iteration count for condition number estimation
+                if (stag == 1 && restart_step == 1) iter_condest = iter;
+
+                array_set(m,p0,0.0);
+                ++stag;
+                restart_step=restart_step+1;
+
+                // p1 = B(r)
+                if ( pc != NULL )
+                    pc->fct(r,p1,pc->data); /* Apply preconditioner */
+                else
+                    array_cp(m,r,p1); /* No preconditioner */
+
+                // tp = A*p1
+                bdcsr_mxv(A,p1,tp);
+
+                // tz = B(tp)
+                if ( pc != NULL )
+                    pc->fct(tp,tz,pc->data); /* Apply preconditioner */
+                else
+                    array_cp(m,tp,tz); /* No preconditioner */
+
+                // p1 = p1/normp
+                normp = array_dotprod(m,tz,tp);
+                normp = sqrt(normp);
+                array_cp(m,p1,t);
+
+                // t0 = A*p0=0
+                array_set(m,t0,0.0);
+                array_cp(m,t0,z0);
+                array_cp(m,t0,t1);
+                array_cp(m,t0,z1);
+                array_cp(m,t0,p1);
+
+                array_axpy(m,1/normp,t,p1);
+
+                // t1 = tp/normp, z1 = tz/normp
+                array_axpy(m,1/normp,tp,t1);
+                array_axpy(m,1/normp,tz,z1);
+            }
+        } // end of stagnation check!
+
+        // Check III: prevent false convergence
+        if ( relres < tol ) {
+
+            if ( prtlvl >= PRINT_MORE ) ITS_COMPRES(relres);
+
+            // compute residual r = b - Ax again
+            array_cp(m,b->val,r);
+            bdcsr_aAxpy(-1.0,A,u->val,r);
+
+            // compute residuals
+            switch (stop_type) {
+                case STOP_REL_RES:
+                    temp2  = array_dotprod(m,r,r);
+                    absres = sqrt(temp2);
+                    relres = absres/normr0;
+                    break;
+                case STOP_REL_PRECRES:
+                    if (pc == NULL)
+                        array_cp(m,r,t);
+                    else
+                        pc->fct(r,t,pc->data);
+                    temp2  = ABS(array_dotprod(m,r,t));
+                    absres = sqrt(temp2);
+                    relres = absres/normr0;
+                    break;
+                case STOP_MOD_REL_RES:
+                    temp2  = array_dotprod(m,r,r);
+                    absres = sqrt(temp2);
+                    relres = absres/normu2;
+                    break;
+            }
+
+            if ( prtlvl >= PRINT_MORE ) ITS_REALRES(relres);
+
+            // check convergence
+            if ( relres < tol ) break;
+
+            if ( more_step >= MaxRestartStep ) {
+                if ( prtlvl > PRINT_MIN ) ITS_ZEROTOL;
+                iter = ERROR_SOLVER_TOLSMALL;
+                break;
+            }
+
+            // keep the iteration count for condition number estimation
+            if (stag == 1 && restart_step == 1) iter_condest = iter;
+
+            // prepare for restarting the method
+            array_set(m,p0,0.0);
+            ++more_step;
+            restart_step=restart_step+1;
+
+            // p1 = B(r)
+            if ( pc != NULL )
+                pc->fct(r,p1,pc->data); /* Apply preconditioner */
+            else
+                array_cp(m,r,p1); /* No preconditioner */
+
+            // tp = A*p1
+            bdcsr_mxv(A,p1,tp);
+
+            // tz = B(tp)
+            if ( pc != NULL )
+                pc->fct(tp,tz,pc->data); /* Apply preconditioner */
+            else
+                array_cp(m,tp,tz); /* No preconditioner */
+
+            // p1 = p1/normp
+            normp = array_dotprod(m,tz,tp);
+            normp = sqrt(normp);
+            array_cp(m,p1,t);
+
+            // t0 = A*p0 = 0
+            array_set(m,t0,0.0);
+            array_cp(m,t0,z0);
+            array_cp(m,t0,t1);
+            array_cp(m,t0,z1);
+            array_cp(m,t0,p1);
+
+            array_axpy(m,1/normp,t,p1);
+
+            // t1=tp/normp, z1=tz/normp
+            array_axpy(m,1/normp,tp,t1);
+            array_axpy(m,1/normp,tz,z1);
+
+        } // end of convergence check
+
+        // update relative residual here
+        absres0 = absres;
+
+    } // end of the main loop
+
+    //-----------------------------
+    // Condition number estimation
+    //-----------------------------
+    // keep the iteration count for condition number estimation
+    if (stag == 1 && restart_step == 1) iter_condest = iter;
+
+    if (iter_condest < 1) {
+        printf("### HAZMATH WARNING: %s takes too few iterations for estimating condition number!!!\n", __FUNCTION__);
+        goto FINISHED;
+    }
+    else{
+         printf("Estimating condition number!\n");
+    }
+
+    // reallocate to exact sizes needed
+    alpha_all = (REAL *)realloc(alpha_all, iter_condest * sizeof(REAL));
+    beta_all  = (REAL *)realloc(beta_all,  iter_condest * sizeof(REAL));
+
+    // generate diagonal and off-diagonal for the symmetric tridiagonal matrix
+    // diagonal:     alpha_all[j]   = Lanczos alpha_j
+    // off-diagonal: beta_all[j+1]  = Lanczos beta_{j+1} (alpha0 at iteration j+1)
+    REAL *d0 = (REAL *)calloc(iter_condest, sizeof(REAL));
+    REAL *d1 = (REAL *)calloc(iter_condest-1, sizeof(REAL));
+
+    for (i = 0; i < iter_condest; i++)   d0[i] = alpha_all[i];
+    for (i = 0; i < iter_condest-1; i++) d1[i] = beta_all[i+1];
+
+    //for (i = 0; i< iter_condest; i++) printf("alpha[%d] = %f\n", i, alpha_all[i]);
+    //for (i = 0; i< iter_condest; i++) printf("beta[%d] = %f\n", i, beta_all[i]);
+
+#if WITH_LAPACK
+    INT info;
+    REAL lambda_max_abs, lambda_min_abs;
+
+    // call symmetric tridiagonal eigensolver (eigenvalues returned in d0, ascending)
+    dsterf_(&iter_condest, d0, d1, &info);
+
+    // print eigenvalues
+    for (i = 0; i< iter_condest; i++) printf("d0[%d] = %f\n", i, d0[i]);
+    //getchar();
+
+    // condition number: max|lambda| / min|lambda|
+    // eigenvalues can be negative for indefinite systems, so check both ends for max
+    // and scan all for min (closest-to-zero eigenvalue may be interior)
+    lambda_max_abs = MAX(ABS(d0[0]), ABS(d0[iter_condest-1]));
+    lambda_min_abs = BIGREAL;
+    for (i = 0; i < iter_condest; i++)
+        lambda_min_abs = MIN(lambda_min_abs, ABS(d0[i]));
+
+    printf("largest eigenvalue = %f, smallest eigenvalue =%f\n", lambda_max_abs, lambda_min_abs);
+    *condest = lambda_max_abs / lambda_min_abs;
+
+    // clean
+    if(d0) free(d0);
+    if(d1) free(d1);
+#else
+    error_extlib(252, __FUNCTION__, "LAPACK");
+    return iter;
+#endif
+
+FINISHED:  // finish the iterative method
+    if ( prtlvl > PRINT_NONE ) ITS_FINAL(iter,MaxIt,relres);
+
+    // clean up temp memory
+    free(work);
+    free(alpha_all);
+    free(beta_all);
 
     if ( iter > MaxIt )
         return ERROR_SOLVER_MAXIT;

@@ -370,7 +370,9 @@ INT solver_bdcsr_linear_itsolver(block_dCSRmat *A,
                 printf("**********************************************************\n");
                 printf(" --> using MINRES Method (Block CSR):\n");
             }
-            iter = bdcsr_pminres(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
+            //iter = bdcsr_pminres(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
+            iter = bdcsr_pminres_w_cond_est(A, b, x, pc, tol, MaxIt, stop_type, prtlvl, &condest);
+            printf("Estimated condition number = %13.6e\n", condest);
             break;
 
         case SOLVER_VGMRES:
