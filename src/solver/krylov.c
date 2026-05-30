@@ -4144,8 +4144,10 @@ INT bdcsr_pminres_w_cond_est(block_dCSRmat *A,
     // call symmetric tridiagonal eigensolver (eigenvalues returned in d0, ascending)
     dsterf_(&iter_condest, d0, d1, &info);
 
-    // print eigenvalues
-    for (i = 0; i< iter_condest; i++) printf("d0[%d] = %f\n", i, d0[i]);
+    // print the full Lanczos eigenvalue spectrum only at high verbosity
+    // (one line per iteration; floods the log otherwise)
+    if ( prtlvl >= PRINT_MORE )
+        for (i = 0; i< iter_condest; i++) printf("d0[%d] = %f\n", i, d0[i]);
     //getchar();
 
     // condition number: max|lambda| / min|lambda|
