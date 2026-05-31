@@ -51,12 +51,25 @@ Rules:
 |---|---|---|
 | 0 | DGS bisection | Adaptive bisection refinement (any dimension). Uses vertex coloring from Diening-Gehring-Storn (2025). |
 | 20 | Uniform Bey | Freudenthal uniform refinement: each simplex is subdivided into 2^d children (any dimension). |
-| 21 | Marked Bey (test) | Selective Bey refinement on odd-indexed simplices with conforming closure. Checkerboard test pattern. |
-| 22 | Marked Bey (corner) | Selective Bey refinement on simplices near the origin, with conforming closure. Threshold shrinks per level for graded meshes (e.g., re-entrant corners). |
+| 21 | DGS local (test) | Local DGS bisection on odd-indexed leaves. Checkerboard test pattern. |
+| 22 | DGS local (corner) | Local DGS bisection on leaves near the origin. Threshold shrinks per level for graded meshes (e.g., re-entrant corners). |
 
 When `amr_marking_type{0}` and `refinement_type` is 0, DGS bisection
 refines all simplices uniformly. When `refinement_type` is 20, Bey's
 uniform refinement subdivides every simplex into 2^d children.
+
+### Design rule: Bey for uniform, DGS for local
+
+**Bey (Freudenthal) refinement is used only for *uniform* refinement (all
+simplices); all *local/selective* refinement uses DGS newest-vertex
+bisection.** This is deliberate. A partial Bey split is the classic red/green
+problem: a pure-bisection closure cannot reproduce a Bey-refined face (its
+central sub-simplex has all-midpoint vertices), so the only correct closure
+for a marked region is DGS bisection. The former hand-written "selective Bey
++ face-Bey/bisection closure" was removed because it produced non-conforming
+meshes (facet-conforming but with a non-manifold boundary). DGS has a proven
+conforming completion in any dimension, so all local refinement goes through
+`refine()`.
 
 ### Refinement algorithms
 
@@ -82,47 +95,18 @@ neighbors sharing the tagged edge. Works for any conforming initial
 triangulation in any dimension, including adaptive refinement with
 marking.
 
-### Combining Bey and DGS: selective Bey with conforming closure
-
-The selective Bey refinement (`refinement_type{21}` or `{22}`) combines
-both algorithms. Only marked simplices are Bey-refined; the rest of
-the mesh is closed to restore conformity using a two-phase procedure:
-
-1. **Face-Bey closure.** A neighbor sharing a full (d-1)-face with a
-   Bey-refined simplex has all C(d,2) edges of that face midpointed.
-   Simple bisection cannot match the Bey face pattern (the 2^(d-1)
-   sub-faces include a central simplex whose vertices are all
-   midpoints, unreachable by bisection cuts which always connect a
-   midpoint to an existing vertex). Instead, the (d-1)-dimensional
-   Bey subdivision is applied to the non-conforming face and each
-   sub-face is coned to the apex vertex, producing 2^(d-1) children
-   whose faces match the Bey pattern exactly.
-
-2. **Bisection closure.** After face-Bey closure, remaining
-   non-conformity consists of single-edge hanging nodes (an edge with
-   a midpoint not yet absorbed by the simplex). These are resolved by
-   simple bisection: replace the simplex with two children, one for
-   each half of the split edge. Bisection propagates along the strip
-   of simplices sharing the affected edge, exactly as in standard
-   DGS closure.
-
-The loop iterates until no non-conforming simplices remain. The
-algorithm works in any spatial dimension and has been verified on
-2D through 5D meshes.
-
 ### Marking types (`amr_marking_type`)
 
 | Value | Method | Description |
 |---|---|---|
-| 0 | Controlled by `refinement_type` | Uses `refinement_type` to select DGS (0), uniform Bey (20), or selective Bey (21/22) |
+| 0 | Controlled by `refinement_type` | Uses `refinement_type` to select DGS (0), uniform Bey (20), or local DGS (21/22) |
 | 1 | Solve/estimate/mark/refine | Generic adaptive loop with user-defined solve, estimate, and mark functions |
-| 33 | DGS near points | Mark simplices containing specified points, refine with DGS bisection |
-| 34 | Bey+DGS near points | Mark simplices near specified points (barycenter distance with shrinking threshold), refine with selective Bey + face-Bey/bisection closure |
-| 35 | Bey then DGS near points | Bey refinement near points, then DGS adaptive completion |
+| 33 | DGS near points | Mark leaves containing specified points, refine with DGS bisection |
+| 34 | DGS near points (graded) | Mark leaves near specified points (barycenter distance with shrinking threshold), refine with DGS bisection |
 | 44 | Features from file | Refine around features read from an external data file |
 
-Types 33, 34, and 35 use `num_refine_points` and `data_refine_points` from
-the input file. Types 34 and 35 start with threshold 1.0 and shrink per
+Types 33 and 34 use `num_refine_points` and `data_refine_points` from
+the input file. Type 34 starts with threshold 1.0 and shrinks per
 level, producing graded meshes concentrated near the specified points.
 
 **Example** — Fichera corner refined near the re-entrant point (0,0,0):
@@ -180,7 +164,6 @@ d-k fixed bits). The resulting d-linear map must have nonzero Jacobian.
 | `input/3d_cube.input` | Grid on the cube (0,1)^3 |
 | `input/3d_fichera.input` | Fichera corner |
 | `input/3d_fichera_adaptive.input` | Fichera corner (adaptive near corner) |
-| `input/3d_fichera_bey_dgs.input` | Fichera corner (Bey + DGS) |
 | `input/4d_cube.input` | Grid on the 4d cube (-1,1)^4 |
 | `input/5d_cube.input` | Grid on the 5d cube (-1,1)^5 |
 
@@ -188,7 +171,7 @@ d-k fixed bits). The resulting d-linear map must have nonzero Jacobian.
 
 | File | Contents |
 |---|---|
-| `src/amr/uniform_refinement.c` | `get_edge_nd`, `uniformrefine` (Bey/Freudenthal, any dim), `uniformrefine_marked` (selective Bey + closure) |
+| `src/amr/uniform_refinement.c` | `get_edge_nd`, `uniformrefine` (Bey/Freudenthal, any dim), `uniformrefine_marked` (dispatcher: uniform Bey if all marked, else delegates local refinement to DGS `refine()`) |
 | `src/amr/amr_core.c` | `refine` (DGS bisection), `haz_refine_simplex`, `haz_bisect_new/reuse`, `make_uniform_mesh` |
 | `src/amr/scomplex.c` | Simplicial complex: init, free, geometry, volumes, FEM data, boundary, conformity check |
 

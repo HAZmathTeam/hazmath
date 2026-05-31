@@ -1772,9 +1772,14 @@ void sc_write_gmsh(const char *namemsh,scomplex *sc, const INT shift0)
   }
   fprintf(fmesh,"%s\n","$EndNodes");
   fprintf(fmesh,"%s\n","$Elements");
-  /* count coded faces (boundary + interior with codes) in bndry_f2v */
+  /* count coded faces = NONEMPTY rows of bndry_f2v.  bndry_f2v is now an f_v
+     submatrix (nface rows, empty rows for uncoded faces); a compact bndry_f2v
+     has every row nonempty, so this handles both forms. */
   INT nbf_out=0;
-  if(sc->bndry_f2v) nbf_out=sc->bndry_f2v->row;
+  if(sc->bndry_f2v){
+    for(k=0;k<sc->bndry_f2v->row;k++)
+      if(sc->bndry_f2v->IA[k+1]>sc->bndry_f2v->IA[k]) nbf_out++;
+  }
   fprintf(fmesh,"%lld\n",(long long )(nbf_out+ns));
   /* write coded faces as lower-dimensional elements.
      tag1 = face code, tag2 = face code (same convention as Gmsh physical+elementary).
@@ -1787,16 +1792,19 @@ void sc_write_gmsh(const char *namemsh,scomplex *sc, const INT shift0)
     case 3:  face_type=2;  break; /* 3-node triangle */
     default: face_type=50+(int)dim-1; break; /* custom: dim-node simplex */
     }
-    for(k=0;k<nbf_out;k++){
+    INT eid=0;   /* contiguous element id over nonempty (coded) face rows */
+    for(k=0;k<sc->bndry_f2v->row;k++){
       INT fa=sc->bndry_f2v->IA[k];
       INT fb=sc->bndry_f2v->IA[k+1];
+      if(fb<=fa) continue;           /* skip empty (uncoded) face rows */
       INT fcode=sc->bndry_f2v->val[fa];
       fprintf(fmesh,"%lld %d 2 %lld %lld",
-        (long long)(k+shift), face_type,
+        (long long)(eid+shift), face_type,
         (long long)fcode, (long long)fcode);
       for(j=fa;j<fb;j++)
         fprintf(fmesh," %lld",(long long)(sc->bndry_f2v->JA[j]+shift));
       fprintf(fmesh,"\n");
+      eid++;
     }
   }
   /* write volume elements */

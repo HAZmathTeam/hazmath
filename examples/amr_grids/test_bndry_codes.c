@@ -183,17 +183,19 @@ INT main(INT argc, char *argv[])
     /* no refinement — just finalize */
     nref = 0;
   } else if (ref_type == 22) {
-    /* Marked Bey near origin */
+    /* Local refinement near origin via DGS bisection (conforming).
+       scfinalize() below finalizes the hierarchy to a flat leaf mesh. */
     REAL threshold = 1.0;
     for (INT lvl = 0; lvl < nref; lvl++) {
-      ivector mark = ivec_create(sc->ns);
+      scomplex *sctop = scfinest(sc);
+      ivector mark = ivec_create(sctop->ns);
       INT nmarked = 0;
-      for (INT k = 0; k < sc->ns; k++) {
+      for (INT k = 0; k < sctop->ns; k++) {
         REAL dist2 = 0.0;
         for (INT dd = 0; dd < dim; dd++) {
           REAL c = 0.0;
           for (INT vv = 0; vv < n1; vv++)
-            c += sc->x[sc->nbig * sc->nodes[n1 * k + vv] + dd];
+            c += sctop->x[sctop->nbig * sctop->nodes[n1 * k + vv] + dd];
           c /= (REAL)n1;
           dist2 += c * c;
         }
@@ -201,13 +203,12 @@ INT main(INT argc, char *argv[])
         if (mark.val[k]) nmarked++;
       }
       fprintf(stdout, "  Level %lld: marked %lld / %lld\n",
-        (long long)lvl, (long long)nmarked, (long long)sc->ns);
-      uniformrefine_marked(sc, &mark);
+        (long long)lvl, (long long)nmarked, (long long)sctop->ns);
+      refine(1, sc, &mark);
       ivec_free(&mark);
-      sc_vols(sc);
+      haz_scomplex_free(sctop);
       threshold *= 0.6;
     }
-    find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
   } else if (ref_type > 10) {
     /* Uniform Bey */
     for (INT lvl = 0; lvl < nref; lvl++) {

@@ -96,8 +96,13 @@ INT main(INT argc, char* argv[])
   printf("  Boundary codes range: 0 to %lld\n", (long long)max_code);
 
   if (sc->bndry_f2v) {
-    printf("  Boundary faces (from .msh): %lld\n",
-           (long long)sc->bndry_f2v->row);
+    /* bndry_f2v may be an f_v submatrix (nface rows, empty for uncoded faces)
+       after sc_build_fem_data, or a compact list before it; count nonempty
+       (coded) rows either way. */
+    long long ncoded = 0;
+    for (INT ii = 0; ii < sc->bndry_f2v->row; ++ii)
+      if (sc->bndry_f2v->IA[ii + 1] > sc->bndry_f2v->IA[ii]) ncoded++;
+    printf("  Coded faces (from .msh): %lld\n", ncoded);
   }
 
   /* Conformity check */
@@ -105,32 +110,14 @@ INT main(INT argc, char* argv[])
   if (nerr)
     fprintf(stderr, "  FAIL: non-conforming (%lld errors)\n", (long long)nerr);
 
-  /* ---- Phase 4: Refine with marked Bey + closure ---- */
-  printf("\nPhase 4: Marked Bey refinement (2 levels, near origin)\n");
-  INT dim = sc->dim, n1 = dim + 1;
-  REAL threshold = 1.0;
+  /* ---- Phase 4: Refine (uniform Bey) ---- */
+  printf("\nPhase 4: uniform Bey refinement (2 levels)\n");
+  INT dim = sc->dim;
   for (INT lvl = 0; lvl < 2; lvl++) {
-    ivector mark = ivec_create(sc->ns);
-    INT nmarked = 0;
-    for (INT k = 0; k < sc->ns; k++) {
-      REAL dist2 = 0.0;
-      for (INT dd = 0; dd < dim; dd++) {
-        REAL c = 0.0;
-        for (INT vv = 0; vv < n1; vv++)
-          c += sc->x[sc->nbig * sc->nodes[n1 * k + vv] + dd];
-        c /= (REAL)n1;
-        dist2 += c * c;
-      }
-      mark.val[k] = (dist2 < threshold * threshold) ? 1 : 0;
-      if (mark.val[k]) nmarked++;
-    }
-    printf("  Level %lld: ns=%lld, marked=%lld",
-           (long long)lvl, (long long)sc->ns, (long long)nmarked);
-    uniformrefine_marked(sc, &mark);
-    ivec_free(&mark);
+    uniformrefine(sc);
     sc_vols(sc);
-    printf(" -> ns=%lld, nv=%lld\n", (long long)sc->ns, (long long)sc->nv);
-    threshold *= 0.6;
+    printf("  Level %lld: ns=%lld, nv=%lld\n",
+           (long long)lvl, (long long)sc->ns, (long long)sc->nv);
   }
   find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
   sc_vols(sc);

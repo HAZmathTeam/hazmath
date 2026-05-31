@@ -67,25 +67,26 @@ INT main(INT argc, char* argv[]) {
   //NNNNNNNNNNNNNNNN
   if (amr_marking_type == 0) {
     if (sc->ref_type == 21 || sc->ref_type == 22) {
-      // Marked Bey + face-Bey/bisection closure
-      // ref_type 21: mark odd-indexed simplices (checkerboard test)
-      // ref_type 22: mark simplices near the origin (re-entrant corner)
+      // Local refinement via DGS newest-vertex bisection (conforming).
+      // ref_type 21: mark odd-indexed leaves (checkerboard test)
+      // ref_type 22: mark leaves near the origin (re-entrant corner)
       for (j = 0; j < ref_levels; j++) {
-        ivector mark = ivec_create(sc->ns);
+        sctop = scfinest(sc);
+        ivector mark = ivec_create(sctop->ns);
         INT nmarked = 0;
         if (sc->ref_type == 21) {
-          for (k = 0; k < sc->ns; k++) { mark.val[k] = (k % 2); if (mark.val[k]) nmarked++; }
+          for (k = 0; k < sctop->ns; k++) { mark.val[k] = (k % 2); if (mark.val[k]) nmarked++; }
         } else {
-          /* mark simplices whose barycenter is within threshold of origin */
+          /* mark leaves whose barycenter is within threshold of origin */
           /* threshold shrinks each level so refinement concentrates */
           REAL threshold = 1.0;
           for (INT jj = 0; jj < j; jj++) threshold *= 0.6;
-          for (k = 0; k < sc->ns; k++) {
+          for (k = 0; k < sctop->ns; k++) {
             REAL dist2 = 0.0;
             for (INT dd = 0; dd < dim; dd++) {
               REAL c = 0.0;
               for (INT vv = 0; vv < n1; vv++)
-                c += sc->x[sc->nbig * sc->nodes[n1 * k + vv] + dd];
+                c += sctop->x[sctop->nbig * sctop->nodes[n1 * k + vv] + dd];
               c /= (REAL)n1;
               dist2 += c * c;
             }
@@ -93,16 +94,14 @@ INT main(INT argc, char* argv[]) {
             if (mark.val[k]) nmarked++;
           }
         }
-        fprintf(stdout, "\n%% Marked Bey (lvl %lld): ns=%lld, marked=%lld",
-          (long long)j, (long long)sc->ns, (long long)nmarked);
-        uniformrefine_marked(sc, &mark);
+        fprintf(stdout, "\n%% Marked DGS (lvl %lld): leaves=%lld, marked=%lld",
+          (long long)j, (long long)sctop->ns, (long long)nmarked);
+        refine(1, sc, &mark);
         ivec_free(&mark);
-        sc_vols(sc);
+        haz_scomplex_free(sctop);
         fprintf(stdout, " -> ns=%lld, nv=%lld", (long long)sc->ns, (long long)sc->nv);
       }
       fprintf(stdout, "\n");
-      find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
-      sc_vols(sc);
     } else if (sc->ref_type > 10) {
       // uniform (Freudenthal) refinement — works in any dimension
       for (j = 0; j < ref_levels; j++) {
@@ -175,23 +174,24 @@ INT main(INT argc, char* argv[]) {
     ivec_free(&marked);
     //free(xstar);
   } else if (amr_marking_type == 34) {
-    // Refine near specified points using Bey + face-Bey/bisection closure.
-    // Mark simplices whose barycenter is within a shrinking threshold
+    // Local refinement near specified points via DGS bisection (conforming).
+    // Mark leaf simplices whose barycenter is within a shrinking threshold
     // of any specified point. Threshold shrinks by 0.6x per level.
     nstar = g->num_refine_points;
     xstar = g->data_refine_points;
     REAL threshold = 1.0;
     for (j = 0; j < ref_levels; j++) {
-      marked = ivec_create(sc->ns);
+      sctop = scfinest(sc);
+      marked = ivec_create(sctop->ns);
       INT nmarked = 0;
-      for (k = 0; k < sc->ns; k++) {
+      for (k = 0; k < sctop->ns; k++) {
         REAL mindist2 = 1e30;
         for (INT s = 0; s < nstar; s++) {
           REAL dist2 = 0.0;
           for (INT dd = 0; dd < dim; dd++) {
             REAL c = 0.0;
             for (INT vv = 0; vv < n1; vv++)
-              c += sc->x[sc->nbig * sc->nodes[n1 * k + vv] + dd];
+              c += sctop->x[sctop->nbig * sctop->nodes[n1 * k + vv] + dd];
             c /= (REAL)n1;
             REAL d = c - xstar[s * dim + dd];
             dist2 += d * d;
@@ -201,76 +201,15 @@ INT main(INT argc, char* argv[]) {
         marked.val[k] = (mindist2 < threshold * threshold) ? 1 : 0;
         if (marked.val[k]) nmarked++;
       }
-      fprintf(stdout, "\n%% Marked Bey (lvl %lld): ns=%lld, marked=%lld",
-        (long long)j, (long long)sc->ns, (long long)nmarked);
-      uniformrefine_marked(sc, &marked);
+      fprintf(stdout, "\n%% DGS near pts (lvl %lld): leaves=%lld, marked=%lld",
+        (long long)j, (long long)sctop->ns, (long long)nmarked);
+      refine(1, sc, &marked);
       ivec_free(&marked);
-      sc_vols(sc);
+      haz_scomplex_free(sctop);
       fprintf(stdout, " -> ns=%lld, nv=%lld", (long long)sc->ns, (long long)sc->nv);
       threshold *= 0.6;
     }
     fprintf(stdout, "\n");
-    find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
-    sc_vols(sc);
-  } else if (amr_marking_type == 35) {
-    /* Bey refinement near refine points, then DGS adaptive completion.
-       Split refinement levels: half Bey, half DGS. */
-    nstar = g->num_refine_points;
-    xstar = g->data_refine_points;
-    INT bey_levels = ref_levels / 2;
-    if (bey_levels < 2) bey_levels = 2;
-    INT dgs_levels = ref_levels - bey_levels;
-    if (dgs_levels < 1) dgs_levels = 1;
-    /* Phase 1: Bey refinement near points */
-    REAL threshold = 1.0;
-    fprintf(stdout, "\n%% Phase 1: Bey refinement (%lld levels)\n", (long long)bey_levels);
-    for (j = 0; j < bey_levels; j++) {
-      marked = ivec_create(sc->ns);
-      INT nmarked = 0;
-      for (k = 0; k < sc->ns; k++) {
-        REAL mindist2 = 1e30;
-        for (INT s = 0; s < nstar; s++) {
-          REAL dist2 = 0.0;
-          for (INT dd = 0; dd < dim; dd++) {
-            REAL c = 0.0;
-            for (INT vv = 0; vv < n1; vv++)
-              c += sc->x[sc->nbig * sc->nodes[n1 * k + vv] + dd];
-            c /= (REAL)n1;
-            REAL d = c - xstar[s * dim + dd];
-            dist2 += d * d;
-          }
-          if (dist2 < mindist2) mindist2 = dist2;
-        }
-        marked.val[k] = (mindist2 < threshold * threshold) ? 1 : 0;
-        if (marked.val[k]) nmarked++;
-      }
-      fprintf(stdout, "%% Bey lvl %lld: ns=%lld, marked=%lld",
-        (long long)j, (long long)sc->ns, (long long)nmarked);
-      uniformrefine_marked(sc, &marked);
-      ivec_free(&marked);
-      sc_vols(sc);
-      fprintf(stdout, " -> ns=%lld, nv=%lld\n", (long long)sc->ns, (long long)sc->nv);
-      threshold *= 0.5;
-    }
-    find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
-    sc_vols(sc);
-    /* Phase 2: DGS adaptive refinement near points */
-    fprintf(stdout, "%% Phase 2: DGS adaptive refinement (%lld levels)\n", (long long)dgs_levels);
-    REAL h = 0.05;
-    REAL dgs_threshold = h;
-    for (j = 0; j < dgs_levels; j++) {
-      sctop = scfinest(sc);
-      marked = mark_near_points(sctop, nstar, xstar, dgs_threshold);
-      kmarked = 0;
-      for (k = 0; k < marked.row; ++k)
-        if (marked.val[k]) kmarked++;
-      fprintf(stdout, "%% DGS lvl %lld: total_ns=%lld, leaves=%lld, marked=%lld\n",
-        (long long)j, (long long)sc->ns, (long long)sctop->ns, (long long)kmarked);
-      refine(1, sc, &marked);
-      ivec_free(&marked);
-      haz_scomplex_free(sctop);
-    }
-    ivec_free(&marked);
   } else {
     /*
       Use "all" here can pass data around. Below we make 4 dvectors

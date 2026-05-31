@@ -743,30 +743,34 @@ void sc_build_fem_data(scomplex* sc) {
     fem->f_norm = f_norm;
     fem->ed_flag = ed_flag;
     fem->f_flag = f_flag;
-    /* Overwrite f_flag with macroface codes from bndry_f2v.
-       For each boundary face in bndry_f2v, find the matching global face
-       in f_v by vertex-set comparison, and set f_flag to the face code. */
-    if (sc->bndry_f2v && sc->bndry_f2v->row > 0) {
+    /* Rebuild sc->bndry_f2v as an f_v SUBMATRIX aligned to the global face
+     * numbering: nface rows, row gf = (face gf's vertices, code f_flag[gf])
+     * when the face is coded (f_flag[gf] > 0), and an EMPTY row otherwise.
+     * Invariant: bndry_f2v->row == nface, and IA[gf+1]-IA[gf] is dim for a
+     * coded face / 0 for an uncoded one.  No vertex-set search is needed --
+     * the per-face code already lives in f_flag (= max of the face's vertex
+     * codes, from boundary_f_ed); consumers iterate gf and skip empty rows. */
+    {
       iCSRmat *fv = fem->f_v;
-      for (INT bf = 0; bf < sc->bndry_f2v->row; ++bf) {
-        INT ba = sc->bndry_f2v->IA[bf], bb = sc->bndry_f2v->IA[bf + 1];
-        INT nvf = bb - ba;
-        INT fcode = sc->bndry_f2v->val[ba];
-        if (!fcode || nvf != dim) continue;
-        /* Find matching face in f_v */
-        for (INT gf = 0; gf < nface; ++gf) {
-          INT ga = fv->IA[gf], gb = fv->IA[gf + 1];
-          if (gb - ga != nvf) continue;
-          INT match = 1;
-          for (INT p = ba; p < bb && match; ++p) {
-            INT found = 0;
-            for (INT q = ga; q < gb; ++q)
-              if (sc->bndry_f2v->JA[p] == fv->JA[q]) { found = 1; break; }
-            if (!found) match = 0;
+      INT ncoded = 0;
+      for (INT gf = 0; gf < nface; ++gf) if (f_flag[gf] > 0) ncoded++;
+      iCSRmat *b2v = (iCSRmat *)malloc(sizeof(iCSRmat));
+      *b2v = icsr_create(nface, nv, ncoded * dim);
+      INT nz = 0;
+      b2v->IA[0] = 0;
+      for (INT gf = 0; gf < nface; ++gf) {
+        if (f_flag[gf] > 0) {
+          INT ga = fv->IA[gf];
+          for (INT t = 0; t < dim; ++t) {
+            b2v->JA[nz]  = fv->JA[ga + t];
+            b2v->val[nz] = f_flag[gf];
+            nz++;
           }
-          if (match) { f_flag[gf] = fcode; break; }
         }
+        b2v->IA[gf + 1] = nz;          /* empty row for an uncoded face */
       }
+      if (sc->bndry_f2v) { icsr_free(sc->bndry_f2v); free(sc->bndry_f2v); }
+      sc->bndry_f2v = b2v;
     }
     /* Build coded-faces list: faces with nonzero f_flag.
        Also determine boundary/interior using el_f transpose (face degree). */
