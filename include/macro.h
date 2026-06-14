@@ -100,8 +100,12 @@
  * \brief integer and floating point numbers
  */
 #define SHORT            short      /**< short integer type */
-#define INT              int        /**< regular integer type: int or long */
-//#define INT              long long int        /**< regular integer type: int or long */
+/* INT width toggle: exactly one of the two lines below must be active.
+ * 32-bit: needed for UMFPACK (umfpack_di_*).  64-bit: needed for very
+ * large meshes (>~2.1e9 indices) to avoid INT_MAX overflow.
+ * After switching, rebuild hazmath AND all consumer libs (ABI change). */
+#define INT              int           /**< 32-bit (UMFPACK) */
+//#define INT              long long int /**< 64-bit (large meshes) */
 #define LONG             long       /**< long integer type mostly the same as int */
 #define LONGLONG         long long  /**< long long integer type (INTEGER*8 in F77)*/
 #define REAL             double     /**< float type */

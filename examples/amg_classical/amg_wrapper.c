@@ -164,6 +164,16 @@ int amg_solver_solve(void* handle,
 }
 
 /*
+ * amg_solver_apply - apply the AMG+ichol preconditioner once: z = M^{-1} r
+ * (same preconditioner used inside amg_solver_solve; exposed so an external
+ *  Krylov method, e.g. scipy.sparse.linalg.cg's M, can drive it).
+ */
+void amg_solver_apply(void* handle, const double* r, double* z) {
+  amg_solver* s = (amg_solver*)handle;
+  rs_amg_ichol_precond(s->mgl, &s->param, &s->A, &s->L, (REAL*)r, z);
+}
+
+/*
  * amg_solver_set_smoother - Change smoother type and parameters
  */
 void amg_solver_set_smoother(void* handle, int smoother, double omega) {

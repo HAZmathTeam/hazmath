@@ -2576,6 +2576,7 @@ INT dcsr_pminres(dCSRmat *A,
         // p2 = p2/normp
         normp = ABS(array_dotprod(m,tz,tp));
         normp = sqrt(normp);
+        if ( normp < 1e-14 ) { iter--; break; } /* lucky breakdown (singular-consistent): stop, u is the solution */
         array_cp(m,p2,t);
         array_set(m,p2,0.0);
         array_axpy(m,1/normp,t,p2);
@@ -2700,7 +2701,7 @@ INT dcsr_pminres(dCSRmat *A,
                     array_cp(m,tp,tz); /* No preconditioner */
 
                 // p1 = p1/normp
-                normp = array_dotprod(m,tz,tp);
+                normp = ABS(array_dotprod(m,tz,tp)); /* ABS: match main loop; avoid sqrt(<0)=NaN on restart */
                 normp = sqrt(normp);
                 array_cp(m,p1,t);
 
@@ -3123,7 +3124,7 @@ INT dcsr_pminres_w_cond_est(dCSRmat *A,
                     array_cp(m,tp,tz); /* No preconditioner */
 
                 // p1 = p1/normp
-                normp = array_dotprod(m,tz,tp);
+                normp = ABS(array_dotprod(m,tz,tp)); /* ABS: match main loop; avoid sqrt(<0)=NaN on restart */
                 normp = sqrt(normp);
                 array_cp(m,p1,t);
 
@@ -3454,6 +3455,7 @@ INT bdcsr_pminres(block_dCSRmat *A,
         // p2 = p2/normp
         normp = ABS(array_dotprod(m,tz,tp));
         normp = sqrt(normp);
+        if ( normp < 1e-14 ) { iter--; break; } /* lucky breakdown (singular-consistent): stop, u is the solution */
         array_cp(m,p2,t);
         array_set(m,p2,0.0);
         array_axpy(m,1/normp,t,p2);
@@ -3578,7 +3580,7 @@ INT bdcsr_pminres(block_dCSRmat *A,
                     array_cp(m,tp,tz); /* No preconditioner */
 
                 // p1 = p1/normp
-                normp = array_dotprod(m,tz,tp);
+                normp = ABS(array_dotprod(m,tz,tp)); /* ABS: match main loop; avoid sqrt(<0)=NaN on restart */
                 normp = sqrt(normp);
                 array_cp(m,p1,t);
 
@@ -3997,7 +3999,7 @@ INT bdcsr_pminres_w_cond_est(block_dCSRmat *A,
                     array_cp(m,tp,tz); /* No preconditioner */
 
                 // p1 = p1/normp
-                normp = array_dotprod(m,tz,tp);
+                normp = ABS(array_dotprod(m,tz,tp)); /* ABS: match main loop; avoid sqrt(<0)=NaN on restart */
                 normp = sqrt(normp);
                 array_cp(m,p1,t);
 
@@ -4336,6 +4338,7 @@ INT general_pminres(matvec *mxv,
         // p2 = p2/normp
         normp = ABS(array_dotprod(m,tz,tp));
         normp = sqrt(normp);
+        if ( normp < 1e-14 ) { iter--; break; } /* lucky breakdown (singular-consistent): stop, u is the solution */
         array_cp(m,p2,t);
         array_set(m,p2,0.0);
         array_axpy(m,1/normp,t,p2);
@@ -4460,7 +4463,7 @@ INT general_pminres(matvec *mxv,
                     array_cp(m,tp,tz); /* No preconditioner */
 
                 // p1 = p1/normp
-                normp = array_dotprod(m,tz,tp);
+                normp = ABS(array_dotprod(m,tz,tp)); /* ABS: match main loop; avoid sqrt(<0)=NaN on restart */
                 normp = sqrt(normp);
                 array_cp(m,p1,t);
 

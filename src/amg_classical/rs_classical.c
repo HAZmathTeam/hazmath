@@ -117,17 +117,12 @@ void rs_coarsening(const dCSRmat* S, INT* cf, INT* n_coarse) {
     if (lambda[i] > max_lam) max_lam = lambda[i];
   }
 
-  /* --- bucket structure for O(1) max-lambda lookup --- */
-  INT num_buckets = max_lam + 1;
-  {
-    INT max_row_s = S->IA[1] - S->IA[0];
-    INT rl;
-    for (INT i = 1; i < n; i++) {
-      rl = S->IA[i + 1] - S->IA[i];
-      if (rl > max_row_s) max_row_s = rl;
-    }
-    num_buckets = max_lam + max_row_s + 1;
-  }
+  /* --- bucket structure for O(1) max-lambda lookup ---
+   * lambda[k] starts at ST-degree(k) (<= max_lam) and is incremented once per
+   * F-point depending on k, i.e. <= col-degree_S(k) = ST-degree(k) <= max_lam
+   * times, so lambda[k] <= 2*max_lam.  (Old bound max_lam+max_row_s only held
+   * for symmetric S; an asymmetric strength matrix overran bucket_head.) */
+  INT num_buckets = 2 * max_lam + 1;
 
   INT* bucket_head = (INT*)malloc(num_buckets * sizeof(INT));
   INT* next = (INT*)malloc(n * sizeof(INT));
