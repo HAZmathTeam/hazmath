@@ -47,3 +47,6 @@ examples/haznics/*.vtu
 examples/haznics/results/
 examples/xd_1d_models/input/solver.input
 .vscode/
+# CI and pre-commit configuration
+!.github/
+!.pre-commit-config.yaml
