@@ -4,6 +4,7 @@
 # ${CMAKE_CURRENT_SOURCE_DIR} has subdirectories src and include and
 # the function names from src/*/*.c are put into the include/hazmath.h
 # commented as is not needed for now (ltz, 20190730)
+# An optional second argument is the output file (default include/hazmath.h).
 #set +x
 
 cat $1/src/assemble/*.c $1/src/fem/*.c \
@@ -14,7 +15,7 @@ cat $1/src/assemble/*.c $1/src/fem/*.c \
     $1/src/eigen/*.c \
     $1/src/approximation/*.c \
     $1/src/amg_classical/*.c \
-	| awk -v name="hazmath.h" -f mkheaders.awk > $1/include/hazmath.h
+	| awk -v name="hazmath.h" -f mkheaders.awk > "${2:-$1/include/hazmath.h}"
 
 #cat $1/src/haznics/*.CC \
 #	| awk -v name="helpder.hidden" -f mkheaders.awk >> $1/include/hazmath.h

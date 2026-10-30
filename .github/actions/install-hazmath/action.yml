@@ -1,0 +1,60 @@
+name: Install HAZmath
+description: Configure, build and install libhazmath with CMake into a prefix
+
+inputs:
+  prefix:
+    description: Install prefix
+    required: true
+  shared:
+    description: Build a shared library (ON/OFF)
+    default: "ON"
+  suitesparse:
+    description: Build with SuiteSparse (ON/OFF)
+    default: "OFF"
+  lapack:
+    description: Build with LAPACK (ON/OFF)
+    default: "OFF"
+  build-type:
+    description: CMAKE_BUILD_TYPE
+    default: Release
+  c-flags:
+    description: Extra CMAKE_C_FLAGS (e.g. sanitizers)
+    default: ""
+  build-dir:
+    description: CMake build directory
+    default: build-hazmath
+
+runs:
+  using: composite
+  steps:
+    - name: Install system dependencies
+      shell: bash
+      run: |
+        pkgs="cmake gfortran"
+        if [ "${{ inputs.suitesparse }}" = "ON" ]; then pkgs="$pkgs libsuitesparse-dev"; fi
+        if [ "${{ inputs.lapack }}" = "ON" ]; then pkgs="$pkgs liblapack-dev"; fi
+        if command -v apt-get > /dev/null; then
+          SUDO=$(command -v sudo || true)
+          $SUDO apt-get update
+          $SUDO apt-get install -y --no-install-recommends $pkgs
+        fi
+
+    - name: Configure, build and install
+      shell: bash
+      env:
+        C_FLAGS: ${{ inputs.c-flags }}
+      run: |
+        # only override CMAKE_C_FLAGS when asked, so that CFLAGS from the
+        # environment still apply
+        extra=()
+        if [ -n "$C_FLAGS" ]; then extra+=("-DCMAKE_C_FLAGS=$C_FLAGS"); fi
+        cmake -S . -B ${{ inputs.build-dir }} \
+          -DCMAKE_BUILD_TYPE=${{ inputs.build-type }} \
+          -DHAZMATH_RELOCATABLE_INSTALL=ON \
+          -DCMAKE_INSTALL_PREFIX=${{ inputs.prefix }} \
+          "${extra[@]}" \
+          -DSHARED=${{ inputs.shared }} \
+          -DUSE_SUITESPARSE=${{ inputs.suitesparse }} \
+          -DUSE_LAPACK=${{ inputs.lapack }}
+        cmake --build ${{ inputs.build-dir }} --parallel
+        cmake --install ${{ inputs.build-dir }}

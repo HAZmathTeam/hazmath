@@ -1,0 +1,22 @@
+@PACKAGE_INIT@
+
+# Provides the imported target hazmath::hazmath
+include("${CMAKE_CURRENT_LIST_DIR}/hazmathTargets.cmake")
+
+set(hazmath_LIBRARY_TYPE "@HAZMATH_LIBRARY_TYPE@")
+set(hazmath_WITH_SUITESPARSE "@SUITESPARSE_FOUND@")
+set(hazmath_WITH_LAPACK "@LAPACK_FOUND@")
+
+# A static libhazmath exports the external libraries it was built with, by
+# the paths found at that time
+get_target_property(_hazmath_libs hazmath::hazmath INTERFACE_LINK_LIBRARIES)
+foreach(_hazmath_lib IN LISTS _hazmath_libs)
+  if(IS_ABSOLUTE "${_hazmath_lib}" AND NOT EXISTS "${_hazmath_lib}")
+    set(hazmath_FOUND FALSE)
+    set(hazmath_NOT_FOUND_MESSAGE
+      "the static libhazmath was built with ${_hazmath_lib}, which does not exist")
+    return()
+  endif()
+endforeach()
+
+check_required_components(hazmath)
