@@ -1075,7 +1075,7 @@ void find_nbr(INT ns, INT nv, INT n, INT* sv, INT* stos) {
     }
   }
   /**/
-  INT* icp = (INT*)calloc(ns, sizeof(INT));
+  INT* icp = (INT*)calloc(MAX(ns, 0), sizeof(INT));
   for (i = 0; i < ns; ++i) icp[i] = -1;
   for (i = 0; i < nsv; ++i) stos[i] = -1;
   for (i = 0; i < ns; ++i) {
@@ -1521,7 +1521,7 @@ INT sc_conformity_check(scomplex* sc) {
     /* For 2D: collect all edges, then check if any vertex lies on an edge */
     /* Build a sorted edge list */
     INT nedges = ns * n1; /* 3 edges per triangle */
-    INT* edges = (INT*)calloc(nedges * 2, sizeof(INT));
+    INT* edges = (INT*)calloc(MAX(nedges, 0) * 2, sizeof(INT));
     for (i = 0; i < ns; i++) {
       INT* el = sc->nodes + i * n1;
       for (j = 0; j < n1; j++) {

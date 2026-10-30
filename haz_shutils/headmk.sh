@@ -5,16 +5,19 @@
 # the function names from src/*/*.c are put into the include/hazmath.h
 # commented as is not needed for now (ltz, 20190730)
 # An optional second argument is the output file (default include/hazmath.h).
+# Files named __z*.c hold commented-out code and are skipped.
 #set +x
 
-cat $1/src/assemble/*.c $1/src/fem/*.c \
+for f in $1/src/assemble/*.c $1/src/fem/*.c \
     $1/src/mesh/*.c $1/src/nonlinear/*.c \
     $1/src/solver/*.c  $1/src/utilities/*.c \
     $1/src/timestepping/*.c $1/src/interfaces/*.c  \
     $1/src/amr/*.c $1/src/graphs/*.c \
     $1/src/eigen/*.c \
     $1/src/approximation/*.c \
-    $1/src/amg_classical/*.c \
+    $1/src/amg_classical/*.c ; do
+    case "$f" in */__z*) ;; *) cat "$f" ;; esac
+done \
 	| awk -v name="hazmath.h" -f mkheaders.awk > "${2:-$1/include/hazmath.h}"
 
 #cat $1/src/haznics/*.CC \

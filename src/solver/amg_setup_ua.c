@@ -665,7 +665,7 @@ static SHORT aggregation_vmb(dCSRmat *A,
     /*-------------*/
     /*   Step 2.   */
     /*-------------*/
-    INT *temp_C = (INT*)calloc(row,sizeof(INT));
+    INT *temp_C = (INT*)calloc(MAX(row,0),sizeof(INT));
 
     if ( *num_aggregations < MIN_CDOF ) {
         status = ERROR_AMG_COARSEING; goto END;
