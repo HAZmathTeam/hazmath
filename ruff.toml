@@ -1,0 +1,16 @@
+# Ruff configuration for the whole repository (shared with python/).
+# CI reports violations without failing; new and changed code must comply.
+line-length = 100
+indent-width = 4
+
+[lint]
+select = [
+    "E",    # pycodestyle
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes
+    "I",    # isort
+]
+ignore = ["E402", "E741", "E743", "E731"]
+
+[lint.isort]
+known-third-party = ["basix", "dolfinx", "ffcx", "ufl", "petsc4py", "mpi4py", "numpy", "scipy"]

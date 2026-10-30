@@ -58,7 +58,8 @@ endif( THE_C )
 
 # name the project at this moment and this will set the compiler id:
 
-project(HAZMATH C )
+# The version is used by the installed CMake package (hazmathConfigVersion.cmake)
+project(HAZMATH VERSION 0.1.0 LANGUAGES C )
 
 #message(STATUS "  ${HAZMATH_SOURCE_DIR}")
 
@@ -137,21 +138,32 @@ if(ADD_FFLAGS)
     "${CMAKE_Fortran_FLAGS_${CMAKE_BUILD_TYPE}} ${ADD_FFLAGS}")	 
 endif(ADD_FFLAGS)
 #
-set(CMAKE_INSTALL_PREFIX "${HAZMATH_SOURCE_DIR}" )
+# By default install in the source tree (lib/), as "make install" expects;
+# CMAKE_INSTALL_PREFIX is ignored, as it always was. With
+# -DHAZMATH_RELOCATABLE_INSTALL=ON the install goes to CMAKE_INSTALL_PREFIX
+# with headers and a CMake package config (find_package(hazmath)).
+set(HAZMATH_RELOCATABLE_INSTALL OFF CACHE BOOL
+  "install to CMAKE_INSTALL_PREFIX with headers and a CMake package config")
+if(NOT HAZMATH_RELOCATABLE_INSTALL)
+  set(CMAKE_INSTALL_PREFIX "${HAZMATH_SOURCE_DIR}" )
+endif()
+include(GNUInstallDirs)
 set(HAZMATHLIB_BASE_PATH "${HAZMATH_SOURCE_DIR}" CACHE PATH "path to HAZMATHLIB")
 set(HAZMATH_INSTALL TRUE)
 #
-if(SHARED) 
+if(SHARED)
   set(HAZMATH_LIBRARY_TYPE SHARED)
 else(SHARED)
   set(HAZMATH_LIBRARY_TYPE STATIC)
-endif(SHARED)	   
-# FOR MAC OS X to find shared libs in install location
-set(CMAKE_INSTALL_NAME_DIR 
-  ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "path for apple")
-# FOR LINUX to find shared libs in install location
-set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_NAME_DIR} CACHE PATH "path for Linux")
-file(GLOB HAZMATH_C_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
+endif(SHARED)
+if(NOT HAZMATH_RELOCATABLE_INSTALL)
+  # FOR MAC OS X to find shared libs in install location
+  set(CMAKE_INSTALL_NAME_DIR
+    ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "path for apple")
+  # FOR LINUX to find shared libs in install location
+  set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_NAME_DIR} CACHE PATH "path for Linux")
+endif()
+file(GLOB HAZMATH_C_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} CONFIGURE_DEPENDS
   ${HAZMATH_SOURCE_DIR}/src/assemble/*.c 
   ${HAZMATH_SOURCE_DIR}/src/fem/*.c 
   ${HAZMATH_SOURCE_DIR}/src/mesh/*.c 
@@ -172,8 +184,8 @@ file(GLOB HAZMATH_C_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR}
   ${HAZMATH_SOURCE_DIR}/src/timestepping/*.inl 
   ${HAZMATH_SOURCE_DIR}/src/nonlinear/*.inl 
   ${HAZMATH_SOURCE_DIR}/src/utilities/*.inl)
-file(GLOB HAZMATH_CXX_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
-  ${HAZMATH_SOURCE_DIR}/src/amr/*.cpp) 
+file(GLOB HAZMATH_CXX_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} CONFIGURE_DEPENDS
+  ${HAZMATH_SOURCE_DIR}/src/amr/*.cpp)
 file(GLOB HAZMATH_HAZNICS_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
   ${HAZMATH_SOURCE_DIR}/src/haznics/*.c)
 file(GLOB HAZMATH_SWIG_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
@@ -181,12 +193,32 @@ file(GLOB HAZMATH_SWIG_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR}
 
 file(GLOB HAZMATH_F_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
   ${HAZMATH_SOURCE_DIR}/src/amr/*.f) 
-# auto generating headers if needed
-add_custom_target(headers ./headmk.sh "${HAZMATH_SOURCE_DIR}"
+# auto generating headers if needed: hazmath.h is generated in the build
+# directory when a source file or the generator changes, and copied to
+# include/hazmath.h only when its content differs, so that editing a
+# function body does not recompile the whole library. The copy runs on every
+# build, which also restores a deleted include/hazmath.h; "make clean" never
+# deletes it from the source tree.
+add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/hazmath.h"
+  COMMAND ./headmk.sh "${HAZMATH_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/hazmath.h"
   DEPENDS ${HAZMATH_C_SOURCES} ${HAZMATH_CXX_SOURCES}
+    "${HAZMATH_SOURCE_DIR}/haz_shutils/headmk.sh"
+    "${HAZMATH_SOURCE_DIR}/haz_shutils/mkheaders.awk"
   WORKING_DIRECTORY "${HAZMATH_SOURCE_DIR}/haz_shutils"
-  COMMENT 
+  COMMENT
   "HAZMATH: Autogenerating header file with C functions..."
+  VERBATIM)
+# Ninja must know that the copy can change include/hazmath.h, or it skips
+# recompiling the objects that include it. Ninja's clean then deletes the
+# header too; the next build restores it.
+if(CMAKE_GENERATOR MATCHES "Ninja")
+  set(HAZMATH_HEADER_BYPRODUCTS BYPRODUCTS "${HAZMATH_SOURCE_DIR}/include/hazmath.h")
+endif()
+add_custom_target(headers
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_CURRENT_BINARY_DIR}/hazmath.h" "${HAZMATH_SOURCE_DIR}/include/hazmath.h"
+  ${HAZMATH_HEADER_BYPRODUCTS}
+  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/hazmath.h"
   VERBATIM)
 
 ##################################################################
@@ -413,42 +445,116 @@ endif(NOT (CMAKE_CXX_COMPILER_ID STREQUAL CMAKE_C_COMPILER_ID))
 ##
 # Build libhazmath
 # depends also on the source, header and inl files 
-add_library(hazmath ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_C_SOURCES} ${HAZMATH_INL_SOURCES} ${HAZMATH_F_SOURCES}  ${HAZMATH_HEADERS}) 
+add_library(hazmath ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_C_SOURCES} ${HAZMATH_INL_SOURCES} ${HAZMATH_F_SOURCES}  ${HAZMATH_HEADERS})
+add_dependencies(hazmath headers)
+# PIC so that a static libhazmath can be linked into Python extensions
+set_target_properties(hazmath PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(hazmath PUBLIC
+  $<BUILD_INTERFACE:${HAZMATH_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/hazmath>)
+# the C sources use libm, so consumers of a static libhazmath need it too
+if(NOT MSVC)
+  target_link_libraries(hazmath PUBLIC m)
+endif()
 
 # Add links to libraries for external modules (needed for shared libraries on MAC)
+# XLIBS_TO_EXPORT holds the same libraries, in the same order, as the paths
+# that were found; a static libhazmath exports them to its consumers.
 set(XLIBS_TO_LINK "")
+set(XLIBS_TO_EXPORT "")
 # blas 
 if (BLAS_FOUND)
   LIST(APPEND XLIBS_TO_LINK "blas")
+  LIST(APPEND XLIBS_TO_EXPORT ${BLAS_LIBRARY})
 endif(BLAS_FOUND)
 # lapack
 if (LAPACK_FOUND)
   LIST(APPEND XLIBS_TO_LINK "lapack")
+  LIST(APPEND XLIBS_TO_EXPORT ${LAPACK_LIBRARY})
 endif(LAPACK_FOUND)
 # suitesparse
 if (SUITESPARSE_FOUND)
   LIST(APPEND XLIBS_TO_LINK ${SUITESPARSE_LIBRARIES})
+  LIST(APPEND XLIBS_TO_EXPORT ${SUITESPARSE_LIBRARIES})
 endif(SUITESPARSE_FOUND)
 # hdf5
 if (HDF5_FOUND)
   LIST(APPEND XLIBS_TO_LINK ${HDF5_LIBRARIES})
+  LIST(APPEND XLIBS_TO_EXPORT ${HDF5_LIBRARIES})
 endif(HDF5_FOUND)
 # fftw3
 if (FFTW3_FOUND)
   LIST(APPEND XLIBS_TO_LINK ${FFTW3_LIBRARIES})
+  LIST(APPEND XLIBS_TO_EXPORT ${FFTW3_LIBRARIES})
 endif(FFTW3_FOUND)
-# matlab
+# matlab (no MATLAB library is called "matlab", so it is not exported)
 if (MATLAB_FOUND)
   LIST(APPEND XLIBS_TO_LINK "matlab")
 endif(MATLAB_FOUND)
 message(STATUS " ADDITIONAL_LIBS_TO_LINK=${XLIBS_TO_LINK}" )
-target_link_libraries(hazmath "${XLIBS_TO_LINK}") 
+# transitive within this build, as before
+target_link_libraries(hazmath PUBLIC "$<BUILD_INTERFACE:${XLIBS_TO_LINK}>")
+# An installed shared libhazmath records its libraries itself. A static one
+# exports them with the paths found here; hazmathConfig.cmake checks that
+# they still exist.
+if(NOT SHARED)
+  target_link_libraries(hazmath PUBLIC "$<INSTALL_INTERFACE:${XLIBS_TO_EXPORT}>")
+endif()
 
 # install libhazmath
-install(TARGETS hazmath
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION lib
-  ARCHIVE DESTINATION lib)
+# The in-tree library and the haznics module have the configured install
+# directory compiled in (rpath), so "cmake --install --prefix" cannot move them.
+if(NOT HAZMATH_RELOCATABLE_INSTALL OR USE_HAZNICS)
+  install(CODE "
+    if(NOT CMAKE_INSTALL_PREFIX STREQUAL \"${CMAKE_INSTALL_PREFIX}\")
+      message(FATAL_ERROR \"HAZmath was configured to install into ${CMAKE_INSTALL_PREFIX}; \"
+        \"reconfigure with -DHAZMATH_RELOCATABLE_INSTALL=ON \"
+        \"-DCMAKE_INSTALL_PREFIX=\${CMAKE_INSTALL_PREFIX} instead of passing --prefix.\")
+    endif()")
+endif()
+if(NOT HAZMATH_RELOCATABLE_INSTALL)
+  install(TARGETS hazmath
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION lib
+    ARCHIVE DESTINATION lib)
+else()
+  # relocatable install: library, headers and CMake package config
+  include(CMakePackageConfigHelpers)
+  # no absolute paths baked into the installed library
+  # (external libraries outside the system directories are found through
+  # INSTALL_RPATH_USE_LINK_PATH)
+  set_target_properties(hazmath PROPERTIES
+    INSTALL_NAME_DIR "@rpath"
+    INSTALL_RPATH ""
+    INSTALL_RPATH_USE_LINK_PATH TRUE)
+  install(TARGETS hazmath EXPORT hazmathTargets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+  # hazmath.h and the headers it includes (haznics_add.h and mex.h are
+  # only included for the SWIG and MATLAB builds)
+  set(HAZMATH_PUBLIC_HEADERS hazmath.h macro.h mesh.h amr.h sparse.h dense.h
+    vec.h fem.h solver.h nonlinear.h timestep.h param.h eigen.h graphs.h)
+  list(TRANSFORM HAZMATH_PUBLIC_HEADERS PREPEND "${HAZMATH_SOURCE_DIR}/include/")
+  install(FILES ${HAZMATH_PUBLIC_HEADERS}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hazmath)
+  set(HAZMATH_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/hazmath)
+  install(EXPORT hazmathTargets
+    NAMESPACE hazmath::
+    DESTINATION ${HAZMATH_CMAKE_DIR})
+  configure_package_config_file(
+    ${HAZMATH_SOURCE_DIR}/cmake/hazmathConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/hazmathConfig.cmake
+    INSTALL_DESTINATION ${HAZMATH_CMAKE_DIR})
+  write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/hazmathConfigVersion.cmake
+    VERSION ${HAZMATH_VERSION}
+    COMPATIBILITY SameMinorVersion)
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hazmathConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/hazmathConfigVersion.cmake
+    DESTINATION ${HAZMATH_CMAKE_DIR})
+
+endif()
 
 if (USE_HAZNICS)
   if(HAZNICS_FOUND)
@@ -477,9 +583,19 @@ if (USE_HAZNICS)
       VERBATIM)
     add_library(haznics_helper  "${HAZMATH_HAZNICS_SOURCES}")
     add_dependencies(headers haznics_headers)
+    # both compile code that includes the generated hazmath.h; with the
+    # Makefile and VS generators SWIG itself runs in haznics_swig_compilation
+    add_dependencies(haznics_helper headers)
+    add_dependencies(haznics headers)
+    if(TARGET haznics_swig_compilation)
+      add_dependencies(haznics_swig_compilation headers)
+    endif()
 #    add_dependencies(haznics_helper haznics_headers)
     set_property(TARGET haznics PROPERTY SWIG_INCLUDE_DIRECTORIES ${HAZMATH_SOURCE_DIR}/include)
-    set_property(TARGET haznics PROPERTY SWIG_COMPILE_OPTIONS -python -py3 )
+    # UseSWIG already passes -python; -py3 was removed in SWIG 4.1
+    if(SWIG_VERSION VERSION_LESS "4.1")
+      set_property(TARGET haznics PROPERTY SWIG_COMPILE_OPTIONS -py3 )
+    endif()
     set(LIBS_TO_LINK "haznics_helper")
     LIST(APPEND LIBS_TO_LINK "hazmath")
      if (LAPACK_FOUND)
@@ -500,6 +616,10 @@ if (USE_HAZNICS)
 #MAKE_SWIG_FLAGS can be used to add special flags to all swig calls.
 #SWIG_MODULE_haznics_EXTRA_DEPS property
 
+    if(HAZMATH_RELOCATABLE_INSTALL)
+      # the module stays in the source tree; point it at the installed libhazmath
+      set_target_properties(haznics PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
+    endif()
     install(TARGETS haznics 
       LIBRARY DESTINATION "${CMAKE_SWIG_OUTDIR}"
       RUNTIME DESTINATION "${CMAKE_SWIG_OUTDIR}"

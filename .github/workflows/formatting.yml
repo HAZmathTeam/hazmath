@@ -1,0 +1,102 @@
+name: Check formatting
+
+# Formatting is reported, never enforced: every job continues on error.
+# Style: .clang-format (C/C++, same as DOLFINx/dolfinx_mpc) and ruff.toml (Python).
+# New and changed code is expected to pass; see the "New and changed code" job.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changed-code:
+    name: New and changed code
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: .github/requirements-format.txt
+
+      - name: Install formatters
+        run: python3 -m pip install -r .github/requirements-format.txt
+
+      - name: Find base commit
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "BASE=${{ github.event.pull_request.base.sha }}" >> $GITHUB_ENV
+          else
+            echo "BASE=${{ github.event.before }}" >> $GITHUB_ENV
+          fi
+
+      - name: clang-format on changed C/C++ lines
+        run: |
+          if ! git cat-file -e "$BASE^{commit}" 2> /dev/null; then
+            echo "No base commit to compare against; skipping."; exit 0
+          fi
+          git clang-format --binary "$(command -v clang-format)" --diff \
+            --extensions c,h,cpp,hpp,inl "$BASE" -- . | tee clang-format.diff
+          if grep -q '^diff' clang-format.diff; then
+            echo "::error::Changed C/C++ lines are not clang-formatted. Run: git clang-format $BASE"
+            exit 1
+          fi
+
+      - name: ruff on changed Python files
+        run: |
+          if ! git cat-file -e "$BASE^{commit}" 2> /dev/null; then
+            echo "No base commit to compare against; skipping."; exit 0
+          fi
+          files=$(git diff --name-only --diff-filter=ACMR "$BASE" -- '*.py')
+          if [ -z "$files" ]; then echo "No changed Python files."; exit 0; fi
+          status=0
+          ruff check $files || status=1
+          ruff format --check --diff $files || status=1
+          exit $status
+
+  whole-repo:
+    name: Whole repository (report only)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: .github/requirements-format.txt
+
+      - name: Install formatters
+        run: python3 -m pip install -r .github/requirements-format.txt
+
+      - name: Summarise formatting status
+        run: |
+          c_total=$(git ls-files '*.c' '*.h' '*.cpp' '*.hpp' '*.inl' | wc -l)
+          # one short line per unformatted file, so parallel output cannot interleave
+          c_bad=$(git ls-files -z '*.c' '*.h' '*.cpp' '*.hpp' '*.inl' \
+            | xargs -0 -P "$(nproc)" -I{} sh -c \
+              'clang-format --dry-run --Werror "$1" > /dev/null 2>&1 || echo "$1"' _ {} \
+            | wc -l)
+          py_lint=$(ruff check . --output-format concise --exit-zero | grep -c ':' || true)
+          py_fmt=$(ruff format --check . 2> /dev/null | grep -c '^Would reformat' || true)
+          {
+            echo "### Formatting status (informational)"
+            echo "| Check | Result |"
+            echo "|---|---|"
+            echo "| C/C++ files not clang-formatted | ${c_bad} of ${c_total} |"
+            echo "| ruff lint findings | ${py_lint} |"
+            echo "| Python files ruff would reformat | ${py_fmt} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat "$GITHUB_STEP_SUMMARY"
