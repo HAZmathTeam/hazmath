@@ -1,3 +1,9 @@
 # /bin/sh ./install_haznics.sh
-export PYTHONPATH=$(pwd)/../../swig_files:$PYTHONPATH
-dijitso clean
+# Usage (bash, from any directory): source /path/to/hazmath/examples/haznics/setup.rc
+HAZNICS_SWIG="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../swig_files" && pwd)"
+case ":$PYTHONPATH:" in
+    *":$HAZNICS_SWIG:"*) ;;
+    *) export PYTHONPATH="$HAZNICS_SWIG${PYTHONPATH:+:$PYTHONPATH}" ;;
+esac
+# dijitso exists only with legacy FEniCS (2019.1); skip it under dolfinx
+if command -v dijitso >/dev/null 2>&1; then dijitso clean; fi
