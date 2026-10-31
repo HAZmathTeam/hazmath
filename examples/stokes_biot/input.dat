@@ -1,0 +1,27 @@
+%----------------------------------------------%
+% input parameters: Stokes, Bernardi-Raugel/P0 %
+% lines starting with % are comments           %
+% must have spaces around the equal sign "="   %
+%----------------------------------------------%
+
+print_level	= 0	% how much information to print out: 0 Nothing | >0 Something
+output_dir	= ./output/ % directory for all output (must be created)
+
+%---------------%
+% mesh
+%---------------%
+spatial_dim       = 3  % 2D or 3D (unit square or unit cube)
+refinement_type   = 11 % Refinement type (>10 uniform or <10 other)
+refinement_levels = 5  % solve on levels 1, ..., refinement_levels
+boundary_codes    = 1  % flag for boundary DoF: 1-16 Dirichlet | 17-32 Neumann
+
+%---------------%
+% finite element
+%---------------%
+nquad	= 5	% Quadrature nodes each direction
+
+%---------------%
+% AMG in the block preconditioner
+%---------------%
+AMG_type       = C  % C: classical Ruge-Stuben (V-cycle) | UA: unsmoothed aggregation
+AMG_cycle_type = A  % cycle for UA only: V | W | A (AMLI)

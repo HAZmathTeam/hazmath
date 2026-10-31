@@ -269,8 +269,10 @@ macrocomplex *set_mmesh(input_grid* g0, cube2simp* c2s, INT* wrk) {
     }
   }
   el2el->IA[nel0] = el2el->nnz;
-  el2el->JA = realloc(el2el->JA, el2el->nnz * sizeof(INT));
-  el2el->val = realloc(el2el->val, el2el->nnz * sizeof(INT));
+  if (el2el->nnz > 0) { // one macroelement: nnz=0, keep the blocks (no realloc to size 0)
+    el2el->JA = realloc(el2el->JA, el2el->nnz * sizeof(INT));
+    el2el->val = realloc(el2el->val, el2el->nnz * sizeof(INT));
+  }
   iCSRmat* blk_dfs = run_dfs(nel0, el2el->IA, el2el->JA);
   ////////////////////////////////////////////////////////////////////////////
   mc->cc = blk_dfs->row;

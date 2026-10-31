@@ -1,0 +1,12 @@
+%----------------------------------------------------%
+% Bernardi-Raugel/P0 Stokes options not in input.dat %
+% lines starting with % are comments                 %
+% must have spaces around the equal sign "="         %
+% command-line options override these values        %
+%----------------------------------------------------%
+
+viscosity    = 1          % mu
+test_problem = 0          % 0: div u = 0, Dirichlet | 1: div u != 0, Dirichlet | 2: div u != 0, traction on x_1 > 0 sides
+rhs          = pr         % pr: source and normal traction tested with Pi_h v | std: tested with v
+system       = condensed  % condensed: bubbles eliminated (diagonal bubble block) | full: full BR/P0 system
+solver       = gmres      % gmres: preconditioned GMRES | umfpack: direct | compare: both
