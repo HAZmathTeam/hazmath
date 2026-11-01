@@ -13,10 +13,15 @@
 #define REF_LEVELS 100
 #endif
 ///////////////////////////////////////////////////////////////////////////////
-INT main(int argc, char* argv[]) {
-  INT dimbig = SPATIAL_DIMENSION, max_nodes_in = MAX_NODES_PER_SIMPLEX, ref_levels_in = REF_LEVELS;
-  char* idir = strdup("./input/1d_nets_2d/");
-  char* odir = strdup("./output/");
+/* Mesh the cube [0,1]^dimbig around the 1d network read from idir, refining
+ * until no simplex contains more than max_nodes_in network nodes (at most
+ * ref_levels_in levels); writes the 1d and dimbig-d grids (vtu) to odir.
+ * Called from run_meshing.py through ctypes: the integer arguments are long
+ * long (ctypes.c_longlong) whatever the width of INT. */
+INT xd_1d_lib(const long long dimbig_in, const long long max_nodes_ll,
+              const long long ref_levels_ll, const char* idir, const char* odir) {
+  INT dimbig = (INT)dimbig_in, max_nodes_in = (INT)max_nodes_ll,
+      ref_levels_in = (INT)ref_levels_ll;
   INT j, k;
   data_1d g;
   //init 1d struct
@@ -143,4 +148,9 @@ INT main(int argc, char* argv[]) {
   haz_scomplex_free(sc_dimbig);
   free(sc_all);
   return 0;
+}
+///////////////////////////////////////////////////////////////////////////////
+int main(int argc, char* argv[]) {
+  return (int)xd_1d_lib(SPATIAL_DIMENSION, MAX_NODES_PER_SIMPLEX, REF_LEVELS,
+                   "./input/1d_nets_2d/", "./output/");
 }

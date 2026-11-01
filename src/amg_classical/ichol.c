@@ -37,7 +37,12 @@ static void dcsr_sort_columns(dCSRmat* A) {
 void ichol_compute(const dCSRmat* Ain, dCSRmat* L) {
   INT n = Ain->row;
   if (n <= 0) return;
-  const dCSRmat* A = Ain;
+  /* Sort column indices: the elimination below relies on sorted rows */
+  dCSRmat As;
+  dcsr_alloc(n, Ain->col, Ain->nnz, &As);
+  dcsr_cp((dCSRmat*)Ain, &As);
+  dcsr_sort_columns(&As);
+  const dCSRmat* A = &As;
 
   /* Count lower-triangular entries (including diagonal) */
   INT nnz_lower = 0;
@@ -106,7 +111,13 @@ void ichol_compute(const dCSRmat* Ain, dCSRmat* L) {
       if (j >= i) break;
       diag_val -= w[j] * w[j];
     }
-    if (diag_val <= 0.0) diag_val = 1e-14;
+    if (diag_val <= 0.0) {
+      /* incomplete pivot broke down: fall back to |a_ii| (as in icholt) */
+      REAL aii = 0.0;
+      for (INT k = A->IA[i]; k < A->IA[i + 1]; k++)
+        if (A->JA[k] == i) { aii = fabs(A->val[k]); break; }
+      diag_val = (aii > 0.0) ? aii : 1.0;
+    }
     w[i] = sqrt(diag_val);
 
     /* Write back to L */
@@ -122,6 +133,7 @@ void ichol_compute(const dCSRmat* Ain, dCSRmat* L) {
   }
 
   free(w); free(w_marker); free(diag_pos);
+  dcsr_free(&As);
 }
 
 /* Solve L * L' * x = b  =>  L*y = b (fwd), L'*x = y (bwd) */
@@ -189,119 +201,120 @@ void icholt_compute(const dCSRmat* Ain, REAL tau, dCSRmat* L) {
     if (row_len > 0) row_norm[i] /= row_len;
   }
 
-  /* Dense work vector: w[j] holds the current row being factored */
+  /* Up-looking IC(tau) computed as U = D L^T row by row (U upper, D=diag(U)):
+   * row i of U is row i of A (columns >= i) minus sum_j (u_ji/u_jj) U(j,:),
+   * over j < i with u_ji != 0, in increasing j.  The multipliers u_ji/u_jj
+   * are read from the column lists of U built so far (Ucol: for each column
+   * c, the rows j < c with u_jc kept).  Entries |u_ic| < tau*row_norm[i]
+   * (c > i) are dropped.  Then L(i,j) = u_ji / sqrt(u_jj), L(i,i) = sqrt(u_ii). */
   REAL* w = (REAL*)calloc((size_t)n, sizeof(REAL));
-  INT* w_nz = (INT*)malloc((size_t)n * sizeof(INT)); /* nonzero indices in w */
-  char* w_flag = (char*)calloc((size_t)n, sizeof(char)); /* 1 if w[j] is active */
-  REAL* diag = (REAL*)calloc((size_t)n, sizeof(REAL));
+  INT* w_nz = (INT*)malloc((size_t)n * sizeof(INT));   /* active columns of w */
+  char* w_flag = (char*)calloc((size_t)n, sizeof(char));
+  REAL* udiag = (REAL*)calloc((size_t)n, sizeof(REAL));
 
-  /* Dynamic arrays for L */
-  INT nnz_alloc = A->nnz;
-  INT* L_IA = (INT*)malloc(((size_t)n + 1) * sizeof(INT));
-  INT* L_JA = (INT*)malloc(nnz_alloc * sizeof(INT));
-  REAL* L_val = (REAL*)malloc(nnz_alloc * sizeof(REAL));
-  INT nnz = 0;
+  /* U row-wise (strictly upper part) */
+  INT alloc_U = A->nnz;
+  INT* U_IA = (INT*)malloc(((size_t)n + 1) * sizeof(INT));
+  INT* U_JA = (INT*)malloc(alloc_U * sizeof(INT));
+  REAL* U_val = (REAL*)malloc(alloc_U * sizeof(REAL));
+  INT nnzU = 0;
+
+  /* Column lists of U (linked lists): for column c, the rows j with u_jc kept */
+  INT* col_head = (INT*)malloc((size_t)n * sizeof(INT));
+  INT* link_next = (INT*)malloc(alloc_U * sizeof(INT));
+  INT* link_row = (INT*)malloc(alloc_U * sizeof(INT));
+  for (INT c = 0; c < n; c++) col_head[c] = -1;
 
   for (INT i = 0; i < n; i++) {
-    L_IA[i] = nnz;
+    U_IA[i] = nnzU;
 
-    /* Scatter lower triangle of row i of A into w */
+    /* Scatter the upper part (columns >= i) of row i of A into w */
     INT nw = 0;
     for (INT k = A->IA[i]; k < A->IA[i + 1]; k++) {
-      INT j = A->JA[k];
-      if (j <= i) {
-        w[j] = A->val[k];
-        if (!w_flag[j]) { w_flag[j] = 1; w_nz[nw++] = j; }
+      INT c = A->JA[k];
+      if (c >= i) {
+        w[c] = A->val[k];
+        if (!w_flag[c]) { w_flag[c] = 1; w_nz[nw++] = c; }
       }
     }
 
-    /* Eliminate columns j = 0, 1, ..., i-1 in order.
-     * Only process columns that appear in the stored L rows (no fill-in
-     * in the elimination scan — fill occurs only through updates). */
-    for (INT j = 0; j < i; j++) {
-      if (!w_flag[j]) continue;
-      REAL wj = w[j];
-      if (wj == 0.0) continue;
-
-      REAL dj = diag[j];
-      if (dj <= 0.0) { w[j] = 0.0; continue; }
-
-      REAL lij = wj / dj;
-      w[j] = lij;
-
-      /* Update: w[k] -= lij * L(j,k) for off-diagonal k in row j of L */
-      for (INT p = L_IA[j]; p < L_IA[j + 1]; p++) {
-        INT k = L_JA[p];
-        if (k >= j) break;
-        w[k] -= lij * L_val[p];
-        if (!w_flag[k]) { w_flag[k] = 1; w_nz[nw++] = k; }
+    /* Subtract (u_ji/u_jj) U(j, i:n) for every j with u_ji kept.  The order
+     * of j does not matter: each update only touches columns >= i. */
+    for (INT e = col_head[i]; e >= 0; e = link_next[e]) {
+      INT j = link_row[e];
+      REAL uji = U_val[e];
+      REAL mult = uji / udiag[j];
+      w[i] -= mult * uji;                       /* diagonal: u_ji^2 / u_jj */
+      for (INT p = U_IA[j]; p < U_IA[j + 1]; p++) {
+        INT c = U_JA[p];
+        if (c <= i) continue;
+        w[c] -= mult * U_val[p];
+        if (!w_flag[c]) { w_flag[c] = 1; w_nz[nw++] = c; }
       }
     }
 
-    /* Diagonal: L(i,i) = sqrt(a_ii - sum_{j<i} l_ij^2) */
+    /* Pivot; keep the factor SPD if the incomplete pivot breaks down */
     REAL dval = w[i];
-    for (INT kk = 0; kk < nw; kk++) {
-      INT j = w_nz[kk];
-      if (j < i) dval -= w[j] * w[j];
-    }
-    /* Diagonal compensation: add dropped entries back to diagonal */
-    REAL drop_tol = tau * row_norm[i];
-    REAL dropped_sum = 0.0;
-    for (INT kk = 0; kk < nw; kk++) {
-      INT j = w_nz[kk];
-      if (j < i && fabs(w[j]) < drop_tol)
-        dropped_sum += w[j] * w[j];
-    }
-    dval += dropped_sum;
-
     if (dval <= 0.0) {
       REAL aii = 0.0;
       for (INT k = A->IA[i]; k < A->IA[i + 1]; k++)
         if (A->JA[k] == i) { aii = fabs(A->val[k]); break; }
-      dval = (aii > 0.0) ? 1e-2 * aii : 1e-10;
+      dval = (aii > 0.0) ? aii : 1.0;
     }
-    dval = sqrt(dval);
-    diag[i] = dval;
+    udiag[i] = dval;
 
-    /* Store off-diagonal entries that pass threshold (sorted by column) */
-    for (INT j = 0; j < i; j++) {
-      if (!w_flag[j]) continue;
-      if (fabs(w[j]) < drop_tol) continue;
-      if (nnz >= nnz_alloc) {
-        nnz_alloc = nnz_alloc * 3 / 2 + n;
-        L_JA = (INT*)realloc(L_JA, nnz_alloc * sizeof(INT));
-        L_val = (REAL*)realloc(L_val, nnz_alloc * sizeof(REAL));
-      }
-      L_JA[nnz] = j;
-      L_val[nnz] = w[j];
-      nnz++;
-    }
-    /* Diagonal always kept */
-    if (nnz >= nnz_alloc) {
-      nnz_alloc = nnz_alloc * 3 / 2 + n;
-      L_JA = (INT*)realloc(L_JA, nnz_alloc * sizeof(INT));
-      L_val = (REAL*)realloc(L_val, nnz_alloc * sizeof(REAL));
-    }
-    L_JA[nnz] = i;
-    L_val[nnz] = dval;
-    nnz++;
-
-    /* Clear w */
+    /* Keep strictly-upper entries above the drop tolerance */
+    REAL drop_tol = tau * row_norm[i];
     for (INT kk = 0; kk < nw; kk++) {
-      w[w_nz[kk]] = 0.0;
-      w_flag[w_nz[kk]] = 0;
+      INT c = w_nz[kk];
+      if (c > i && fabs(w[c]) >= drop_tol) {
+        if (nnzU >= alloc_U) {
+          alloc_U = alloc_U * 3 / 2 + n;
+          U_JA = (INT*)realloc(U_JA, alloc_U * sizeof(INT));
+          U_val = (REAL*)realloc(U_val, alloc_U * sizeof(REAL));
+          link_next = (INT*)realloc(link_next, alloc_U * sizeof(INT));
+          link_row = (INT*)realloc(link_row, alloc_U * sizeof(INT));
+        }
+        U_JA[nnzU] = c;
+        U_val[nnzU] = w[c];
+        link_row[nnzU] = i;
+        link_next[nnzU] = col_head[c];
+        col_head[c] = nnzU;
+        nnzU++;
+      }
+      w[c] = 0.0;
+      w_flag[c] = 0;
     }
   }
-  L_IA[n] = nnz;
+  U_IA[n] = nnzU;
 
-  /* Build output dCSRmat */
-  dcsr_alloc(n, n, nnz, L);
-  memcpy(L->IA, L_IA, (n + 1) * sizeof(INT));
-  memcpy(L->JA, L_JA, nnz * sizeof(INT));
-  memcpy(L->val, L_val, nnz * sizeof(REAL));
+  /* L = (D^{-1/2} U)^T plus diagonal sqrt(u_ii); row i of L = column i of U,
+   * read from the column list of i (reversed to get increasing j). */
+  dcsr_alloc(n, n, nnzU + n, L);
+  INT pos = 0;
+  for (INT i = 0; i < n; i++) {
+    L->IA[i] = pos;
+    INT start = pos;
+    for (INT e = col_head[i]; e >= 0; e = link_next[e]) {
+      INT j = link_row[e];
+      L->JA[pos] = j;
+      L->val[pos] = U_val[e] / sqrt(udiag[j]);
+      pos++;
+    }
+    /* column list is in decreasing row order: reverse to increasing */
+    for (INT a = start, b = pos - 1; a < b; a++, b--) {
+      INT tj = L->JA[a]; L->JA[a] = L->JA[b]; L->JA[b] = tj;
+      REAL tv = L->val[a]; L->val[a] = L->val[b]; L->val[b] = tv;
+    }
+    L->JA[pos] = i;
+    L->val[pos] = sqrt(udiag[i]);
+    pos++;
+  }
+  L->IA[n] = pos;
 
-  free(L_IA); free(L_JA); free(L_val);
-  free(w); free(w_nz); free(w_flag); free(diag); free(row_norm);
+  free(U_IA); free(U_JA); free(U_val);
+  free(col_head); free(link_next); free(link_row);
+  free(w); free(w_nz); free(w_flag); free(udiag); free(row_norm);
   dcsr_free(&As);
 }
 

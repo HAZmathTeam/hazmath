@@ -34,7 +34,7 @@ import os
 op.solver_input_file=os.path.abspath(op.solver_input_file)
 op.matrices_dir=os.path.abspath(op.matrices_dir)+'/'
 
-libxd_1d_=ctypes.CDLL(os.path.abspath('./libxd_1d_.so'))
+libxd_1d_=ctypes.CDLL(os.path.abspath('./main_solver_xd_1d.so'))  # built by make (SRCFILE.so)
 
 sfile=bytes(op.solver_input_file,'utf-8')
 mdir=bytes(op.matrices_dir,'utf-8')

@@ -43,6 +43,7 @@ Quick start: 1. Edit "haz_config/hazmath.mk" as needed.
  make config           # set environment to build
  make config CC=gcc    # set a specific C compiler
  make config debug=yes # compiler's debug options ON
+ make config int64=yes # 64-bit INT (long long); default: 32-bit int
  make headers          # function defs in include/hazmath.h
  make docs	       # install documentations for HAZMATH
       		       # (!need to set doxygen=yes!)
@@ -53,6 +54,24 @@ Quick start: 1. Edit "haz_config/hazmath.mk" as needed.
 =============================================================
 *More user defined options can go in "haz_config/hazmath.mk"*
 ```
+
+**Integer width (`INT`).** By default `INT` is a 32-bit `int`. For problems with
+more than about 2.1·10⁹ indices (array sizes, nonzeros, mesh entities) configure
+with 64-bit `INT` (`long long`), together with the other options, for example
+
+```
+make config suitesparse=yes lapack=yes shared=yes int64=yes
+make install
+```
+
+`make config` writes the choice to `include/haz_int.h` (`#define HAZ_INT64 1` or `0`),
+which `include/macro.h` reads; do not edit either file by hand. UMFPACK follows
+the setting (`umfpack_dl_*` for 64-bit, `umfpack_di_*` for 32-bit).
+
+`sizeof(INT)` is part of the binary interface: after changing the width, rebuild
+everything compiled against HAZmath from clean, e.g. `make clean; make` in each
+example. `make` alone does not notice the change, and code compiled with one
+width and linked with a library of the other width gives wrong results.
 
 ---
 

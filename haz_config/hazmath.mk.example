@@ -35,6 +35,13 @@
 #
 # shared=yes
 #
+# By default, INT is a 32-bit int. For problems with more than about
+# 2.1e9 indices, uncomment the next line to make INT a 64-bit long long
+# ("make config" writes the choice to include/haz_int.h). After changing
+# it, rebuild everything compiled against HAZMATH from clean.
+#
+# int64=yes
+#
 # You may use multithread version after you enable OpenMP support. To
 # setup the environment, you need 
 #  >> export OMP_NUM_THREADS=4 (for bash)

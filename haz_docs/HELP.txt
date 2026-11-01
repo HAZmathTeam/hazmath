@@ -8,6 +8,7 @@ Quick start: 1. Edit "haz_config/hazmath.mk" as needed.
  make config           # set environment to build
  make config CC=gcc    # set a specific C compiler
  make config debug=yes # compiler's debug options ON
+ make config int64=yes # 64-bit INT (long long); default: 32-bit int
  make headers          # function defs in include/hazmath.h
  make docs	       # install documentations for HAZMATH
       		       # (!need to set doxygen=yes!)

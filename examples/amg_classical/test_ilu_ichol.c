@@ -167,11 +167,12 @@ int main(int argc, char** argv) {
 
   array_set(n, x, 0.0);
   t0 = clock();
-  iter = dcsr_pcg(&A, &bv, &uv, &pc_ilut, tol, maxiter, STOP_REL_PRECRES, 1);
+  /* ILUT with threshold dropping is not symmetric: GMRES, not CG */
+  iter = dcsr_pvgmres(&A, &bv, &uv, &pc_ilut, tol, maxiter, 50, STOP_REL_RES, 1);
   t_solve = (double)(clock() - t0) / CLOCKS_PER_SEC;
   array_cp(n, b, r); dcsr_aAxpy(-1.0, &A, x, r);
   rnorm = sqrt(array_dotprod(n, r, r));
-  fprintf(stderr, "  PCG: iter = %d, relres = %.2e, solve = %.2f s\n\n",
+  fprintf(stderr, "  GMRES: iter = %d, relres = %.2e, solve = %.2f s\n\n",
           iter, rnorm / bnorm, t_solve);
 
   /* ================================================================

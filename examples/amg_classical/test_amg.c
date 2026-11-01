@@ -152,8 +152,8 @@ int main(int argc, char** argv) {
   {
     FILE* frhs = fopen("rhs.txt", "r");
     if (frhs) {
-      INT nrhs;
-      if (fscanf(frhs, "%d", &nrhs) == 1 && nrhs == n) {
+      long long nrhs;
+      if (fscanf(frhs, "%lld", &nrhs) == 1 && nrhs == (long long)n) {
         for (INT i = 0; i < n; i++) {
           if (fscanf(frhs, "%lf", &b[i]) != 1) {
             fprintf(stderr, "Error reading rhs.txt at entry %d, using random RHS\n", i);

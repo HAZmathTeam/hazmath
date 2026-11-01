@@ -1498,8 +1498,13 @@ INT sc_conformity_check(scomplex* sc) {
       if (!same) break;
       cnt++;
     }
-    if (cnt > 2) {
-      /* more than 2 simplices share this facet — broken mesh */
+    /* In a dim-complex in R^dim more than 2 simplices on a facet means a
+     * broken mesh.  A dim-complex embedded in R^nbig, nbig > dim (e.g. the
+     * boundary of a domain), may be non-manifold along a facet; such a
+     * facet is shared by an even number of simplices (the boundary of a
+     * boundary is empty mod 2), so only odd counts > 2 are errors there. */
+    if (cnt > 2 && (sc->nbig == dim || (cnt % 2))) {
+      /* broken mesh */
       nerr++;
       if (sc->print_level > 0) {
         fprintf(stderr, "\n%%WARNING: facet shared by %lld simplices: [",
@@ -1536,17 +1541,25 @@ INT sc_conformity_check(scomplex* sc) {
     INT nv = sc->nv, nbig = sc->nbig;
     REAL* x = sc->x;
     INT nhanging = 0;
+    /* distances in all nbig coordinates: a 2D complex may be a surface in R^3 */
     for (i = 0; i < nedges; i++) {
       INT va = edges[i * 2], vb = edges[i * 2 + 1];
-      REAL ax = x[va * nbig], ay = x[va * nbig + 1];
-      REAL bx = x[vb * nbig], by = x[vb * nbig + 1];
-      REAL ablen = sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
+      REAL* xa = x + va * nbig;
+      REAL* xb = x + vb * nbig;
+      REAL ablen = 0.0;
+      for (INT d = 0; d < nbig; d++) ablen += (xb[d] - xa[d]) * (xb[d] - xa[d]);
+      ablen = sqrt(ablen);
       if (ablen < 1e-14) continue;
       for (k = 0; k < nv; k++) {
         if (k == va || k == vb) continue;
-        REAL px = x[k * nbig], py = x[k * nbig + 1];
-        REAL aplen = sqrt((px - ax) * (px - ax) + (py - ay) * (py - ay));
-        REAL pblen = sqrt((bx - px) * (bx - px) + (by - py) * (by - py));
+        REAL* xp = x + k * nbig;
+        REAL aplen = 0.0, pblen = 0.0;
+        for (INT d = 0; d < nbig; d++) {
+          aplen += (xp[d] - xa[d]) * (xp[d] - xa[d]);
+          pblen += (xb[d] - xp[d]) * (xb[d] - xp[d]);
+        }
+        aplen = sqrt(aplen);
+        pblen = sqrt(pblen);
         if (fabs(aplen + pblen - ablen) < 1e-10 * ablen) {
           nhanging++;
           if (sc->print_level > 0 || nhanging <= 5) {

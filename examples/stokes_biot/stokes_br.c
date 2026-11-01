@@ -52,6 +52,10 @@ typedef struct {
   INT cycle;     // UA only: V_CYCLE | W_CYCLE | AMLI_CYCLE
 } br_options;
 
+// msh=<dir>: read the mesh of level lvl from <dir>/mesh_<dim>d_N<2^lvl>.msh
+// (Gmsh v2, boundary faces tagged 1) instead of building a uniform mesh
+static char br_msh_dir[256] = "";
+
 // One option in command-line form (mu=1e-6, full, ...); returns 0 if unknown
 static INT br_option(const char* a, br_options* opt)
 {
@@ -71,6 +75,7 @@ static INT br_option(const char* a, br_options* opt)
   else if (!strncmp(a, "test=", 5)) stokes_test = atoi(a + 5);
   else if (!strncmp(a, "vcycles=", 8)) stokes_br_nvcyc = atoi(a + 8);
   else if (!strncmp(a, "tol=", 4)) stokes_br_tol = atof(a + 4);
+  else if (!strncmp(a, "msh=", 4)) snprintf(br_msh_dir, sizeof(br_msh_dir), "%s", a + 4);
   else return 0;
   return 1;
 }
@@ -137,9 +142,10 @@ int main(int argc, char* argv[]) {
 
   REAL err[4], err_prev[4] = {0.0, 0.0, 0.0, 0.0};
   const char* cycle_name[4] = {"", "V", "W", "AMLI"};
-  printf("Bernardi-Raugel/P0 Stokes, %lldD, test %lld, mu = %g, %s system, %s rhs, %s, uniform refinement:\n",
+  printf("Bernardi-Raugel/P0 Stokes, %lldD, test %lld, mu = %g, %s system, %s rhs, %s, %s%s:\n",
          (long long)dim, (long long)stokes_test, stokes_mu, condense ? "condensed" : "full",
-         stokes_br_pr ? "pressure-robust" : "standard", solver_name[solver]);
+         stokes_br_pr ? "pressure-robust" : "standard", solver_name[solver],
+         br_msh_dir[0] ? "meshes from " : "uniform refinement", br_msh_dir);
   if (solver >= 1)
     printf("preconditioner: block lower triangular, %s-AMG %s-cycle\n",
            amg == BR_AMG_RS ? "RS" : "UA", amg == BR_AMG_RS ? "V" : cycle_name[cycle]);
@@ -149,8 +155,31 @@ int main(int argc, char* argv[]) {
 
   for (lvl = 1; lvl <= nlevels; lvl++) {
 
-    // Uniform mesh on the unit cube; boundary flag 1 (Dirichlet)
-    scomplex* sc = make_uniform_mesh(dim, lvl, inparam.refinement_type, inparam.boundary_codes);
+    // Uniform mesh on the unit cube, or the mesh read from msh=<dir>;
+    // boundary flag 1 (Dirichlet)
+    scomplex* sc;
+    if (br_msh_dir[0]) {
+      char fname[512];
+      snprintf(fname, sizeof(fname), "%s/mesh_%lldd_N%lld.msh", br_msh_dir, (long long)dim,
+               (long long)(1 << lvl));
+      FILE* fp = fopen(fname, "r");
+      if (fp == NULL) {
+        printf("%3lld   (no file %s; skipped)\n", (long long)lvl, fname);
+        continue;
+      }
+      fclose(fp);
+      sc = sc_read_gmsh(fname);
+      if (sc->dim != dim) {
+        printf("### ERROR: %s has dim %lld, spatial_dim is %lld\n", fname, (long long)sc->dim,
+               (long long)dim);
+        exit(1);
+      }
+      find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
+      sc_vols(sc);
+      sc_build_fem_data(sc);
+    } else {
+      sc = make_uniform_mesh(dim, lvl, inparam.refinement_type, inparam.boundary_codes);
+    }
     qcoordinates* cq = get_quadrature(sc, nq1d);
 
     // BR velocity = face bubbles + P1 in each component; P0 pressure
@@ -251,7 +280,7 @@ int main(int argc, char* argv[]) {
     // Errors and rates (h halves with each level)
     stokes_br_errors(err, sol.val, &FE, sc, cq);
     REAL r[3] = {0.0, 0.0, 0.0};
-    if (lvl > 1)
+    if (err_prev[0] > 0.0)
       for (k = 0; k < 3; k++) r[k] = log(err_prev[k] / err[k]) / log(2.0);
     printf("%3lld %10lld %11.4e %5.2f %11.4e %5.2f %11.4e %5.2f %11.4e %4lld %8.2f %8.2f %8.2f %10.3e\n",
            (long long)lvl, (long long)ndof, err[0], r[0], err[1], r[1], err[2], r[2], err[3],

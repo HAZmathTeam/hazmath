@@ -51,17 +51,18 @@ op.idir=os.path.abspath(op.idir)+'/'
 op.odir=os.path.abspath(op.odir)+'/'
 
 sdim=str(op.dim)
-libxd_1d_=ctypes.CDLL(os.path.abspath('./libxd_1d_.so'))
+# built by: make SRCFILE=main_meshing_xd_1d
+libxd_1d_=ctypes.CDLL(os.path.abspath('./main_meshing_xd_1d.so'))
 
-dim=ctypes.c_int(op.dim);
-max_nodes=ctypes.c_int(op.max_nodes);
-ref_levels=ctypes.c_int(op.ref_levels);
+dim=ctypes.c_longlong(op.dim);
+max_nodes=ctypes.c_longlong(op.max_nodes);
+ref_levels=ctypes.c_longlong(op.ref_levels);
 
 idir=bytes(op.idir,'utf-8')
 odir=bytes(op.odir,'utf-8')
 
 
-#libxd_1d_.xd_1d_lib(const INT dimbig, const INT max_nodes_in, const INT ref_levels_in, const char *idir, const char *odir)
+#libxd_1d_.xd_1d_lib(long long dimbig, long long max_nodes_in, long long ref_levels_in, const char *idir, const char *odir)
 
 libxd_1d_.xd_1d_lib(dim,max_nodes,ref_levels,idir,odir)
 

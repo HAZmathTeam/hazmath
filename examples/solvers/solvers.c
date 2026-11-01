@@ -68,15 +68,15 @@ int main(int argc, char* argv[]) {
     INT  m, n, nnz;
     fp = fopen(fnamea, "r");
     if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
-    if (fnamea) free(fnamea);
     A = dcoo_read_dcsr_p(fp);
     printf("Matrix A read from file %s\n", fnamea);
+    if (fnamea) free(fnamea);
     fclose(fp);
     fp = fopen(fnameb, "r");
     if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
-    if (fnameb) free(fnameb);
     b = dvector_read_p(fp);
     printf("RHS b read from file %s\n", fnameb);
+    if (fnameb) free(fnameb);
     fclose(fp);
   }
 

@@ -802,7 +802,8 @@ void bdcsr_write_dcoo(const char *filename,
 void dcoo_read_dcsr (const char *filename,
                      dCSRmat *A)
 {
-  INT  i,j,k,m,n,nnz;
+  INT  k,m,n,nnz;
+  long long i_in,j_in,m_in,n_in,nnz_in; // read as long long, then cast to INT
   REAL value;
 
   FILE *fp = fopen(filename,"r");
@@ -811,13 +812,15 @@ void dcoo_read_dcsr (const char *filename,
 
   fprintf(stdout,"%%%%%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
 
-  fscanf(fp,"%d %d %d",&m,&n,&nnz);
+  if ( fscanf(fp,"%lld %lld %lld",&m_in,&n_in,&nnz_in) != 3 )
+    check_error(ERROR_WRONG_FILE, "dcoo_read_dcsr");
+  m=(INT )m_in; n=(INT )n_in; nnz=(INT )nnz_in;
 
   dCOOmat Atmp=dcoo_create(m,n,nnz);
 
   for ( k = 0; k < nnz; k++ ) {
-    if ( fscanf(fp, "%d %d %le", &i, &j,&value) != EOF ) {
-      Atmp.rowind[k]=i; Atmp.colind[k]=j; Atmp.val[k] = value;
+    if ( fscanf(fp, "%lld %lld %le", &i_in, &j_in,&value) == 3 ) {
+      Atmp.rowind[k]=(INT )i_in; Atmp.colind[k]=(INT )j_in; Atmp.val[k] = value;
     }
     else {
       check_error(ERROR_WRONG_FILE, "dcoo_read_dcsr");
@@ -1863,7 +1866,11 @@ scomplex* sc_read_gmsh(const char *namemsh)
     if (strstr(line, "$Nodes")) break;
   }
   INT nv = 0;
-  fscanf(fmesh, "%lld", (long long*)&nv);
+  {
+    long long nv_ll = 0; /* INT may be 32-bit: never scan %lld into it */
+    fscanf(fmesh, "%lld", &nv_ll);
+    nv = (INT)nv_ll;
+  }
 
   /* Read node coordinates — count coordinates per line to detect dim */
   REAL *x_tmp = (REAL*)calloc(3 * nv, sizeof(REAL));
@@ -1890,7 +1897,11 @@ scomplex* sc_read_gmsh(const char *namemsh)
     if (strstr(line, "$Elements")) break;
   }
   INT nel_total = 0;
-  fscanf(fmesh, "%lld", (long long*)&nel_total);
+  {
+    long long nel_ll = 0;
+    fscanf(fmesh, "%lld", &nel_ll);
+    nel_total = (INT)nel_ll;
+  }
 
   /* First pass: count volume elements and boundary faces to determine dim */
   /* Store all element data temporarily */

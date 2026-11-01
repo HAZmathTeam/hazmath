@@ -100,12 +100,26 @@
  * \brief integer and floating point numbers
  */
 #define SHORT            short      /**< short integer type */
-/* INT width toggle: exactly one of the two lines below must be active.
- * 32-bit: needed for UMFPACK (umfpack_di_*).  64-bit: needed for very
- * large meshes (>~2.1e9 indices) to avoid INT_MAX overflow.
- * After switching, rebuild hazmath AND all consumer libs (ABI change). */
-#define INT              int           /**< 32-bit (UMFPACK) */
-//#define INT              long long int /**< 64-bit (large meshes) */
+/* INT width: HAZ_INT64 1 -> 64-bit INT (long long), 0 -> 32-bit INT (int).
+ * Set at configure time, not here:
+ *     make config int64=yes ...   (64-bit)      make config ...   (32-bit)
+ * which writes include/haz_int.h.  Without that file INT is 32-bit.
+ * UMFPACK works with either: include/haz_direct_solve.h selects umfpack_dl_*
+ * (64-bit) or umfpack_di_* (32-bit) to match.
+ * After switching, rebuild hazmath AND all codes using it (ABI change). */
+#if defined(__has_include)
+#if __has_include("haz_int.h")
+#include "haz_int.h"
+#endif
+#endif
+#ifndef HAZ_INT64
+#define HAZ_INT64        0
+#endif
+#if HAZ_INT64
+#define INT              long long int /**< 64-bit */
+#else
+#define INT              int           /**< 32-bit */
+#endif
 #define LONG             long       /**< long integer type mostly the same as int */
 #define LONGLONG         long long  /**< long long integer type (INTEGER*8 in F77)*/
 #define REAL             double     /**< float type */

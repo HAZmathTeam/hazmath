@@ -14,6 +14,7 @@
 
 #if WITH_SUITESPARSE
 #include "umfpack.h"
+#include "haz_direct_solve.h"
 #endif
 
 /************************************************************/
@@ -375,15 +376,15 @@ void* hazmath_factorize (dCSRmat *ptrA,
   double *Ax = ptrA->val;
   void *Symbolic;
   INT status = SUCCESS;
-  status = umfpack_di_symbolic (n, n, Ap, Ai, Ax, &Symbolic, NULL, NULL);
+  status = haz_umfpack_symbolic (n, n, Ap, Ai, Ax, &Symbolic, NULL, NULL);
   if(status<0) {
     fprintf(stderr,"UMFPACK ERROR in Symbolic, status = %lld\n\n",(long long )status);
   }
-  status = umfpack_di_numeric (Ap, Ai, Ax, Symbolic, &Numeric, NULL, NULL);
+  status = haz_umfpack_numeric (Ap, Ai, Ax, Symbolic, &Numeric, NULL, NULL);
   if(status<0) {
     fprintf(stderr,"UMFPACK ERROR in Numeric, status = %lld\n\n",(long long )status);
   }
-  umfpack_di_free_symbolic (&Symbolic);
+  haz_umfpack_free_symbolic (&Symbolic);
   if ( prtlvl > PRINT_MIN ) {
     fprintf(stdout,"\nUMFPACK: ");
   }
@@ -440,7 +441,7 @@ INT hazmath_solve (dCSRmat *ptrA,
   INT *Ai = ptrA->JA;
   double *Ax = ptrA->val;
 
-  status = umfpack_di_solve (UMFPACK_A, Ap, Ai, Ax, u->val, b->val, Numeric, NULL, NULL);
+  status = haz_umfpack_solve (UMFPACK_A, Ap, Ai, Ax, u->val, b->val, Numeric, NULL, NULL);
   if ( prtlvl > PRINT_NONE ) {
     fprintf(stdout,"UMFPACK: ");fflush(stdout);
   }
@@ -477,7 +478,7 @@ INT hazmath_free_numeric (void **Numeric)
   INT status = SUCCESS;
 #if WITH_SUITESPARSE
   
-  umfpack_di_free_numeric (&Numeric[0]);
+  haz_umfpack_free_numeric (&Numeric[0]);
   
 #else
   dCSRmat *U,*L=NULL; dvector *dinv;
