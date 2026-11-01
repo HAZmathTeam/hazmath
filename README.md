@@ -69,8 +69,9 @@ which `include/macro.h` reads; do not edit either file by hand. UMFPACK follows
 the setting (`umfpack_dl_*` for 64-bit, `umfpack_di_*` for 32-bit).
 
 `sizeof(INT)` is part of the binary interface: after changing the width, rebuild
-everything compiled against HAZmath from clean, e.g. `make clean; make` in each
-example. `make` alone does not notice the change, and code compiled with one
+everything compiled against HAZmath, e.g. `make -B` in each example (`make -B`
+rebuilds every target; note that `make clean` in an example also deletes its
+`output/`). `make` alone does not notice the change, and code compiled with one
 width and linked with a library of the other width gives wrong results.
 
 ---

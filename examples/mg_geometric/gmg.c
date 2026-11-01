@@ -57,6 +57,14 @@
 #define MAX_ITER 500
 #define N_SMOOTH 1
 /****************************************************/
+/* Read one integer as long long (correct for 32- and 64-bit INT); returns
+ * def if the read fails. */
+static INT gmg_read_int(FILE* fp, INT def)
+{
+  long long v;
+  return (fscanf(fp, "%lld", &v) == 1) ? (INT)v : def;
+}
+
 void main() {
   INT ke[MAX_LEVELS];
   REAL* u = NULL;
@@ -84,11 +92,7 @@ void main() {
   //  fp=stdin;
   fp = fopen("sample.input", "r");
   //
-#if( __longint == 1 )
-  k = fscanf(fp, "%ld", &levels);
-#else
-  k = fscanf(fp, "%d", &levels);
-#endif
+  levels = gmg_read_int(fp, levels);
   fprintf(stdout, "\n");
   if (levels > MAX_LEVELS)
     levels = MAX_LEVELS;
@@ -96,11 +100,7 @@ void main() {
     levels = MIN_LEVELS;
   /* Number of pre- and post- smoothing steps */
   fprintf(stdout, "           *Enter spatial dimension (2 or 3): ");
-#if( __longint == 1 )
-  k = fscanf(fp, "%ld", &nspdim);
-#else
-  k = fscanf(fp, "%d", &nspdim);
-#endif
+  nspdim = gmg_read_int(fp, nspdim);
   fprintf(stdout, "\n");
   if (nspdim > 3)
     nspdim = 3;
@@ -108,21 +108,13 @@ void main() {
     nspdim = 2;
   /* */
   fprintf(stdout, "\n           *Enter number of smoothing steps: ");
-#if( __longint == 1 )
-  k = fscanf(fp, "%ld", &nsweeps);
-#else
-  k = fscanf(fp, "%d", &nsweeps);
-#endif
+  nsweeps = gmg_read_int(fp, 0);
   fprintf(stdout, "\n");
   if (nsweeps < 1)
     nsweeps = N_SMOOTH;
   /* */
   fprintf(stdout, "\n           *(V-cycles or FMG): [0 or 1]: ");
-#if( __longint == 1 )
-  k = fscanf(fp, "%ld", &isfmg);
-#else
-  k = fscanf(fp, "%d", &isfmg);
-#endif
+  isfmg = gmg_read_int(fp, 0);
   fclose(fp);
   fprintf(stdout, "\n");
   if (isfmg) {
