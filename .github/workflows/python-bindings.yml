@@ -12,7 +12,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PREFIX: ${{ github.workspace }}/hazmath-install
+  # not under github.workspace: in container jobs the runner rewrites that path
+  # in environment variables (/home/runner/work -> /__w) but not in the action
+  # inputs, so the install action and later steps would use different paths
+  PREFIX: /tmp/hazmath-install
 
 # bash with pipefail, so that "pytest | tee" fails when pytest fails
 defaults:
@@ -139,14 +142,10 @@ jobs:
         with:
           prefix: ${{ env.PREFIX }}
 
-      # --debug-find-pkg: find_package(hazmath) failed in these containers
-      # with CMAKE_PREFIX_PATH set, which does not happen elsewhere
       - name: Install haznicsx
         run: |
-          ls "$PREFIX/lib/cmake/hazmath"
           CMAKE_PREFIX_PATH=$PREFIX python3 -m pip install -v .[test] \
-            -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON \
-            -C cmake.args=--debug-find-pkg=hazmath
+            -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON
 
       - name: Run tests
         run: python3 -m pytest -v python/tests
@@ -168,14 +167,10 @@ jobs:
         with:
           prefix: ${{ env.PREFIX }}
 
-      # --debug-find-pkg: find_package(hazmath) failed in these containers
-      # with CMAKE_PREFIX_PATH set, which does not happen elsewhere
       - name: Install haznicsx
         run: |
-          ls "$PREFIX/lib/cmake/hazmath"
           CMAKE_PREFIX_PATH=$PREFIX python3 -m pip install -v .[test] \
-            -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON \
-            -C cmake.args=--debug-find-pkg=hazmath
+            -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON
 
       - name: Run tests
         run: python3 -m pytest -v python/tests
