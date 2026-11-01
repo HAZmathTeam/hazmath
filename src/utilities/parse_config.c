@@ -537,24 +537,25 @@ void config2vars_amr(config_z* config, input_grid* gz)
   /* Print input_grid elements */
   printf("\n%%input_grid params:\n"
          "  title       = '%s';\n"
-         "  dim         = %6d;\n"
+         "  dim         = %6lld;\n"
          "  print_level = %6d;\n"
          "  fgrid       = '%s';\n"
          "  fvtu        = '%s';\n"
-         "  ncsys       = %6d;\n"
-         "  nv          = %6d;\n"
-         "  ne          = %6d;\n"
-         "  nel         = %6d;\n"
-         "  nf          = %6d;\n"
-         "  nref        = %6d;\n"
-         "  ref_type    = %6d;\n"
-         "  mark_type   = %6d;\n"
+         "  ncsys       = %6lld;\n"
+         "  nv          = %6lld;\n"
+         "  ne          = %6lld;\n"
+         "  nel         = %6lld;\n"
+         "  nf          = %6lld;\n"
+         "  nref        = %6lld;\n"
+         "  ref_type    = %6lld;\n"
+         "  mark_type   = %6lld;\n"
          "  err_stop    = %9.4e;\n"
-         "  num_refine_points = %d;\n",
-         gz->title, gz->dim, gz->print_level, gz->fgrid, gz->fvtu,
-         gz->ncsys, gz->nv, gz->ne, gz->nel, gz->nf,
-         gz->nref, gz->ref_type, gz->mark_type, gz->err_stop,
-         gz->num_refine_points);
+         "  num_refine_points = %lld;\n",
+         gz->title, (long long)gz->dim, gz->print_level, gz->fgrid, gz->fvtu,
+         (long long)gz->ncsys, (long long)gz->nv, (long long)gz->ne,
+         (long long)gz->nel, (long long)gz->nf,
+         (long long)gz->nref, (long long)gz->ref_type, (long long)gz->mark_type,
+         gz->err_stop, (long long)gz->num_refine_points);
 
   return;
 }

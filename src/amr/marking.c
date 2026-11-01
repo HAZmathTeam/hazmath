@@ -40,6 +40,6 @@ ivector amr_maximal_mark(scomplex* sc, REAL* estimator, REAL gamma) {
       marked.val[i] = FALSE;
     }
   }
-  printf("\nMarking elements for AMR using Maximal Mark strategy.\n\tMarking elements with %3.2f%% of the max error: --> %d of %d elements were marked to be refined.\n", gamma * 100, k, ns);
+  printf("\nMarking elements for AMR using Maximal Mark strategy.\n\tMarking elements with %3.2f%% of the max error: --> %lld of %lld elements were marked to be refined.\n", gamma * 100, (long long)k, (long long)ns);
   return marked;
 }

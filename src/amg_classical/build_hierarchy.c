@@ -47,9 +47,9 @@ void vmb_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) 
   mgl[0].wdata = aux0;
 
   fprintf(stderr,
-    "Building VMB+RS hierarchy (threshold=%.2f, min_size=%d)\n",
-    threshold, min_size);
-  fprintf(stderr, "  Level 1: n = %d, nnz = %d\n", A->row, A->nnz);
+    "Building VMB+RS hierarchy (threshold=%.2f, min_size=%lld)\n",
+    threshold, (long long)min_size);
+  fprintf(stderr, "  Level 1: n = %lld, nnz = %lld\n", (long long)A->row, (long long)A->nnz);
 
   INT nlev = 1;
   const dCSRmat* Ac = &mgl[0].A;
@@ -66,17 +66,17 @@ void vmb_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) 
     /* VMB on finest level, RS on all coarser levels */
     if (nlev == 1) {
       vmb_coarsening(&cur_aux->A_filtered, cf, &n_coarse);
-      fprintf(stderr, "    coarsening: VMB (n_coarse=%d, ratio=%.2f)\n",
-              n_coarse, (REAL)n_fine / n_coarse);
+      fprintf(stderr, "    coarsening: VMB (n_coarse=%lld, ratio=%.2f)\n",
+              (long long)n_coarse, (REAL)n_fine / n_coarse);
     } else {
       rs_coarsening(&cur_aux->A_filtered, cf, &n_coarse);
-      fprintf(stderr, "    coarsening: RS  (n_coarse=%d, ratio=%.2f)\n",
-              n_coarse, (REAL)n_fine / n_coarse);
+      fprintf(stderr, "    coarsening: RS  (n_coarse=%lld, ratio=%.2f)\n",
+              (long long)n_coarse, (REAL)n_fine / n_coarse);
     }
 
     if (n_coarse == 0 || n_coarse >= n_fine) {
-      fprintf(stderr, "  Coarsening stalled at level %d (n_coarse=%d)\n",
-              nlev, n_coarse);
+      fprintf(stderr, "  Coarsening stalled at level %lld (n_coarse=%lld)\n",
+              (long long)nlev, (long long)n_coarse);
       free(cf);
       break;
     }
@@ -96,9 +96,10 @@ void vmb_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) 
     fprintf(stderr, "    interpolation ... "); fflush(stderr);
     clock_t clk_interp = clock();
     rs_standard_interpolation(&mgl[nlev - 1].A, &cur_aux->A_filtered, cf, &mgl[nlev - 1].P);
-    fprintf(stderr, "done (%.3f s, P: %d x %d, nnz=%d)\n",
+    fprintf(stderr, "done (%.3f s, P: %lld x %lld, nnz=%lld)\n",
             (double)(clock() - clk_interp) / CLOCKS_PER_SEC,
-            mgl[nlev - 1].P.row, mgl[nlev - 1].P.col, mgl[nlev - 1].P.nnz);
+            (long long)mgl[nlev - 1].P.row, (long long)mgl[nlev - 1].P.col,
+            (long long)mgl[nlev - 1].P.nnz);
     fflush(stderr);
 
     free(cf);
@@ -129,8 +130,9 @@ void vmb_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) 
     fprintf(stderr, "done (%.3f s)\n", (double)(clock() - clk_sym) / CLOCKS_PER_SEC);
     fflush(stderr);
 
-    fprintf(stderr, "  Level %d: n = %d, nnz = %d (ratio %.2f)\n",
-            nlev + 1, n_coarse, Ac_new.nnz, (REAL)n_fine / n_coarse);
+    fprintf(stderr, "  Level %lld: n = %lld, nnz = %lld (ratio %.2f)\n",
+            (long long)(nlev + 1), (long long)n_coarse, (long long)Ac_new.nnz,
+            (REAL)n_fine / n_coarse);
 
     mgl[nlev].A = Ac_new;
     rs_level_aux* next_aux = rs_aux_create();
@@ -147,11 +149,11 @@ void vmb_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) 
   memset(&coarsest_aux->L_ichol, 0, sizeof(dCSRmat));
   ichol_compute(&mgl[nlev - 1].A, &coarsest_aux->L_ichol);
   if (coarsest_aux->L_ichol.nnz > 0) {
-    fprintf(stderr, "VMB+RS hierarchy complete: %d levels (coarsest ichol nnz=%d)\n\n",
-            nlev, coarsest_aux->L_ichol.nnz);
+    fprintf(stderr, "VMB+RS hierarchy complete: %lld levels (coarsest ichol nnz=%lld)\n\n",
+            (long long)nlev, (long long)coarsest_aux->L_ichol.nnz);
   } else {
-    fprintf(stderr, "VMB+RS hierarchy complete: %d levels (coarsest: direct solve)\n\n",
-            nlev);
+    fprintf(stderr, "VMB+RS hierarchy complete: %lld levels (coarsest: direct solve)\n\n",
+            (long long)nlev);
   }
 }
 
@@ -172,9 +174,9 @@ void rs_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) {
   mgl[0].wdata = aux0;
 
   fprintf(stderr,
-    "Building RS hierarchy (threshold=%.2f, min_size=%d)\n",
-    threshold, min_size);
-  fprintf(stderr, "  Level 1: n = %d, nnz = %d\n", A->row, A->nnz);
+    "Building RS hierarchy (threshold=%.2f, min_size=%lld)\n",
+    threshold, (long long)min_size);
+  fprintf(stderr, "  Level 1: n = %lld, nnz = %lld\n", (long long)A->row, (long long)A->nnz);
 
   INT nlev = 1;
   const dCSRmat* Ac = &mgl[0].A;
@@ -192,8 +194,8 @@ void rs_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) {
     rs_coarsening(&cur_aux->A_filtered, cf, &n_coarse);
 
     if (n_coarse == 0 || n_coarse >= n_fine) {
-      fprintf(stderr, "  Coarsening stalled at level %d (n_coarse=%d)\n",
-              nlev, n_coarse);
+      fprintf(stderr, "  Coarsening stalled at level %lld (n_coarse=%lld)\n",
+              (long long)nlev, (long long)n_coarse);
       free(cf);
       break;
     }
@@ -216,9 +218,10 @@ void rs_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) {
     fprintf(stderr, "    interpolation ... "); fflush(stderr);
     clock_t clk_interp = clock();
     rs_standard_interpolation(&mgl[nlev - 1].A, &cur_aux->A_filtered, cf, &mgl[nlev - 1].P);
-    fprintf(stderr, "done (%.3f s, P: %d x %d, nnz=%d)\n",
+    fprintf(stderr, "done (%.3f s, P: %lld x %lld, nnz=%lld)\n",
             (double)(clock() - clk_interp) / CLOCKS_PER_SEC,
-            mgl[nlev - 1].P.row, mgl[nlev - 1].P.col, mgl[nlev - 1].P.nnz);
+            (long long)mgl[nlev - 1].P.row, (long long)mgl[nlev - 1].P.col,
+            (long long)mgl[nlev - 1].P.nnz);
     fflush(stderr);
 
     free(cf);
@@ -254,8 +257,9 @@ void rs_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) {
     fprintf(stderr, "done (%.3f s)\n", (double)(clock() - clk_sym) / CLOCKS_PER_SEC);
     fflush(stderr);
 
-    fprintf(stderr, "  Level %d: n = %d, nnz = %d (ratio %.2f)\n",
-            nlev + 1, n_coarse, Ac_new.nnz, (REAL)n_fine / n_coarse);
+    fprintf(stderr, "  Level %lld: n = %lld, nnz = %lld (ratio %.2f)\n",
+            (long long)(nlev + 1), (long long)n_coarse, (long long)Ac_new.nnz,
+            (REAL)n_fine / n_coarse);
 
     /* Store coarse level */
     mgl[nlev].A = Ac_new;
@@ -277,8 +281,8 @@ void rs_amg_build_hierarchy(AMG_data* mgl, AMG_param* param, const dCSRmat* A) {
   coarsest_aux->Numeric = factorize_HAZ(&mgl[nlev - 1].A, 0);
   /* Store transpose for solve_HAZ */
   dcsr_trans(&mgl[nlev - 1].A, &coarsest_aux->At_coarse);
-  fprintf(stderr, "RS hierarchy complete: %d levels (coarsest: UMFPACK direct, n=%d)\n\n",
-          nlev, mgl[nlev - 1].A.row);
+  fprintf(stderr, "RS hierarchy complete: %lld levels (coarsest: UMFPACK direct, n=%lld)\n\n",
+          (long long)nlev, (long long)mgl[nlev - 1].A.row);
 }
 
 /* ======================================================================
@@ -298,7 +302,8 @@ void rs_amg_rebuild_values(AMG_data* mgl, AMG_param* param, const dCSRmat* A_new
 
   fprintf(stderr,
     "Rebuilding AMG values (reusing hierarchy structure)\n");
-  fprintf(stderr, "  Level 1: n = %d, nnz = %d\n", A_new->row, A_new->nnz);
+  fprintf(stderr, "  Level 1: n = %lld, nnz = %lld\n", (long long)A_new->row,
+          (long long)A_new->nnz);
 
   for (INT k = 0; k < nlev - 1; k++) {
     rs_level_aux* cur_aux = RS_AUX(mgl, k);
@@ -337,8 +342,8 @@ void rs_amg_rebuild_values(AMG_data* mgl, AMG_param* param, const dCSRmat* A_new
       Ac_new = Ac_sum;
     }
 
-    fprintf(stderr, "  Level %d: n = %d, nnz = %d\n",
-            k + 2, Ac_new.row, Ac_new.nnz);
+    fprintf(stderr, "  Level %lld: n = %lld, nnz = %lld\n",
+            (long long)(k + 2), (long long)Ac_new.row, (long long)Ac_new.nnz);
 
     /* Replace coarse level matrix */
     dcsr_free(&mgl[k + 1].A);
@@ -356,7 +361,7 @@ void rs_amg_rebuild_values(AMG_data* mgl, AMG_param* param, const dCSRmat* A_new
   }
   coarsest_aux->Numeric = factorize_HAZ(&mgl[nlev - 1].A, 0);
   dcsr_trans(&mgl[nlev - 1].A, &coarsest_aux->At_coarse);
-  fprintf(stderr, "AMG values rebuilt: %d levels\n", nlev);
+  fprintf(stderr, "AMG values rebuilt: %lld levels\n", (long long)nlev);
 }
 
 /* ====================================================================== */

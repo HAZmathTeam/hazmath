@@ -4149,7 +4149,7 @@ INT bdcsr_pminres_w_cond_est(block_dCSRmat *A,
     // print the full Lanczos eigenvalue spectrum only at high verbosity
     // (one line per iteration; floods the log otherwise)
     if ( prtlvl >= PRINT_MORE )
-        for (i = 0; i< iter_condest; i++) printf("d0[%d] = %f\n", i, d0[i]);
+        for (i = 0; i< iter_condest; i++) printf("d0[%lld] = %f\n", (long long)i, d0[i]);
     //getchar();
 
     // condition number: max|lambda| / min|lambda|

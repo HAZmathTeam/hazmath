@@ -1237,10 +1237,10 @@ void find_cc_bndry_cc(scomplex* sc, const INT set_bndry_codes) {
   }
   icsr_free(&f2f);
   /*******************************************************************/
-  fprintf(stdout, "%%%%--> number of connected components in the bulk=%d\n",
-          sc->cc);
-  fprintf(stdout, "%%%%--> number of connected components on the boundary=%d\n",
-          sc->bndry_cc);
+  fprintf(stdout, "%%%%--> number of connected components in the bulk=%lld\n",
+          (long long)sc->cc);
+  fprintf(stdout, "%%%%--> number of connected components on the boundary=%lld\n",
+          (long long)sc->bndry_cc);
   fflush(stdout);
   /* make boundary codes from parent_v */
   INT *a1 = NULL, *a2 = NULL, l, ncap, n1, n2, v1, v2, nnz_bv, nnzold;
@@ -1563,9 +1563,9 @@ void find_cc_bndry_cc(scomplex* sc, const INT set_bndry_codes) {
   }
   cmin--;
   cmax++;
-  fprintf(stdout, "cmin=%d,cmax=%d,nnz_bv=%d,nnz_in bv=%d,k123=%d,rows:%10d\n",
-          cmin, cmax, nnz_bv, sc->bndry_v->nnz,
-          sc->bndry_v->IA[sc->bndry_v->row], sc->bndry_v->row);
+  fprintf(stdout, "cmin=%lld,cmax=%lld,nnz_bv=%lld,nnz_in bv=%lld,k123=%lld,rows:%10lld\n",
+          (long long)cmin, (long long)cmax, (long long)nnz_bv, (long long)sc->bndry_v->nnz,
+          (long long)sc->bndry_v->IA[sc->bndry_v->row], (long long)sc->bndry_v->row);
   fflush(stdout);
   exit(2);
   if (!cmin) cmin = -1;
@@ -1578,7 +1578,7 @@ void find_cc_bndry_cc(scomplex* sc, const INT set_bndry_codes) {
     } else {
       sc->bndry[i] = cmax;
       for (k = iaa; k < iab; ++k) {
-        fprintf(stdout, "\nk=%d,nnz_bv=%d", k, nnz_bv);
+        fprintf(stdout, "\nk=%lld,nnz_bv=%lld", (long long)k, (long long)nnz_bv);
         fflush(stdout);
         code = sc->bndry_v->val[k];
         if (!code) continue;

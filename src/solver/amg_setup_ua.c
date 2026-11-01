@@ -1028,7 +1028,7 @@ static SHORT aggregation_hem(dCSRmat *A,
       num_els.val[kc]++;
     }else{
       //Isolated points again, this cannot happen, so it must be an error
-      fprintf(stderr,"%%%%ERROR in %s: isolated point (=%d) on the second matching pass",__FUNCTION__,k);
+      fprintf(stderr,"%%%%ERROR in %s: isolated point (=%lld) on the second matching pass",__FUNCTION__,(long long)k);
       exit(17);
     }
   }
