@@ -89,3 +89,5 @@ On an Intel Core Ultra X7 358H:
 | `3d_default` | | 4.24 | 237.4 |
 | `3d_test2_mu1e-6` | `test=2 mu=1e-6` | 7.09 | 238.9 |
 | `3d_ua_amli` | `amg=ua` | 4.81 | 223.4 |
+
+Options `vcycles=N` (AMG cycles per block, default 1) and `tol=<value>` (GMRES relative residual, default 1e-10) set the preconditioner and the solver tolerance.
