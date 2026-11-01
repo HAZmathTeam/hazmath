@@ -538,8 +538,7 @@ void schwarz_data_free(Schwarz_data *schwarzdata)
   INT i;
   if ( schwarzdata == NULL ) return; // There is nothing to do!
   //
-  if(&(schwarzdata->A)!=NULL)
-    dcsr_free(&schwarzdata->A);
+  dcsr_free(&schwarzdata->A); // A is a member, never NULL; dcsr_free handles empty arrays
   if(schwarzdata->Schwarz_type==SCHWARZ_FORWARD || schwarzdata->Schwarz_type==SCHWARZ_BACKWARD || schwarzdata->Schwarz_type==SCHWARZ_SYMMETRIC){
     for ( i=0; i<schwarzdata->nblk; ++i ) {
       dcsr_free(&((schwarzdata->blk_data)[i]));
@@ -857,9 +856,9 @@ void precond_data_bdcsr_free(precond_data_bdcsr *precdata)
 
     if(precdata->A)  bdcsr_free(precdata->A);
 
-    if(&(precdata->r)) dvec_free(&(precdata->r));
+    dvec_free(&(precdata->r));    // member, never NULL; dvec_free handles val==NULL
     if(precdata->w) free(precdata->w);
-    if(&(precdata->perm)) ivec_free(&(precdata->perm));
+    ivec_free(&(precdata->perm)); // member, never NULL; ivec_free handles val==NULL
 
     return;
 }

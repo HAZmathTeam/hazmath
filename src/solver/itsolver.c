@@ -4346,9 +4346,11 @@ INT linear_solver_dcsr_krylov_md_scalar_elliptic(dCSRmat *A,
     }
 
     bdcsr_free(&A_blk);
-    if(&A_diag[0]) dcsr_free(&A_diag[0]);
-    if(&A_diag[1]) dcsr_free(&A_diag[1]);
-    if(A_diag) free(A_diag);
+    if(A_diag) {
+      dcsr_free(&A_diag[0]);
+      dcsr_free(&A_diag[1]);
+      free(A_diag);
+    }
 
     return status;
 }
