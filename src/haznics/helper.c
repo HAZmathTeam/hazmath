@@ -172,6 +172,10 @@ precond* create_precond(dCSRmat *A, AMG_param *amgparam)
 
     if (status < 0) {
         printf("\n In function create_precond: AMG data failed to set up \n");
+        amg_data_free(mgl, amgparam);
+        free(mgl);
+        free(pcdata);
+        free(pc);
         return NULL;
     }
 
@@ -243,6 +247,10 @@ precond* create_precond_amg(dCSRmat *A, AMG_param *amgparam)
 
     if (status < 0) {
         printf("\n In function create_precond: AMG data failed to set up \n");
+        amg_data_free(mgl, amgparam);
+        free(mgl);
+        free(pcdata);
+        free(pc);
         return NULL;
     }
 
@@ -323,6 +331,10 @@ precond* create_precond_famg(dCSRmat *A, dCSRmat *M, AMG_param *amgparam)
 
     if (status < 0) {
         printf("\n In function create_precond: FAMG data failed to set up \n");
+        amg_data_free(mgl, amgparam);
+        free(mgl);
+        free(pcdata);
+        free(pc);
         return NULL;
     }
 

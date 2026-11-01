@@ -1,0 +1,175 @@
+name: Python bindings (haznicsx)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREFIX: ${{ github.workspace }}/hazmath-install
+
+jobs:
+  bindings:
+    name: Bindings without PETSc or DOLFINx
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - uses: ./.github/actions/install-hazmath
+        with:
+          prefix: ${{ env.PREFIX }}
+
+      - name: Install haznicsx
+        run: |
+          CMAKE_PREFIX_PATH=$PREFIX python3 -m pip install -v .[test] \
+            -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON
+
+      # nanobind reports objects that are never freed when Python exits
+      - name: Run tests
+        run: |
+          python3 -m pytest -v python/tests 2>&1 | tee pytest.log
+          if grep -q "nanobind: leaked" pytest.log; then
+            echo "::error::nanobind reported leaked objects"; exit 1
+          fi
+
+  root-install:
+    name: pip install from the repository root (SuiteSparse ${{ matrix.suitesparse }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suitesparse: ["OFF", "ON"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies
+        run: |
+          pkgs="gfortran"
+          if [ "${{ matrix.suitesparse }}" = "ON" ]; then pkgs="$pkgs libsuitesparse-dev liblapack-dev"; fi
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends $pkgs
+
+      # libhazmath and haznicsx in one build (pyproject.toml at the root)
+      - name: Install haznicsx
+        run: |
+          python3 -m pip install -v .[test] \
+            -C cmake.define.USE_SUITESPARSE=${{ matrix.suitesparse }} \
+            -C cmake.define.USE_LAPACK=${{ matrix.suitesparse }}
+
+      - name: Run tests
+        run: python3 -m pytest -v
+
+  sanitizers:
+    name: Bindings with ASan/UBSan
+    runs-on: ubuntu-latest
+    env:
+      SAN_FLAGS: -fsanitize=address,undefined -fno-omit-frame-pointer
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - uses: ./.github/actions/install-hazmath
+        with:
+          prefix: ${{ env.PREFIX }}
+          build-type: Debug
+          c-flags: ${{ env.SAN_FLAGS }}
+
+      - name: Install haznicsx with sanitizers
+        run: |
+          CMAKE_PREFIX_PATH=$PREFIX python3 -m pip install -v .[test] \
+            -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON \
+            --config-settings=cmake.build-type=Debug \
+            "--config-settings=cmake.define.CMAKE_C_FLAGS=$SAN_FLAGS" \
+            "--config-settings=cmake.define.CMAKE_CXX_FLAGS=$SAN_FLAGS"
+
+      - name: Run tests
+        env:
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+          # Python itself, and HAZmath's fractional smoothers and AMLI cycle,
+          # leak on every apply; check memory errors only
+          ASAN_OPTIONS: detect_leaks=0
+        run: |
+          # Python is not instrumented, so the ASan runtime is preloaded;
+          # libstdc++ too, or ASan cannot intercept C++ exceptions
+          export LD_PRELOAD="$(gcc -print-file-name=libasan.so) $(gcc -print-file-name=libstdc++.so)"
+          python3 -m pytest -v python/tests
+
+  petsc-variants:
+    name: PETSc ${{ matrix.petsc_arch }}
+    runs-on: ubuntu-latest
+    container: ghcr.io/fenics/dolfinx/dev-env:current
+    strategy:
+      fail-fast: false
+      matrix:
+        # the PETSc builds in dev-env:current; with complex128,
+        # csr_from_petsc raises TypeError
+        petsc_arch:
+          - linux-gnu-real64-32
+          - linux-gnu-complex128-32
+    env:
+      PETSC_ARCH: ${{ matrix.petsc_arch }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/install-hazmath
+        with:
+          prefix: ${{ env.PREFIX }}
+
+      - name: Install haznicsx
+        run: |
+          CMAKE_PREFIX_PATH=$PREFIX python3 -m pip install -v .[test] \
+            -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON
+
+      - name: Run tests
+        run: python3 -m pytest -v python/tests
+
+  dolfinx:
+    name: DOLFINx ${{ matrix.tag }}
+    runs-on: ubuntu-latest
+    container: ghcr.io/fenics/dolfinx/dolfinx:${{ matrix.tag }}
+    # nightly may break before haznicsx catches up with DOLFINx main
+    continue-on-error: ${{ matrix.tag == 'nightly' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        tag: [stable, nightly]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/install-hazmath
+        with:
+          prefix: ${{ env.PREFIX }}
+
+      - name: Install haznicsx
+        run: |
+          CMAKE_PREFIX_PATH=$PREFIX python3 -m pip install -v .[test] \
+            -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON
+
+      - name: Run tests
+        run: python3 -m pytest -v python/tests
+
+      - name: Run PETSc tests in parallel
+        run: mpirun -n 2 python3 -m pytest -v python/tests/test_csr.py

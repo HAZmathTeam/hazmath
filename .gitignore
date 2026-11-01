@@ -50,3 +50,7 @@ examples/xd_1d_models/input/solver.input
 # CI and formatting configuration
 !.github/
 !.clang-format
+# Python
+__pycache__/
+*.egg-info/
+python/build/

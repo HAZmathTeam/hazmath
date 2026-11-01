@@ -61,6 +61,14 @@ endif( THE_C )
 # The version is used by the installed CMake package (hazmathConfigVersion.cmake)
 project(HAZMATH VERSION 0.1.0 LANGUAGES C )
 
+# "pip install . -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON" builds only the
+# haznicsx Python package, against an installed libhazmath (find_package)
+option(HAZNICSX_EXISTING_HAZMATH "Build haznicsx against an installed libhazmath" OFF)
+if(SKBUILD AND HAZNICSX_EXISTING_HAZMATH)
+  add_subdirectory(python)
+  return()
+endif()
+
 #message(STATUS "  ${HAZMATH_SOURCE_DIR}")
 
 
@@ -144,7 +152,13 @@ endif(ADD_FFLAGS)
 # with headers and a CMake package config (find_package(hazmath)).
 set(HAZMATH_RELOCATABLE_INSTALL OFF CACHE BOOL
   "install to CMAKE_INSTALL_PREFIX with headers and a CMake package config")
-if(NOT HAZMATH_RELOCATABLE_INSTALL)
+# "pip install ." from the repository root (pyproject.toml) builds the
+# haznicsx Python package with a static libhazmath linked into it; nothing
+# else is installed, and the prefix is the one scikit-build-core sets.
+if(SKBUILD)
+  set(SHARED OFF)
+endif()
+if(NOT HAZMATH_RELOCATABLE_INSTALL AND NOT SKBUILD)
   set(CMAKE_INSTALL_PREFIX "${HAZMATH_SOURCE_DIR}" )
 endif()
 include(GNUInstallDirs)
@@ -156,7 +170,7 @@ if(SHARED)
 else(SHARED)
   set(HAZMATH_LIBRARY_TYPE STATIC)
 endif(SHARED)
-if(NOT HAZMATH_RELOCATABLE_INSTALL)
+if(NOT HAZMATH_RELOCATABLE_INSTALL AND NOT SKBUILD)
   # FOR MAC OS X to find shared libs in install location
   set(CMAKE_INSTALL_NAME_DIR
     ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "path for apple")
@@ -447,6 +461,8 @@ endif(NOT (CMAKE_CXX_COMPILER_ID STREQUAL CMAKE_C_COMPILER_ID))
 # depends also on the source, header and inl files 
 add_library(hazmath ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_C_SOURCES} ${HAZMATH_INL_SOURCES} ${HAZMATH_F_SOURCES}  ${HAZMATH_HEADERS})
 add_dependencies(hazmath headers)
+# the name of the installed target, also for projects that add this directory
+add_library(hazmath::hazmath ALIAS hazmath)
 # PIC so that a static libhazmath can be linked into Python extensions
 set_target_properties(hazmath PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(hazmath PUBLIC
@@ -499,6 +515,13 @@ target_link_libraries(hazmath PUBLIC "$<BUILD_INTERFACE:${XLIBS_TO_LINK}>")
 # they still exist.
 if(NOT SHARED)
   target_link_libraries(hazmath PUBLIC "$<INSTALL_INTERFACE:${XLIBS_TO_EXPORT}>")
+endif()
+
+# the haznicsx Python package, for "pip install ." from the repository root;
+# libhazmath itself is not installed then
+if(SKBUILD)
+  add_subdirectory(python)
+  return()
 endif()
 
 # install libhazmath
