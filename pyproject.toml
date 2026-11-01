@@ -1,0 +1,46 @@
+# Builds libhazmath and the haznicsx Python package in one go:
+#   python3 -m pip install .
+# libhazmath is linked statically into the extension. HAZmath options are
+# passed as CMake definitions, e.g.
+#   python3 -m pip install . -C cmake.define.USE_SUITESPARSE=ON
+# python/pyproject.toml builds haznicsx against an installed libhazmath
+# instead; keep [project] in the two files the same.
+[build-system]
+requires = ["scikit-build-core>=0.11", "nanobind>=2.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "haznicsx"
+version = "0.1.0"
+description = "HAZmath preconditioners for DOLFINx and PETSc"
+readme = "python/README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "HAZmath developers" }]
+dependencies = ["numpy"]
+
+[project.urls]
+repository = "https://github.com/HAZmathTeam/hazmath"
+
+[project.optional-dependencies]
+petsc = ["petsc4py"]
+test = ["pytest", "scipy"]
+
+# Tools for .github/workflows/formatting.yml (python3 -m pip install --group lint)
+[dependency-groups]
+lint = [
+  "clang-format",
+  "ruff",
+  "mypy",
+  # types for mypy
+  "numpy",
+  "scipy-stubs",
+]
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+cmake.version = ">=3.21"
+wheel.packages = ["python/src/haznicsx"]
+
+[tool.pytest.ini_options]
+testpaths = ["python/tests"]

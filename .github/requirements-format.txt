@@ -1,3 +1,0 @@
-# Pinned formatters used by .github/workflows/formatting.yml
-clang-format==21.1.2
-ruff==0.14.0

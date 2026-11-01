@@ -13,4 +13,5 @@ select = [
 ignore = ["E402", "E741", "E743", "E731"]
 
 [lint.isort]
+known-first-party = ["haznicsx"]
 known-third-party = ["basix", "dolfinx", "ffcx", "ufl", "petsc4py", "mpi4py", "numpy", "scipy"]
