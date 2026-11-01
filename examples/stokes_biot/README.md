@@ -91,3 +91,17 @@ On an Intel Core Ultra X7 358H:
 | `3d_ua_amli` | `amg=ua` | 4.81 | 223.4 |
 
 Options `vcycles=N` (AMG cycles per block, default 1) and `tol=<value>` (GMRES relative residual, default 1e-10) set the preconditioner and the solver tolerance.
+
+For small viscosity the velocity error is sensitive to the GMRES tolerance: the
+velocity block of the matrix is O(mu), so a residual left by GMRES in the momentum
+equation appears in the velocity multiplied by roughly 1/mu.  With `tol=1e-10` and
+`mu=1e-6` this residual is comparable to the discretization error on fine meshes.
+In 2D, test 2 (traction boundary), the L2 velocity error then depends on the
+preconditioner (1 or 5 cycles give different values) and differs from the mu = 1
+value: by up to 1% on levels 6-9 and by 7.5% on level 10 (1 cycle), and by up to 70%
+on level 10 with 5 cycles.  With `tol=1e-13` the L2 velocity errors at mu = 1e-6 equal
+those at mu = 1 to four digits on levels 6-8, for 1 and for 5 cycles, at the cost of
+more iterations (83-109 instead of 34-36 per level).  The H1 velocity and pressure
+errors are not affected.  To check the velocity error at small mu, use for example
+
+    ./stokes_br.ex test=2 mu=1e-6 tol=1e-13
