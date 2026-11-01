@@ -631,6 +631,12 @@ void param_amg_to_prec (precond_data *pcdata,
       //        array_cp(amgparam->amli_degree+1, amgparam->amli_coef, pcdata->amli_coef);
       memcpy(pcdata->amli_coef,amgparam->amli_coef,(amgparam->amli_degree+1)*sizeof(REAL));
     }
+    else
+    {
+      // pcdata is often an uninitialised local (e.g. in nl_amli), and
+      // param_prec_to_amg copies from a non-NULL amli_coef
+      pcdata->amli_coef = NULL;
+    }
 }
 
 /*************************************************************************************/

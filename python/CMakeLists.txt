@@ -55,7 +55,13 @@ target_link_libraries(haznicsx_helper PUBLIC hazmath::hazmath)
 nanobind_add_module(_haznicsx src/haznicsx.cpp)
 target_include_directories(_haznicsx PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(_haznicsx PRIVATE haznicsx_helper hazmath::hazmath)
-# find a shared libhazmath where it was installed
-set_target_properties(_haznicsx PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+# find a shared libhazmath where it was installed. INSTALL_RPATH_USE_LINK_PATH
+# is not enough: it skips directories inside the project, such as a prefix in
+# the repository
+get_target_property(HAZMATH_TYPE hazmath::hazmath TYPE)
+if(HAZMATH_TYPE STREQUAL "SHARED_LIBRARY")
+  set_target_properties(_haznicsx PROPERTIES
+    INSTALL_RPATH "$<TARGET_FILE_DIR:hazmath::hazmath>")
+endif()
 
 install(TARGETS _haznicsx LIBRARY DESTINATION haznicsx)
