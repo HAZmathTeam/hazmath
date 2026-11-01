@@ -38,15 +38,105 @@ INT stokes_br_pr = 1;
 // 1: bubbles condensed, only the diagonal of the bubble-bubble block is assembled
 INT stokes_br_condense = 1;
 
+/* Reference-element tables, built once (br_ref_init) and used on every
+ * element.  Face t of T is identified by the local vertex o opposite to it;
+ * its bubble is b_t = 2^d prod_{j != o} lam_j n_t and
+ *   grad(prod_{j != o} lam_j) = sum_{k != o} (prod_{j != o,k} lam_j) grad lam_k.
+ * Matrix rule: d points per direction (exact to degree 2d-1), weights sum to 1/d!:
+ *   mw[q]          reference weights,
+ *   mgr[q][o][k]   prod_{j != o,k} lam_j at point q (0 for k == o).
+ * Face rule for the traction (Test 2): nf1 points on [-1,1] (2D) or the
+ *   nf1 x nf1 rule on the reference triangle (3D).
+ * The rhs uses the nquad rule of elm_data, whose barycentric coordinates
+ * elm_data->lams are already reference values. */
+typedef struct {
+  INT dim;
+  INT nq;
+  REAL mw[27];
+  REAL mgr[27][4][4];
+  INT nf1;
+  INT nfq;
+  REAL fgp[2 * 49];
+  REAL fgw[49];
+} br_ref_tables;
+static br_ref_tables br_ref = {0, 0};
+
+static void br_ref_init(INT dim, INT nf1)
+{
+  INT q, o, k, j;
+  if (br_ref.dim != dim) {
+    INT nq1 = dim;
+    INT nq = (dim == 2) ? nq1 * nq1 : nq1 * nq1 * nq1;
+    REAL gp[3 * 27];
+    if (dim == 2) triquad_(gp, br_ref.mw, nq1);
+    else tetquad_(gp, br_ref.mw, nq1);
+    for (q = 0; q < nq; q++) {
+      REAL lam[4];
+      lam[0] = 1.0;
+      for (j = 0; j < dim; j++) {
+        lam[j + 1] = gp[j * nq + q];
+        lam[0] -= lam[j + 1];
+      }
+      for (o = 0; o < dim + 1; o++)
+        for (k = 0; k < dim + 1; k++) {
+          REAL p = 0.0;
+          if (k != o) {
+            p = 1.0;
+            for (j = 0; j < dim + 1; j++)
+              if (j != o && j != k) p *= lam[j];
+          }
+          br_ref.mgr[q][o][k] = p;
+        }
+    }
+    br_ref.nq = nq;
+    br_ref.dim = dim;
+    br_ref.nf1 = 0;
+  }
+  if (nf1 > ((dim == 2) ? 5 : 7)) nf1 = (dim == 2) ? 5 : 7;
+  if (br_ref.nf1 != nf1) {
+    if (dim == 2) quad1d(br_ref.fgp, br_ref.fgw, nf1);
+    else triquad_(br_ref.fgp, br_ref.fgw, nf1);
+    br_ref.nfq = (dim == 2) ? nf1 : nf1 * nf1;
+    br_ref.nf1 = nf1;
+  }
+}
+
+/* Face data of T: ef[t][k] local index of the k-th vertex of face t,
+ * opp[t] the local vertex opposite to face t, and
+ * sF[t] = sign(n_t . (x_f - x_opp)), x_f a vertex of face t. */
+static void br_face_map(simplex_local_data* elm_data, INT ef[4][3], INT* opp, REAL* sF)
+{
+  INT dim = elm_data->dim;
+  INT t, k, j;
+  for (t = 0; t < dim + 1; t++) {
+    opp[t] = -1;
+    for (k = 0; k < dim; k++)
+      for (j = 0; j < dim + 1; j++)
+        if (elm_data->v_on_f[t * dim + k] == elm_data->local_v[j]) ef[t][k] = j;
+    for (j = 0; j < dim + 1 && opp[t] < 0; j++) {
+      INT onf = 0;
+      for (k = 0; k < dim; k++)
+        if (elm_data->v_on_f[t * dim + k] == elm_data->local_v[j]) onf = 1;
+      if (!onf) opp[t] = j;
+    }
+    INT jf = (opp[t] == 0) ? 1 : 0;
+    REAL sgn = 0.0;
+    for (k = 0; k < dim; k++)
+      sgn += (elm_data->xv[jf * dim + k] - elm_data->xv[opp[t] * dim + k]) * elm_data->f_norm[t * dim + k];
+    sF[t] = (sgn > 0.0) ? 1.0 : -1.0;
+  }
+}
+
 /*!
  * \fn static void local_rhs_br(REAL* bLoc, simplex_local_data* elm_data, fe_local_data* fe_data, void (*rhs)(REAL*, REAL*, REAL, void*), REAL time)
  *
  * \brief Local rhs (f, v) + <g_N, v>_{Gamma_N} (or with Pi_h v if
  *        stokes_br_pr) for the velocity test functions and -(g, q) for the
  *        pressure.
- *        Pi_h b_F = c_F phi_F / (int_F phi_F.n_F), phi_F the hazmath RT0
- *        basis (rt0_basis).  Since phi_F.n = 0 on the other faces of T,
- *        int_F phi_F.n_F = s_F |T| div(phi_F), s_F = n_F.n_out = +-1.
+ *        Pi_h b_F = c_F psi_F, psi_F|_T = s_F (x - x_opp) / (d |T|), with
+ *        s_F = n_F.n_out = +-1 and x_opp the vertex of T opposite to F.
+ *        The P1 basis functions are the barycentric coordinates
+ *        elm_data->lams (reference values) and the pressure is P0.
  */
 static void local_rhs_br(REAL* bLoc, simplex_local_data* elm_data, fe_local_data* fe_data,
                          void (*rhs)(REAL*, REAL*, REAL, void*), REAL time)
@@ -56,59 +146,46 @@ static void local_rhs_br(REAL* bLoc, simplex_local_data* elm_data, fe_local_data
   INT dpeB = fe_data->n_dof_per_space[0];
   INT dpeP = fe_data->n_dof_per_space[dim + 1];
   INT nvel = fe_data->n_dof - dpeP;
-  INT q, s, k, t, j, l;
-  REAL f[7], phiRT[12], divRT[4];
+  INT q, k, t, j, l;
+  REAL f[7];
 
-  // s_F = sign(n_F . (x_f - x_opp)), x_f on F, x_opp the vertex opposite F;
-  // ef[t][k] = local index of the k-th vertex of face t
   REAL sF[4];
-  INT ef[4][3];
+  INT ef[4][3], opp[4];
+  br_face_map(elm_data, ef, opp, sF);
   REAL cF = (dim == 2) ? 2.0 / 3.0 : 2.0 / 15.0;
-  for (t = 0; t < dpeB; t++) {
-    INT opp = -1;
-    for (k = 0; k < dim; k++)
-      for (j = 0; j < dim + 1; j++)
-        if (elm_data->v_on_f[t * dim + k] == elm_data->local_v[j]) ef[t][k] = j;
-    for (j = 0; j < dim + 1 && opp < 0; j++) {
-      INT onf = 0;
-      for (k = 0; k < dim; k++)
-        if (elm_data->v_on_f[t * dim + k] == elm_data->local_v[j]) onf = 1;
-      if (!onf) opp = j;
-    }
-    INT jf = (opp == 0) ? 1 : 0;
-    REAL sgn = 0.0;
-    for (k = 0; k < dim; k++)
-      sgn += (elm_data->xv[jf * dim + k] - elm_data->xv[opp * dim + k]) * elm_data->f_norm[t * dim + k];
-    sF[t] = (sgn > 0.0) ? 1.0 : -1.0;
-  }
+  REAL cb = (dim == 2) ? 4.0 : 8.0;
+  // Pi_h b_t = scl[t] (x - x_opp[t]) (rhs=pr), or b_t = cb prod lam n_t (rhs=std)
+  REAL scl[4];
+  for (t = 0; t < dpeB; t++) scl[t] = cF * elm_data->f_area[t] * sF[t] / (dim * elm_data->vol);
 
   for (q = 0; q < nq; q++) {
     REAL* x = elm_data->quad_local->x + q * dim;
     REAL w = elm_data->quad_local->w[q];
-    for (s = 0; s < fe_data->nspaces; s++)
-      get_FEM_basis_at_quadpt(elm_data, fe_data, s, q);
+    REAL* lam = elm_data->lams + q * (dim + 1);
     (*rhs)(f, x, time, NULL);
-    // P1 basis = barycentric coordinates
-    if (stokes_br_pr) rt0_basis(phiRT, divRT, fe_data->phi[1], fe_data->dphi[1], elm_data);
 
     // bubbles
     for (t = 0; t < dpeB; t++) {
       REAL ft = 0.0;
-      REAL scl = stokes_br_pr ? cF * elm_data->f_area[t] / (sF[t] * elm_data->vol * divRT[t]) : 0.0;
-      for (k = 0; k < dim; k++) {
-        if (stokes_br_pr) ft += f[k] * scl * phiRT[t * dim + k];
-        else ft += f[k] * fe_data->phi[0][t * dim + k];
+      REAL* xo = elm_data->xv + opp[t] * dim;
+      if (stokes_br_pr) {
+        for (k = 0; k < dim; k++) ft += f[k] * (x[k] - xo[k]);
+        ft *= scl[t];
+      } else {
+        REAL b = cb;
+        for (j = 0; j < dim + 1; j++)
+          if (j != opp[t]) b *= lam[j];
+        for (k = 0; k < dim; k++) ft += f[k] * elm_data->f_norm[t * dim + k];
+        ft *= b;
       }
       bLoc[t] += w * ft;
     }
-    // P1 components
+    // P1 components (local P1 dofs = local vertices)
     l = dpeB;
     for (k = 0; k < dim; k++)
-      for (t = 0; t < fe_data->n_dof_per_space[1 + k]; t++, l++)
-        bLoc[l] += w * f[dim + k] * fe_data->phi[1 + k][t];
-    // pressure: -(g, q)
-    for (t = 0; t < dpeP; t++)
-      bLoc[nvel + t] += w * f[2 * dim] * fe_data->phi[dim + 1][t];
+      for (t = 0; t < dim + 1; t++, l++) bLoc[l] += w * f[dim + k] * lam[t];
+    // pressure (P0): -(g, q)
+    for (t = 0; t < dpeP; t++) bLoc[nvel + t] += w * f[2 * dim];
   }
 
   if (stokes_test != 2) return;
@@ -124,12 +201,10 @@ static void local_rhs_br(REAL* bLoc, simplex_local_data* elm_data, fe_local_data
    * term <p n, Pi_h v>_{Gamma_N} only up to quadrature error, which enters
    * the velocity divided by mu; a face rule less accurate than the volume
    * rule leaves that error at small mu. */
-  INT nf1 = elm_data->quad_local->nq1d;
-  if (nf1 > ((dim == 2) ? 5 : 7)) nf1 = (dim == 2) ? 5 : 7;
-  INT nfq = (dim == 2) ? nf1 : nf1 * nf1;
-  REAL gp[2 * 49], gw[49];
-  if (dim == 2) quad1d(gp, gw, nf1);
-  else triquad_(gp, gw, nf1);
+  br_ref_init(dim, elm_data->quad_local->nq1d);
+  INT nfq = br_ref.nfq;
+  REAL* gp = br_ref.fgp;
+  REAL* gw = br_ref.fgw;
   REAL lam[4], x[3], nout[3], gN[3];
 
   for (INT F = 0; F < dpeB; F++) {
@@ -201,80 +276,84 @@ void local_assembly_stokes_br(REAL* ALoc, REAL* bLoc, REAL* u_local,
   INT dpeP = fe_data->n_dof_per_space[iP];
   INT nvel = n - dpeP;  // velocity dofs come first in the local ordering
   INT dd = dim * dim;
-  INT q, s, k, t, T, i, j;
+  INT q, k, t, T, i, j;
 
   if (ALoc != NULL) {
-    // Reference rule, d points per direction; weights sum to 1/d!
-    INT nq1 = dim;
-    INT nq = (dim == 2) ? nq1 * nq1 : nq1 * nq1 * nq1;
-    REAL gp[3 * 27], gw[27];
-    if (dim == 2) triquad_(gp, gw, nq1);
-    else tetquad_(gp, gw, nq1);
+    br_ref_init(dim, elm_data->quad_local->nq1d);
+    INT nq = br_ref.nq;
     REAL wscl = elm_data->vol * ((dim == 2) ? 2.0 : 6.0);
     REAL* dlam = elm_data->gradlams;  // constant on T
-    REAL lam[4];
+    REAL cb = (dim == 2) ? 4.0 : 8.0;
+    REAL tmu = 2.0 * stokes_mu;
+    REAL sF[4];
+    INT ef[4][3], opp[4];
+    br_face_map(elm_data, ef, opp, sF);
 
-    REAL* G = (REAL*)calloc(nvel * dd, sizeof(REAL));
-    REAL* E = (REAL*)calloc(nvel * dd, sizeof(REAL));
-    REAL* divG = (REAL*)calloc(nvel, sizeof(REAL));
+    // E[t][i*dim+j] = eps_ij(phi_t), div[t] = div(phi_t); P1 rows are constant
+    // on T, bubble rows are integrated: Eb = int eps(b_t), divb = int div(b_t)
+    REAL E[16 * 9], dv[16], Eq[4 * 9], dvq[4], gb[4][3];
+    INT row = dpeB;
+    for (k = 0; k < dim; k++)
+      for (t = 0; t < dim + 1; t++, row++) {
+        // phi = lam_t e_k: G_ij = delta_ik d_j lam_t
+        for (i = 0; i < dd; i++) E[row * dd + i] = 0.0;
+        for (j = 0; j < dim; j++) {
+          E[row * dd + k * dim + j] += 0.5 * dlam[t * dim + j];
+          E[row * dd + j * dim + k] += 0.5 * dlam[t * dim + j];
+        }
+        dv[row] = dlam[t * dim + k];
+      }
+    for (t = 0; t < dpeB; t++) {
+      dv[t] = 0.0;
+      for (i = 0; i < dd; i++) E[t * dd + i] = 0.0;
+    }
+
     for (q = 0; q < nq; q++) {
-      REAL w = wscl * gw[q];
-      lam[0] = 1.0;
-      for (j = 0; j < dim; j++) {
-        lam[j + 1] = gp[j * nq + q];
-        lam[0] -= lam[j + 1];
-      }
-      for (s = 0; s < fe_data->nspaces; s++)
-        get_FEM_basis_on_elm(fe_data->phi[s], fe_data->dphi[s], elm_data, fe_data, lam, dlam, s);
-
-      // Full gradients of all velocity basis functions
-      memset(G, 0, nvel * dd * sizeof(REAL));
-      REAL* dphiB = fe_data->dphi[0];
-      for (t = 0; t < dpeB; t++)
-        for (i = 0; i < dim; i++)
-          for (j = 0; j < dim; j++)
-            G[t * dd + i * dim + j] = dphiB[t * dd + j * dim + i];
-      INT row = dpeB;
-      for (k = 0; k < dim; k++) {
-        REAL* dphiU = fe_data->dphi[1 + k];
-        for (t = 0; t < fe_data->n_dof_per_space[1 + k]; t++, row++)
-          for (j = 0; j < dim; j++) G[row * dd + k * dim + j] = dphiU[t * dim + j];
-      }
-      // Symmetric gradients and divergences
-      for (t = 0; t < nvel; t++) {
-        divG[t] = 0.0;
+      REAL w = wscl * br_ref.mw[q];
+      // bubbles: b_t = cb prod_{j != o} lam_j n_t, G_ij = n_i d_j(cb prod)
+      for (t = 0; t < dpeB; t++) {
+        REAL* nt = elm_data->f_norm + t * dim;
+        for (j = 0; j < dim; j++) {
+          REAL g = 0.0;
+          for (k = 0; k < dim + 1; k++) g += br_ref.mgr[q][opp[t]][k] * dlam[k * dim + j];
+          gb[t][j] = cb * g;
+        }
+        dvq[t] = 0.0;
         for (i = 0; i < dim; i++) {
-          divG[t] += G[t * dd + i * dim + i];
-          for (j = 0; j < dim; j++)
-            E[t * dd + i * dim + j] = 0.5 * (G[t * dd + i * dim + j] + G[t * dd + j * dim + i]);
+          dvq[t] += nt[i] * gb[t][i];
+          for (j = 0; j < dim; j++) Eq[t * dd + i * dim + j] = 0.5 * (nt[i] * gb[t][j] + nt[j] * gb[t][i]);
         }
+        dv[t] += w * dvq[t];
+        for (i = 0; i < dd; i++) E[t * dd + i] += w * Eq[t * dd + i];
       }
-
-      // Velocity-velocity: 2 mu (eps(phi_T), eps(phi_t)), upper triangle
-      for (t = 0; t < nvel; t++) {
-        for (T = t; T < nvel; T++) {
-          if (stokes_br_condense && T < dpeB && T != t) continue;
+      // bubble-bubble: 2 mu (eps(b_T), eps(b_t)), upper triangle
+      for (t = 0; t < dpeB; t++)
+        for (T = t; T < dpeB; T++) {
+          if (stokes_br_condense && T != t) continue;
           REAL aij = 0.0;
-          for (i = 0; i < dd; i++) aij += E[t * dd + i] * E[T * dd + i];
-          ALoc[t * n + T] += w * 2.0 * stokes_mu * aij;
+          for (i = 0; i < dd; i++) aij += Eq[t * dd + i] * Eq[T * dd + i];
+          ALoc[t * n + T] += w * tmu * aij;
         }
-      }
+    }
 
-      // Velocity-pressure: -(p, div v) and -(div u, q)
-      for (t = 0; t < nvel; t++) {
-        for (T = 0; T < dpeP; T++) {
-          REAL bij = -w * fe_data->phi[iP][T] * divG[t];
-          ALoc[t * n + nvel + T] += bij;
-          ALoc[(nvel + T) * n + t] += bij;
-        }
+    // bubble-P1 (int eps(b_t) : eps(phi_T)) and P1-P1 (|T| eps : eps)
+    for (t = 0; t < nvel; t++)
+      for (T = (t < dpeB) ? dpeB : t; T < nvel; T++) {
+        REAL aij = 0.0;
+        for (i = 0; i < dd; i++) aij += E[t * dd + i] * E[T * dd + i];
+        ALoc[t * n + T] += tmu * ((t < dpeB) ? aij : elm_data->vol * aij);
+      }
+    // velocity-pressure (P0): -(p, div v) and -(div u, q)
+    for (t = 0; t < nvel; t++) {
+      REAL bij = -((t < dpeB) ? dv[t] : elm_data->vol * dv[t]);
+      for (T = 0; T < dpeP; T++) {
+        ALoc[t * n + nvel + T] += bij;
+        ALoc[(nvel + T) * n + t] += bij;
       }
     }
     // lower triangle of the velocity block
     for (t = 0; t < nvel; t++)
       for (T = 0; T < t; T++) ALoc[t * n + T] = ALoc[T * n + t];
-    free(G);
-    free(E);
-    free(divG);
   }
   if (bLoc != NULL && rhs != NULL)
     local_rhs_br(bLoc, elm_data, fe_data, rhs, time);

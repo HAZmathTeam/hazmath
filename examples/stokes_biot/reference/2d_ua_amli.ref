@@ -7,7 +7,7 @@ lvl       ndof   |u-uh|_L2  rate   |u-uh|_H1  rate   |p-ph|_L2  rate   max|divT|
 %%--> number of connected components in the bulk=1
 %%--> number of connected components on the boundary=1
 %%---------------------------------------------------------------------
-1 42 5.2994e-03 0.00 4.3147e-02 0.00 2.4293e-01 0.00 2.2376e-14 6
+1 42 5.2994e-03 0.00 4.3147e-02 0.00 2.4293e-01 0.00 2.2371e-14 6
 
 %%---------------------------------------------------------------------
 %%Meshing...Done.
@@ -28,4 +28,4 @@ lvl       ndof   |u-uh|_L2  rate   |u-uh|_H1  rate   |p-ph|_L2  rate   max|divT|
 %%--> number of connected components in the bulk=1
 %%--> number of connected components on the boundary=1
 %%---------------------------------------------------------------------
-4 1890 8.1196e-05 2.03 6.7435e-03 1.01 3.3044e-02 0.99 3.1835e-13 28
+4 1890 8.1196e-05 2.03 6.7435e-03 1.01 3.3044e-02 0.99 3.6077e-13 30

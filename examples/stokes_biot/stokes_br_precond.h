@@ -24,6 +24,11 @@
 #define BR_AMG_RS 0
 #define BR_AMG_UA 1
 
+// AMG cycles per block per preconditioner application (command line: vcycles=N)
+INT stokes_br_nvcyc = 1;
+// GMRES relative residual tolerance (command line: tol=<value>)
+REAL stokes_br_tol = 1e-10;
+
 typedef struct {
   INT nb;            // number of blocks
   block_dCSRmat* A;  // the system
@@ -219,7 +224,7 @@ INT solve_br_gmres(block_dCSRmat* A, dvector* b, scomplex* sc, REAL mu, INT amg,
 {
   INT k, np = sc->fem->ns_leaf;
   precond_br_data pd;
-  precond_br_setup(&pd, A, sc, mu, amg, cycle, 1);
+  precond_br_setup(&pd, A, sc, mu, amg, cycle, stokes_br_nvcyc);
   precond pc;
   pc.data = &pd;
   pc.fct = precond_br_lower;
@@ -235,7 +240,7 @@ INT solve_br_gmres(block_dCSRmat* A, dvector* b, scomplex* sc, REAL mu, INT amg,
   }
 
   dvec_set(x->row, x, 0.0);
-  INT its = bdcsr_pvgmres(A, b, x, &pc, 1e-10, 500, 100, STOP_REL_RES, 0);
+  INT its = bdcsr_pvgmres(A, b, x, &pc, stokes_br_tol, 500, 150, STOP_REL_RES, 0);
   precond_br_free(&pd);
 
   if (stokes_test == 2) return its;  // traction: the pressure is unique

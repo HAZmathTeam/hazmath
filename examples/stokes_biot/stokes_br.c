@@ -69,6 +69,8 @@ static INT br_option(const char* a, br_options* opt)
   else if (!strcmp(a, "rhs=pr")) stokes_br_pr = 1;
   else if (!strcmp(a, "rhs=std")) stokes_br_pr = 0;
   else if (!strncmp(a, "test=", 5)) stokes_test = atoi(a + 5);
+  else if (!strncmp(a, "vcycles=", 8)) stokes_br_nvcyc = atoi(a + 8);
+  else if (!strncmp(a, "tol=", 4)) stokes_br_tol = atof(a + 4);
   else return 0;
   return 1;
 }
