@@ -8,7 +8,8 @@ This first version provides the core bindings:
 
 - `CSRMatrix`: a HAZmath sparse matrix, built from CSR arrays
   (`csr_from_arrays`), a SciPy sparse matrix (`csr_from_scipy`) or an assembled
-  sequential PETSc matrix (`csr_from_petsc`).
+  sequential PETSc matrix (`csr_from_petsc`). It shares the arrays that need
+  no conversion, so changing them afterwards changes the matrix.
 - `AMGParam`: the HAZmath AMG parameters, with the HAZmath defaults.
 - `amg(A, param)` and `famg(A, M, param)`: AMG and fractional AMG
   preconditioners. `Precond.apply(r, z)` computes `z = B r`.
@@ -18,11 +19,12 @@ metric AMG preconditioners come in later versions.
 
 ## Installation
 
-Both ways below build from the HAZmath source tree and need a C/C++ compiler
-and `gfortran` (on Debian/Ubuntu: `apt install build-essential gfortran`).
+Both ways below run from the root of the HAZmath repository, which has the
+`pyproject.toml`.
 
-**In one go**, from the root of the repository. libhazmath is built and linked
-statically into the extension:
+**In one go.** libhazmath is built and linked statically into the extension.
+This needs a C/C++ compiler and `gfortran` (on Debian/Ubuntu:
+`apt install build-essential gfortran`):
 
 ```bash
 python3 -m pip install .[test]
@@ -35,15 +37,16 @@ LAPACK (`apt install libsuitesparse-dev liblapack-dev`):
 python3 -m pip install . -C cmake.define.USE_SUITESPARSE=ON -C cmake.define.USE_LAPACK=ON
 ```
 
-**Against an installed libhazmath**, with its CMake package:
+**Against an installed libhazmath**, with its CMake package. Only a C/C++
+compiler is needed for the second step:
 
 ```bash
-# from the HAZmath source tree
 cmake -S . -B build -DHAZMATH_RELOCATABLE_INSTALL=ON -DSHARED=ON \
       -DCMAKE_INSTALL_PREFIX=$HOME/.local/hazmath
 cmake --build build --parallel
 cmake --install build
-CMAKE_PREFIX_PATH=$HOME/.local/hazmath python3 -m pip install ./python[test]
+CMAKE_PREFIX_PATH=$HOME/.local/hazmath python3 -m pip install .[test] \
+    -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON
 ```
 
 Either way, `src/haznics/helper.c` (the `create_precond_*` functions) is

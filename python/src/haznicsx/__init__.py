@@ -3,6 +3,8 @@
 from haznicsx._haznicsx import (
     ADD_CYCLE,
     AMLI_CYCLE,
+    HEC,
+    HEM,
     NL_AMLI_CYCLE,
     PRINT_ALL,
     PRINT_MIN,
@@ -27,6 +29,7 @@ from haznicsx._haznicsx import (
     SOLVER_UMFPACK,
     UA_AMG,
     V_CYCLE,
+    VMB,
     W_CYCLE,
     AMGParam,
     CSRMatrix,
@@ -39,6 +42,8 @@ from haznicsx.csr import csr_from_arrays, csr_from_petsc, csr_from_scipy
 __all__ = [
     "ADD_CYCLE",
     "AMLI_CYCLE",
+    "HEC",
+    "HEM",
     "NL_AMLI_CYCLE",
     "PRINT_ALL",
     "PRINT_MIN",
@@ -62,6 +67,7 @@ __all__ = [
     "SOLVER_DEFAULT",
     "SOLVER_UMFPACK",
     "UA_AMG",
+    "VMB",
     "V_CYCLE",
     "W_CYCLE",
     "AMGParam",

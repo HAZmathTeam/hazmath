@@ -57,7 +57,9 @@ jobs:
             exit 1
           fi
 
+      # run each check even when an earlier one fails
       - name: ruff on changed Python files
+        if: ${{ !cancelled() }}
         run: |
           if ! git cat-file -e "$BASE^{commit}" 2> /dev/null; then
             echo "No base commit to compare against; skipping."; exit 0
@@ -70,9 +72,8 @@ jobs:
           exit $status
 
       - name: mypy on the Python package
-        run: |
-          cd python
-          mypy src tests
+        if: ${{ !cancelled() }}
+        run: mypy  # files and options in pyproject.toml
 
   whole-repo:
     name: Whole repository (report only)

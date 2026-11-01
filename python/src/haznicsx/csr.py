@@ -44,7 +44,8 @@ def csr_from_arrays(
 ) -> CSRMatrix:
     """HAZmath matrix from CSR arrays.
 
-    The matrix shares the arrays that need no conversion.
+    The matrix shares the arrays that need no conversion. The column indices
+    must be sorted in each row, without duplicates.
 
     Args:
         indptr: Row pointers, length ``shape[0] + 1``.
@@ -55,6 +56,7 @@ def csr_from_arrays(
     Raises:
         TypeError: If the values are complex.
         OverflowError: If an index or dimension does not fit in 32 bits.
+        ValueError: If the arrays are not a valid CSR matrix.
     """
     values = np.asarray(data)
     if np.iscomplexobj(values):
@@ -73,6 +75,9 @@ def csr_from_arrays(
 def csr_from_scipy(A: _SupportsToCSR) -> CSRMatrix:
     """HAZmath matrix from a SciPy sparse matrix or array (any format).
 
+    Duplicate entries are summed and the column indices sorted, in a copy, if
+    the matrix is not in canonical format.
+
     Raises:
         ImportError: If SciPy is not installed.
         TypeError: If ``A`` is not a SciPy sparse matrix or array.
@@ -85,6 +90,10 @@ def csr_from_scipy(A: _SupportsToCSR) -> CSRMatrix:
     if not scipy.sparse.issparse(A):
         raise TypeError(f"Expected a SciPy sparse matrix or array, got {type(A).__name__}")
     B = A.tocsr()
+    if not B.has_canonical_format:
+        # tocsr can return A itself, which must not change
+        B = B.copy()
+        B.sum_duplicates()
     return csr_from_arrays(B.indptr, B.indices, B.data, B.shape)
 
 

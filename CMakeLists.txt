@@ -61,6 +61,14 @@ endif( THE_C )
 # The version is used by the installed CMake package (hazmathConfigVersion.cmake)
 project(HAZMATH VERSION 0.1.0 LANGUAGES C )
 
+# "pip install . -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON" builds only the
+# haznicsx Python package, against an installed libhazmath (find_package)
+option(HAZNICSX_EXISTING_HAZMATH "Build haznicsx against an installed libhazmath" OFF)
+if(SKBUILD AND HAZNICSX_EXISTING_HAZMATH)
+  add_subdirectory(python)
+  return()
+endif()
+
 #message(STATUS "  ${HAZMATH_SOURCE_DIR}")
 
 

@@ -3,8 +3,9 @@
 # libhazmath is linked statically into the extension. HAZmath options are
 # passed as CMake definitions, e.g.
 #   python3 -m pip install . -C cmake.define.USE_SUITESPARSE=ON
-# python/pyproject.toml builds haznicsx against an installed libhazmath
-# instead; keep [project] in the two files the same.
+# To build haznicsx against an installed libhazmath instead:
+#   CMAKE_PREFIX_PATH=<prefix> python3 -m pip install . \
+#     -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON
 [build-system]
 requires = ["scikit-build-core>=0.11", "nanobind>=2.0"]
 build-backend = "scikit_build_core.build"
@@ -44,3 +45,8 @@ wheel.packages = ["python/src/haznicsx"]
 
 [tool.pytest.ini_options]
 testpaths = ["python/tests"]
+
+[tool.mypy]
+files = ["python/src", "python/tests"]
+mypy_path = "python/src"
+ignore_missing_imports = true

@@ -30,7 +30,9 @@ jobs:
           prefix: ${{ env.PREFIX }}
 
       - name: Install haznicsx
-        run: CMAKE_PREFIX_PATH=$PREFIX python3 -m pip install -v ./python[test]
+        run: |
+          CMAKE_PREFIX_PATH=$PREFIX python3 -m pip install -v .[test] \
+            -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON
 
       # nanobind reports objects that are never freed when Python exits
       - name: Run tests
@@ -91,7 +93,8 @@ jobs:
 
       - name: Install haznicsx with sanitizers
         run: |
-          CMAKE_PREFIX_PATH=$PREFIX python3 -m pip install -v ./python[test] \
+          CMAKE_PREFIX_PATH=$PREFIX python3 -m pip install -v .[test] \
+            -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON \
             --config-settings=cmake.build-type=Debug \
             "--config-settings=cmake.define.CMAKE_C_FLAGS=$SAN_FLAGS" \
             "--config-settings=cmake.define.CMAKE_CXX_FLAGS=$SAN_FLAGS"
@@ -133,7 +136,9 @@ jobs:
           prefix: ${{ env.PREFIX }}
 
       - name: Install haznicsx
-        run: CMAKE_PREFIX_PATH=$PREFIX python3 -m pip install -v ./python[test]
+        run: |
+          CMAKE_PREFIX_PATH=$PREFIX python3 -m pip install -v .[test] \
+            -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON
 
       - name: Run tests
         run: python3 -m pytest -v python/tests
@@ -159,7 +164,9 @@ jobs:
           prefix: ${{ env.PREFIX }}
 
       - name: Install haznicsx
-        run: CMAKE_PREFIX_PATH=$PREFIX python3 -m pip install -v ./python[test]
+        run: |
+          CMAKE_PREFIX_PATH=$PREFIX python3 -m pip install -v .[test] \
+            -C cmake.define.HAZNICSX_EXISTING_HAZMATH=ON
 
       - name: Run tests
         run: python3 -m pytest -v python/tests

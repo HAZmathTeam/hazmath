@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <initializer_list>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -37,6 +38,11 @@ namespace
 template <typename T>
 using array1d = nb::ndarray<T, nb::ndim<1>, nb::c_contig, nb::device::cpu>;
 
+/// HAZmath is not thread safe (for example, HEC aggregation uses rand()),
+/// so it runs one call at a time. The GIL is released during the calls, so
+/// other Python threads can run.
+std::mutex hazmath_mutex;
+
 /// A HAZmath CSR matrix that shares the CSR arrays it is built from (no
 /// copy). The arrays are kept alive by the matrix and are only read: the
 /// preconditioner factories copy the matrix (dcsr_cp) during setup.
@@ -55,39 +61,57 @@ public:
       throw std::invalid_argument("Matrix dimensions must be positive");
     if (_indptr.size() != static_cast<std::size_t>(num_rows) + 1)
       throw std::invalid_argument("indptr must have length num_rows + 1");
-    const std::int32_t* ia = _indptr.data();
+
+    // dCSRmat has non-const pointers, but HAZmath only reads them
+    _mat.row = num_rows;
+    _mat.col = num_cols;
+    _mat.IA = const_cast<INT*>(_indptr.data());
+    _mat.JA = const_cast<INT*>(_indices.data());
+    _mat.val = const_cast<REAL*>(_data.data());
+    check();
+  }
+
+  CSRMatrix(const CSRMatrix&) = delete;
+  CSRMatrix& operator=(const CSRMatrix&) = delete;
+
+  /// Check the CSR arrays and set nnz. The arrays are shared and can be
+  /// changed after construction, so the factories check again before
+  /// HAZmath reads them.
+  void check()
+  {
+    const INT* ia = _mat.IA;
     if (ia[0] != 0)
       throw std::invalid_argument("indptr[0] must be 0");
-    for (std::int32_t i = 0; i < num_rows; ++i)
+    for (INT i = 0; i < _mat.row; ++i)
     {
       if (ia[i + 1] < ia[i])
         throw std::invalid_argument("indptr must be non-decreasing");
     }
-    const std::int32_t nnz = ia[num_rows];
+    const INT nnz = ia[_mat.row];
     if (_indices.size() != static_cast<std::size_t>(nnz)
         or _data.size() != static_cast<std::size_t>(nnz))
     {
       throw std::invalid_argument(
           "indices and data must have length indptr[-1]");
     }
-    const std::int32_t* ja = _indices.data();
-    for (std::int32_t k = 0; k < nnz; ++k)
+    // HAZmath looks up entries, such as the diagonal, assuming one entry for
+    // each (i, j)
+    const INT* ja = _mat.JA;
+    for (INT i = 0; i < _mat.row; ++i)
     {
-      if (ja[k] < 0 or ja[k] >= num_cols)
-        throw std::invalid_argument("Column index out of range");
+      for (INT k = ia[i]; k < ia[i + 1]; ++k)
+      {
+        if (ja[k] < 0 or ja[k] >= _mat.col)
+          throw std::invalid_argument("Column index out of range");
+        if (k > ia[i] and ja[k] <= ja[k - 1])
+        {
+          throw std::invalid_argument("Column indices must be sorted in each "
+                                      "row, without duplicates");
+        }
+      }
     }
-
-    // dCSRmat has non-const pointers, but HAZmath only reads them
-    _mat.row = num_rows;
-    _mat.col = num_cols;
     _mat.nnz = nnz;
-    _mat.IA = const_cast<INT*>(ia);
-    _mat.JA = const_cast<INT*>(ja);
-    _mat.val = const_cast<REAL*>(_data.data());
   }
-
-  CSRMatrix(const CSRMatrix&) = delete;
-  CSRMatrix& operator=(const CSRMatrix&) = delete;
 
   dCSRmat* get() { return &_mat; }
   const dCSRmat* get() const { return &_mat; }
@@ -122,7 +146,11 @@ public:
   Precond(const Precond&) = delete;
   Precond& operator=(const Precond&) = delete;
 
-  ~Precond() { _free_data(_pc, &_param); }
+  ~Precond()
+  {
+    std::lock_guard lock(hazmath_mutex);
+    _free_data(_pc, &_param);
+  }
 
   /// z = B r. r is not modified.
   void apply(array1d<const double> r, array1d<double> z)
@@ -133,6 +161,8 @@ public:
       throw std::invalid_argument("r and z must have length "
                                   + std::to_string(_size));
     }
+    nb::gil_scoped_release release;
+    std::lock_guard lock(hazmath_mutex);
     // HAZmath takes a non-const r, but the AMG and FAMG cycles only copy it
     // into the level 0 right-hand side (precond_amg etc. in precond.c)
     apply_precond(const_cast<REAL*>(r.data()), z.data(), _pc);
@@ -170,18 +200,29 @@ void check_square(const CSRMatrix& A, const char* name)
     throw std::invalid_argument(std::string(name) + " must be square");
 }
 
-/// HAZmath stops the process (exit) on a smoother that the multigrid cycle
-/// does not handle, so check it first
-void check_smoother(const AMG_param& param, std::initializer_list<SHORT> valid,
-                    const char* method)
+/// HAZmath stops the process (exit) or corrupts memory on some invalid
+/// parameters, so check them first
+void check_param(const AMG_param& param, std::initializer_list<SHORT> smoothers,
+                 const char* method)
 {
-  for (SHORT s : valid)
+  if (param.max_levels < 1)
+    throw std::invalid_argument("max_levels must be at least 1");
+  if (param.aggregation_type != VMB and param.aggregation_type != HEC
+      and param.aggregation_type != HEM)
+  {
+    throw std::invalid_argument("aggregation_type "
+                                + std::to_string(param.aggregation_type)
+                                + " is not supported; use VMB, HEC or HEM");
+  }
+  if (param.cycle_type == AMLI_CYCLE and param.amli_degree < 0)
+    throw std::invalid_argument("amli_degree must be non-negative");
+  for (SHORT s : smoothers)
   {
     if (param.smoother == s)
       return;
   }
   std::string names;
-  for (SHORT s : valid)
+  for (SHORT s : smoothers)
     names += (names.empty() ? "" : ", ") + std::to_string(s);
   throw std::invalid_argument("smoother " + std::to_string(param.smoother)
                               + " is not supported by " + method
@@ -195,13 +236,17 @@ NB_MODULE(_haznicsx, m)
   m.doc() = "HAZmath preconditioners (nanobind bindings)";
 
   nb::class_<CSRMatrix>(m, "CSRMatrix",
-                        "A sparse matrix in HAZmath's CSR format. It shares "
-                        "int32/float64 C-contiguous arrays (no copy) and keeps "
-                        "them alive; other arrays are converted first.")
+                        "A sparse matrix in HAZmath's CSR format over int32 "
+                        "and float64 C-contiguous arrays, which it shares (no "
+                        "copy) and keeps alive. Column indices must be sorted "
+                        "in each row, without duplicates. csr_from_arrays "
+                        "converts other arrays.")
       .def(nb::init<array1d<const std::int32_t>, array1d<const std::int32_t>,
                     array1d<const double>,
                     std::pair<std::int32_t, std::int32_t>>(),
-           "indptr"_a, "indices"_a, "data"_a, "shape"_a)
+           // no conversion: it would cast indices without a range check
+           "indptr"_a.noconvert(), "indices"_a.noconvert(),
+           "data"_a.noconvert(), "shape"_a)
       .def_prop_ro("shape", [](const CSRMatrix& self)
                    { return std::pair(self.get()->row, self.get()->col); })
       .def_prop_ro("nnz", [](const CSRMatrix& self) { return self.get()->nnz; })
@@ -291,13 +336,19 @@ NB_MODULE(_haznicsx, m)
       [](CSRMatrix& A, const AMG_param& param)
       {
         check_square(A, "A");
-        check_smoother(param,
-                       {SMOOTHER_JACOBI, SMOOTHER_GS, SMOOTHER_SGS, SMOOTHER_CG,
-                        SMOOTHER_SOR, SMOOTHER_SSOR, SMOOTHER_GSOR,
-                        SMOOTHER_SGSOR, SMOOTHER_L1DIAG},
-                       "amg");
+        check_param(param,
+                    {SMOOTHER_JACOBI, SMOOTHER_GS, SMOOTHER_SGS, SMOOTHER_CG,
+                     SMOOTHER_SOR, SMOOTHER_SSOR, SMOOTHER_GSOR, SMOOTHER_SGSOR,
+                     SMOOTHER_L1DIAG},
+                    "amg");
+        A.check();
         AMG_param p = param;
-        precond* pc = create_precond_amg(A.get(), &p);
+        precond* pc;
+        {
+          nb::gil_scoped_release release;
+          std::lock_guard lock(hazmath_mutex);
+          pc = create_precond_amg(A.get(), &p);
+        }
         if (!pc)
           throw std::runtime_error("HAZmath AMG setup failed");
         return new Precond(pc, p, A.get()->row, free_amg);
@@ -313,10 +364,17 @@ NB_MODULE(_haznicsx, m)
         check_square(M, "M");
         if (A.get()->row != M.get()->row)
           throw std::invalid_argument("A and M must have the same size");
-        check_smoother(param, {SMOOTHER_FJACOBI, SMOOTHER_FGS, SMOOTHER_FSGS},
-                       "famg");
+        check_param(param, {SMOOTHER_FJACOBI, SMOOTHER_FGS, SMOOTHER_FSGS},
+                    "famg");
+        A.check();
+        M.check();
         AMG_param p = param;
-        precond* pc = create_precond_famg(A.get(), M.get(), &p);
+        precond* pc;
+        {
+          nb::gil_scoped_release release;
+          std::lock_guard lock(hazmath_mutex);
+          pc = create_precond_famg(A.get(), M.get(), &p);
+        }
         if (!pc)
           throw std::runtime_error("HAZmath FAMG setup failed");
         return new Precond(pc, p, A.get()->row, free_amg);
@@ -329,6 +387,9 @@ NB_MODULE(_haznicsx, m)
   // Values for the AMGParam fields (include/macro.h)
   m.attr("UA_AMG") = UA_AMG;
   m.attr("SA_AMG") = SA_AMG;
+  m.attr("VMB") = VMB;
+  m.attr("HEC") = HEC;
+  m.attr("HEM") = HEM;
   m.attr("V_CYCLE") = V_CYCLE;
   m.attr("W_CYCLE") = W_CYCLE;
   m.attr("AMLI_CYCLE") = AMLI_CYCLE;

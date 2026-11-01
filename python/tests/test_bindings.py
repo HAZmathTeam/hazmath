@@ -2,6 +2,7 @@
 
 import gc
 import sys
+import threading
 
 import numpy as np
 import numpy.typing as npt
@@ -78,11 +79,24 @@ def test_csr_shares_arrays():
     np.testing.assert_array_equal(B.data, [3.0, 2.0])
 
 
+def test_csr_constructor_does_not_convert():
+    indptr = np.array([0, 1, 2], dtype=np.int32)
+    indices = np.array([0, 1], dtype=np.int32)
+    data = np.array([1.0, 2.0])
+    # would wrap around to 0 if cast to int32
+    with pytest.raises(TypeError):
+        haznicsx.CSRMatrix(indptr, np.array([2**32, 1]), data, (2, 2))
+    with pytest.raises(TypeError):
+        haznicsx.CSRMatrix(indptr, indices, data.astype(np.float32), (2, 2))
+    with pytest.raises(TypeError):
+        haznicsx.CSRMatrix(indptr, np.array([[0, 9], [1, 9]], dtype=np.int32)[:, 0], data, (2, 2))
+
+
 def test_csr_converts_other_arrays():
     indptr = np.array([0, 1, 2], dtype=np.int64)
     indices = np.array([[0, 9], [1, 9]], dtype=np.int32)[:, 0]  # not contiguous
     data = np.array([1.0, 2.0], dtype=np.float32)
-    B = haznicsx.CSRMatrix(indptr, indices, data, (2, 2))
+    B = haznicsx.csr_from_arrays(indptr, indices, data, (2, 2))
     assert not np.shares_memory(B.data, data)
     # the matrix keeps the converted arrays alive
     del indptr, indices, data
@@ -99,6 +113,34 @@ def test_csr_from_scipy_shares_arrays():
     assert np.shares_memory(B.data, A.data)
 
 
+def test_csr_from_scipy_canonical_format():
+    # row 0 has a duplicate diagonal entry, row 1 unsorted columns
+    A = sp.csr_matrix(([1.0, 1.0, 3.0, 4.0], [0, 0, 1, 0], [0, 2, 4]), shape=(2, 2))
+    assert not A.has_canonical_format
+    B = haznicsx.csr_from_scipy(A)
+    np.testing.assert_array_equal(B.indptr, [0, 1, 3])
+    np.testing.assert_array_equal(B.indices, [0, 0, 1])
+    np.testing.assert_array_equal(B.data, [2.0, 4.0, 3.0])
+    # A is not changed
+    assert A.nnz == 4
+    np.testing.assert_array_equal(A.indices, [0, 0, 1, 0])
+
+
+def test_csr_checked_again_before_setup():
+    A = poisson_2d(4)
+    B = haznicsx.csr_from_scipy(A)
+    A.indices[0] = 1000
+    with pytest.raises(ValueError, match="Column index out of range"):
+        haznicsx.amg(B, haznicsx.AMGParam())
+    # eliminate_zeros changes the shared indptr in place
+    A = poisson_2d(4)
+    B = haznicsx.csr_from_scipy(A)
+    A.data[1] = 0.0
+    A.eliminate_zeros()
+    with pytest.raises(ValueError, match="indptr"):
+        haznicsx.amg(B, haznicsx.AMGParam())
+
+
 @pytest.mark.parametrize(
     "indptr, indices, shape, message",
     [
@@ -108,6 +150,8 @@ def test_csr_from_scipy_shares_arrays():
         ([0, 1, 3], [0, 1], (2, 2), "indices and data must have length"),
         ([0, 1, 2], [0, 2], (2, 2), "Column index out of range"),
         ([0, 1, 2], [0, -1], (2, 2), "Column index out of range"),
+        ([0, 2, 2], [1, 0], (2, 2), "sorted"),
+        ([0, 2, 2], [1, 1], (2, 2), "duplicates"),
         ([0], [], (0, 2), "dimensions must be positive"),
     ],
 )
@@ -250,6 +294,34 @@ def test_amg_unsupported_smoother():
         haznicsx.amg(A, param)
 
 
+@pytest.mark.parametrize(
+    "options, message",
+    [
+        ({"max_levels": 0}, "max_levels"),
+        ({"max_levels": -1}, "max_levels"),
+        ({"aggregation_type": 2}, "aggregation_type"),
+        ({"AMG_type": haznicsx.SA_AMG, "aggregation_type": 2}, "aggregation_type"),
+        ({"cycle_type": haznicsx.AMLI_CYCLE, "amli_degree": -1}, "amli_degree"),
+    ],
+)
+def test_amg_invalid_param(options, message):
+    A = haznicsx.csr_from_scipy(poisson_2d(4))
+    with pytest.raises(ValueError, match=message):
+        haznicsx.amg(A, haznicsx.AMGParam.from_dict(options))
+    options = {"smoother": haznicsx.SMOOTHER_FGS, **options}
+    with pytest.raises(ValueError, match=message):
+        haznicsx.famg(A, A, haznicsx.AMGParam.from_dict(options))
+
+
+@pytest.mark.parametrize("aggregation_type", ["VMB", "HEC", "HEM"])
+def test_amg_aggregation_types(aggregation_type):
+    A = poisson_2d(16)
+    param = haznicsx.AMGParam.from_dict({"aggregation_type": getattr(haznicsx, aggregation_type)})
+    B = haznicsx.amg(haznicsx.csr_from_scipy(A), param)
+    _, its = pcg(A, np.ones(A.shape[0]), B.apply)
+    assert its < 30
+
+
 def test_amg_param_not_modified():
     param = haznicsx.AMGParam.from_dict({"cycle_type": haznicsx.AMLI_CYCLE})
     haznicsx.amg(haznicsx.csr_from_scipy(poisson_2d(16)), param)
@@ -308,3 +380,33 @@ def test_create_and_free_repeatedly():
         B.apply(np.ones(A.shape[0]), z)
         del B
     gc.collect()
+
+
+def test_threads():
+    """Applies from several threads, while other setups run, give the serial results."""
+    A = poisson_2d(16)
+    r = np.random.default_rng(3).random(A.shape[0])
+    # HEC aggregation (the default) is randomized, so each setup is different
+    preconds = [haznicsx.amg(haznicsx.csr_from_scipy(A), haznicsx.AMGParam()) for _ in range(3)]
+    expected = []
+    for B in preconds:
+        z = np.zeros_like(r)
+        B.apply(r, z)
+        expected.append(z)
+    mismatches: list[int] = []
+
+    def work(i: int) -> None:
+        haznicsx.amg(haznicsx.csr_from_scipy(A), haznicsx.AMGParam())
+        for _ in range(5):
+            for B, z_expected in zip(preconds, expected):
+                z = np.zeros_like(r)
+                B.apply(r, z)
+                if not np.array_equal(z, z_expected):
+                    mismatches.append(i)
+
+    threads = [threading.Thread(target=work, args=(i,)) for i in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert not mismatches
