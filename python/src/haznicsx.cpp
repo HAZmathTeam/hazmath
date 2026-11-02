@@ -5,19 +5,23 @@
 // SPDX-License-Identifier:    MIT
 //
 // nanobind bindings for the HAZmath preconditioners. Matrices are passed as
-// CSR arrays (int32 indices, float64 values), so the module does not link to
+// CSR arrays (INT indices, float64 values), so the module does not link to
 // PETSc or DOLFINx.
 
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/pair.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <format>
 #include <initializer_list>
 #include <mutex>
+#include <new>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 
 extern "C"
@@ -30,7 +34,10 @@ extern "C"
 namespace nb = nanobind;
 using namespace nb::literals;
 
-static_assert(sizeof(INT) == sizeof(std::int32_t), "HAZmath INT must be int32");
+// INT is int, or long long with "make config int64=yes"
+static_assert(sizeof(INT) == sizeof(std::int32_t)
+                  or sizeof(INT) == sizeof(std::int64_t),
+              "HAZmath INT must be a 32- or 64-bit integer");
 static_assert(sizeof(REAL) == sizeof(double), "HAZmath REAL must be double");
 
 namespace
@@ -38,21 +45,24 @@ namespace
 template <typename T>
 using array1d = nb::ndarray<T, nb::ndim<1>, nb::c_contig, nb::device::cpu>;
 
-/// HAZmath is not thread safe (for example, HEC aggregation uses rand()),
-/// so it runs one call at a time. The GIL is released during the calls, so
-/// other Python threads can run.
+/// HAZmath is not thread safe (HEC aggregation uses rand(), for example), so
+/// all HAZmath calls are serialised. The GIL is released during them.
 std::mutex hazmath_mutex;
 
-/// A HAZmath CSR matrix that shares the CSR arrays it is built from (no
-/// copy). The arrays are kept alive by the matrix and are only read: the
-/// preconditioner factories copy the matrix (dcsr_cp) during setup.
+/// @brief A HAZmath CSR matrix over shared (not copied) CSR arrays.
+///
+/// The matrix keeps the arrays alive and only reads them: the preconditioner
+/// factories copy the matrix (`dcsr_cp`) during setup.
 class CSRMatrix
 {
 public:
-  /// Matrix with the given shape over the CSR arrays
-  CSRMatrix(array1d<const std::int32_t> indptr,
-            array1d<const std::int32_t> indices, array1d<const double> data,
-            std::pair<std::int32_t, std::int32_t> shape)
+  /// @brief Create a matrix over CSR arrays.
+  /// @param[in] indptr Row pointers, length `shape.first + 1`.
+  /// @param[in] indices Column indices, sorted in each row, no duplicates.
+  /// @param[in] data Values.
+  /// @param[in] shape Number of rows and columns.
+  CSRMatrix(array1d<const INT> indptr, array1d<const INT> indices,
+            array1d<const double> data, std::pair<INT, INT> shape)
       : _indptr(std::move(indptr)), _indices(std::move(indices)),
         _data(std::move(data))
   {
@@ -71,22 +81,35 @@ public:
     check();
   }
 
-  CSRMatrix(const CSRMatrix&) = delete;
-  CSRMatrix& operator=(const CSRMatrix&) = delete;
+  // Copy constructor (deleted)
+  CSRMatrix(const CSRMatrix& A) = delete;
 
-  /// Check the CSR arrays and set nnz. The arrays are shared and can be
-  /// changed after construction, so the factories check again before
-  /// HAZmath reads them.
+  /// Move constructor
+  /// @note `_mat` points into the array buffers, which moving the
+  /// `nb::ndarray` handles does not relocate.
+  CSRMatrix(CSRMatrix&& A) = default;
+
+  /// Destructor
+  ~CSRMatrix() = default;
+
+  // Copy assignment (deleted)
+  CSRMatrix& operator=(const CSRMatrix& A) = delete;
+
+  /// Move assignment
+  CSRMatrix& operator=(CSRMatrix&& A) = default;
+
+  /// @brief Check the CSR structure and set the number of non-zeros.
+  ///
+  /// The arrays are shared and may change after construction, so the
+  /// factories call this again before HAZmath reads them.
   void check()
   {
     const INT* ia = _mat.IA;
     if (ia[0] != 0)
       throw std::invalid_argument("indptr[0] must be 0");
     for (INT i = 0; i < _mat.row; ++i)
-    {
       if (ia[i + 1] < ia[i])
         throw std::invalid_argument("indptr must be non-decreasing");
-    }
     const INT nnz = ia[_mat.row];
     if (_indices.size() != static_cast<std::size_t>(nnz)
         or _data.size() != static_cast<std::size_t>(nnz))
@@ -94,8 +117,7 @@ public:
       throw std::invalid_argument(
           "indices and data must have length indptr[-1]");
     }
-    // HAZmath looks up entries, such as the diagonal, assuming one entry for
-    // each (i, j)
+    // HAZmath's entry lookups (e.g. the diagonal) assume one entry per (i, j)
     const INT* ja = _mat.JA;
     for (INT i = 0; i < _mat.row; ++i)
     {
@@ -105,25 +127,29 @@ public:
           throw std::invalid_argument("Column index out of range");
         if (k > ia[i] and ja[k] <= ja[k - 1])
         {
-          throw std::invalid_argument("Column indices must be sorted in each "
-                                      "row, without duplicates");
+          throw std::invalid_argument(
+              "Column indices must be sorted in each row, without duplicates");
         }
       }
     }
     _mat.nnz = nnz;
   }
 
+  /// The HAZmath matrix
   dCSRmat* get() { return &_mat; }
+
+  /// The HAZmath matrix
   const dCSRmat* get() const { return &_mat; }
 
 private:
-  // the arrays, kept alive while _mat points into them
-  array1d<const std::int32_t> _indptr, _indices;
+  // Kept alive while _mat points into them
+  array1d<const INT> _indptr, _indices;
   array1d<const double> _data;
   dCSRmat _mat{};
 };
 
-/// A HAZmath AMG_param, zeroed and set to the HAZmath defaults
+/// @brief HAZmath's default AMG parameters.
+/// @return `AMG_param` zero-initialised, then set by `param_amg_init`.
 AMG_param default_amg_param()
 {
   AMG_param param{};
@@ -131,102 +157,167 @@ AMG_param default_amg_param()
   return param;
 }
 
-/// A HAZmath preconditioner. It owns the preconditioner data and the
-/// parameters used to build it, which the data refers to.
+/// @brief A HAZmath preconditioner.
+///
+/// Owns the preconditioner data and the parameters it was built with, which
+/// the data refers to.
 class Precond
 {
 public:
+  /// Function that frees a preconditioner and its data
   using deleter = void (*)(precond*, AMG_param*);
 
-  Precond(precond* pc, AMG_param param, std::int32_t size, deleter free_data)
+  /// @brief Take ownership of a preconditioner.
+  /// @param[in] pc Preconditioner, freed by `free_data`.
+  /// @param[in] param Parameters `pc` was built with.
+  /// @param[in] size Number of rows of the operator.
+  /// @param[in] free_data Frees `pc`.
+  Precond(precond* pc, AMG_param param, INT size, deleter free_data)
       : _pc(pc), _param(param), _size(size), _free_data(free_data)
   {
   }
 
-  Precond(const Precond&) = delete;
-  Precond& operator=(const Precond&) = delete;
+  // Copy constructor (deleted)
+  Precond(const Precond& B) = delete;
 
-  ~Precond()
+  /// Move constructor
+  Precond(Precond&& B) noexcept
+      : _pc(std::exchange(B._pc, nullptr)), _param(B._param), _size(B._size),
+        _free_data(B._free_data)
   {
-    std::lock_guard lock(hazmath_mutex);
-    _free_data(_pc, &_param);
   }
 
-  /// z = B r. r is not modified.
+  /// Destructor
+  ~Precond() { release(); }
+
+  // Copy assignment (deleted)
+  Precond& operator=(const Precond& B) = delete;
+
+  /// Move assignment
+  Precond& operator=(Precond&& B) noexcept
+  {
+    if (this != &B)
+    {
+      release();
+      _pc = std::exchange(B._pc, nullptr);
+      _param = B._param;
+      _size = B._size;
+      _free_data = B._free_data;
+    }
+    return *this;
+  }
+
+  /// @brief Apply the preconditioner, `z = B r`.
+  /// @param[in] r Input vector, not modified.
+  /// @param[out] z Output vector.
   void apply(array1d<const double> r, array1d<double> z)
   {
     if (r.size() != static_cast<std::size_t>(_size)
         or z.size() != static_cast<std::size_t>(_size))
     {
-      throw std::invalid_argument("r and z must have length "
-                                  + std::to_string(_size));
+      throw std::invalid_argument(
+          std::format("r and z must have length {}", _size));
     }
     nb::gil_scoped_release release;
     std::lock_guard lock(hazmath_mutex);
-    // HAZmath takes a non-const r, but the AMG and FAMG cycles only copy it
-    // into the level 0 right-hand side (precond_amg etc. in precond.c)
+    // r is non-const in HAZmath, but the AMG/FAMG cycles only copy it to the
+    // level 0 right-hand side (precond.c)
     apply_precond(const_cast<REAL*>(r.data()), z.data(), _pc);
   }
 
-  std::int32_t size() const { return _size; }
+  /// Number of rows of the operator
+  INT size() const { return _size; }
+
+  /// Setup time in seconds, measured by HAZmath
   double setup_time() const { return _pc->setup_time; }
 
 private:
+  void release()
+  {
+    if (_pc)
+    {
+      std::lock_guard lock(hazmath_mutex);
+      _free_data(_pc, &_param);
+      _pc = nullptr;
+    }
+  }
+
   precond* _pc;
   AMG_param _param;
-  std::int32_t _size;
+  INT _size;
   deleter _free_data;
 };
 
-/// Free a preconditioner made by create_precond_amg or create_precond_famg.
-/// precond_data_free is not used: it calls amg_data_free without the AMG
-/// parameters, which amg_data_free dereferences.
+/// @brief Free a preconditioner from `create_precond_amg` or
+/// `create_precond_famg`.
+///
+/// `precond_data_free` is not used: it passes no parameters to
+/// `amg_data_free`, which dereferences them.
+/// @param[in] pc Preconditioner.
+/// @param[in] param Parameters `pc` was built with.
 void free_amg(precond* pc, AMG_param* param)
 {
-  auto* data = static_cast<precond_data*>(pc->data);
-  // also frees the coarse solver factorization, Schwarz data and, for the
-  // AMLI cycle, param->amli_coef
+  precond_data* data = static_cast<precond_data*>(pc->data);
+  // Also frees the coarse factorisation, Schwarz data and, for the AMLI
+  // cycle, param->amli_coef
   amg_data_free(data->mgl_data, param);
   std::free(data->mgl_data);
-  // param_amg_to_prec gave data its own copy of the AMLI coefficients
+  // param_amg_to_prec's own copy of the AMLI coefficients
   std::free(data->amli_coef);
   std::free(data);
   std::free(pc);
 }
 
-void check_square(const CSRMatrix& A, const char* name)
+/// @brief Throw unless a matrix is square.
+/// @param[in] A Matrix.
+/// @param[in] name Name of `A` in the error message.
+void check_square(const CSRMatrix& A, std::string_view name)
 {
   if (A.get()->row != A.get()->col)
-    throw std::invalid_argument(std::string(name) + " must be square");
+    throw std::invalid_argument(std::format("{} must be square", name));
 }
 
-/// HAZmath stops the process (exit) or corrupts memory on some invalid
-/// parameters, so check them first
+/// @brief Check AMG parameters that HAZmath would answer with `exit()` or
+/// memory corruption.
+/// @param[in] param Parameters.
+/// @param[in] smoothers Smoothers the method supports.
+/// @param[in] method Name of the method in the error message.
 void check_param(const AMG_param& param, std::initializer_list<SHORT> smoothers,
-                 const char* method)
+                 std::string_view method)
 {
   if (param.max_levels < 1)
     throw std::invalid_argument("max_levels must be at least 1");
   if (param.aggregation_type != VMB and param.aggregation_type != HEC
       and param.aggregation_type != HEM)
   {
-    throw std::invalid_argument("aggregation_type "
-                                + std::to_string(param.aggregation_type)
-                                + " is not supported; use VMB, HEC or HEM");
+    throw std::invalid_argument(
+        std::format("aggregation_type {} is not supported; use VMB, HEC or HEM",
+                    param.aggregation_type));
   }
   if (param.cycle_type == AMLI_CYCLE and param.amli_degree < 0)
     throw std::invalid_argument("amli_degree must be non-negative");
   for (SHORT s : smoothers)
-  {
     if (param.smoother == s)
       return;
-  }
   std::string names;
   for (SHORT s : smoothers)
-    names += (names.empty() ? "" : ", ") + std::to_string(s);
-  throw std::invalid_argument("smoother " + std::to_string(param.smoother)
-                              + " is not supported by " + method
-                              + "; use one of " + names);
+    names += std::format("{}{}", names.empty() ? "" : ", ", s);
+  throw std::invalid_argument(
+      std::format("smoother {} is not supported by {}; use one of {}",
+                  param.smoother, method, names));
+}
+
+/// @brief Bind a field of `AMG_param` and record its name.
+/// @param[in,out] cls The bound class.
+/// @param[in,out] names Names of the bound fields.
+/// @param[in] name Python name of the field.
+/// @param[in] member The field.
+template <typename T>
+void def_field(nb::class_<AMG_param>& cls, nb::list& names, const char* name,
+               T AMG_param::* member)
+{
+  cls.def_rw(name, member);
+  names.append(name);
 }
 
 } // namespace
@@ -236,14 +327,13 @@ NB_MODULE(_haznicsx, m)
   m.doc() = "HAZmath preconditioners (nanobind bindings)";
 
   nb::class_<CSRMatrix>(m, "CSRMatrix",
-                        "A sparse matrix in HAZmath's CSR format over int32 "
+                        "A sparse matrix in HAZmath's CSR format over INT "
                         "and float64 C-contiguous arrays, which it shares (no "
                         "copy) and keeps alive. Column indices must be sorted "
                         "in each row, without duplicates. csr_from_arrays "
                         "converts other arrays.")
-      .def(nb::init<array1d<const std::int32_t>, array1d<const std::int32_t>,
-                    array1d<const double>,
-                    std::pair<std::int32_t, std::int32_t>>(),
+      .def(nb::init<array1d<const INT>, array1d<const INT>,
+                    array1d<const double>, std::pair<INT, INT>>(),
            // no conversion: it would cast indices without a range check
            "indptr"_a.noconvert(), "indices"_a.noconvert(),
            "data"_a.noconvert(), "shape"_a)
@@ -254,7 +344,7 @@ NB_MODULE(_haznicsx, m)
           "indptr",
           [](CSRMatrix& self)
           {
-            return nb::ndarray<nb::numpy, const std::int32_t, nb::ndim<1>>(
+            return nb::ndarray<nb::numpy, const INT, nb::ndim<1>>(
                 self.get()->IA, {static_cast<std::size_t>(self.get()->row + 1)},
                 nb::handle());
           },
@@ -263,7 +353,7 @@ NB_MODULE(_haznicsx, m)
           "indices",
           [](CSRMatrix& self)
           {
-            return nb::ndarray<nb::numpy, const std::int32_t, nb::ndim<1>>(
+            return nb::ndarray<nb::numpy, const INT, nb::ndim<1>>(
                 self.get()->JA, {static_cast<std::size_t>(self.get()->nnz)},
                 nb::handle());
           },
@@ -278,9 +368,11 @@ NB_MODULE(_haznicsx, m)
           },
           nb::rv_policy::reference_internal);
 
-  nb::class_<AMG_param>(m, "AMGParam",
-                        "Parameters for the HAZmath AMG (AMG_param). The "
-                        "constructor sets the HAZmath defaults.")
+  nb::class_<AMG_param> amg_param(
+      m, "AMGParam",
+      "Parameters for the HAZmath AMG (AMG_param). The constructor sets the "
+      "HAZmath defaults; AMGParam.fields lists the parameters.");
+  amg_param
       .def("__init__",
            [](AMG_param* self) { new (self) AMG_param(default_amg_param()); })
       .def_static(
@@ -294,35 +386,42 @@ NB_MODULE(_haznicsx, m)
           },
           "options"_a,
           "HAZmath defaults updated with the given options. Unknown names "
-          "raise AttributeError.")
-      .def_rw("AMG_type", &AMG_param::AMG_type)
-      .def_rw("print_level", &AMG_param::print_level)
-      .def_rw("maxit", &AMG_param::maxit)
-      .def_rw("tol", &AMG_param::tol)
-      .def_rw("max_levels", &AMG_param::max_levels)
-      .def_rw("coarse_dof", &AMG_param::coarse_dof)
-      .def_rw("cycle_type", &AMG_param::cycle_type)
-      .def_rw("smoother", &AMG_param::smoother)
-      .def_rw("presmooth_iter", &AMG_param::presmooth_iter)
-      .def_rw("postsmooth_iter", &AMG_param::postsmooth_iter)
-      .def_rw("relaxation", &AMG_param::relaxation)
-      .def_rw("polynomial_degree", &AMG_param::polynomial_degree)
-      .def_rw("coarse_solver", &AMG_param::coarse_solver)
-      .def_rw("coarse_scaling", &AMG_param::coarse_scaling)
-      .def_rw("amli_degree", &AMG_param::amli_degree)
-      .def_rw("nl_amli_krylov_type", &AMG_param::nl_amli_krylov_type)
-      .def_rw("aggregation_type", &AMG_param::aggregation_type)
-      .def_rw("strong_coupled", &AMG_param::strong_coupled)
-      .def_rw("max_aggregation", &AMG_param::max_aggregation)
-      .def_rw("smooth_filter", &AMG_param::smooth_filter)
-      .def_rw("tentative_smooth", &AMG_param::tentative_smooth)
-      .def_rw("Schwarz_levels", &AMG_param::Schwarz_levels)
-      .def_rw("Schwarz_mmsize", &AMG_param::Schwarz_mmsize)
-      .def_rw("Schwarz_maxlvl", &AMG_param::Schwarz_maxlvl)
-      .def_rw("Schwarz_type", &AMG_param::Schwarz_type)
-      .def_rw("Schwarz_blksolver", &AMG_param::Schwarz_blksolver)
-      .def_rw("damping_param", &AMG_param::damping_param)
-      .def_rw("fpwr", &AMG_param::fpwr);
+          "raise AttributeError.");
+  nb::list fields;
+  def_field(amg_param, fields, "AMG_type", &AMG_param::AMG_type);
+  def_field(amg_param, fields, "print_level", &AMG_param::print_level);
+  def_field(amg_param, fields, "maxit", &AMG_param::maxit);
+  def_field(amg_param, fields, "tol", &AMG_param::tol);
+  def_field(amg_param, fields, "max_levels", &AMG_param::max_levels);
+  def_field(amg_param, fields, "coarse_dof", &AMG_param::coarse_dof);
+  def_field(amg_param, fields, "cycle_type", &AMG_param::cycle_type);
+  def_field(amg_param, fields, "smoother", &AMG_param::smoother);
+  def_field(amg_param, fields, "presmooth_iter", &AMG_param::presmooth_iter);
+  def_field(amg_param, fields, "postsmooth_iter", &AMG_param::postsmooth_iter);
+  def_field(amg_param, fields, "relaxation", &AMG_param::relaxation);
+  def_field(amg_param, fields, "polynomial_degree",
+            &AMG_param::polynomial_degree);
+  def_field(amg_param, fields, "coarse_solver", &AMG_param::coarse_solver);
+  def_field(amg_param, fields, "coarse_scaling", &AMG_param::coarse_scaling);
+  def_field(amg_param, fields, "amli_degree", &AMG_param::amli_degree);
+  def_field(amg_param, fields, "nl_amli_krylov_type",
+            &AMG_param::nl_amli_krylov_type);
+  def_field(amg_param, fields, "aggregation_type",
+            &AMG_param::aggregation_type);
+  def_field(amg_param, fields, "strong_coupled", &AMG_param::strong_coupled);
+  def_field(amg_param, fields, "max_aggregation", &AMG_param::max_aggregation);
+  def_field(amg_param, fields, "smooth_filter", &AMG_param::smooth_filter);
+  def_field(amg_param, fields, "tentative_smooth",
+            &AMG_param::tentative_smooth);
+  def_field(amg_param, fields, "Schwarz_levels", &AMG_param::Schwarz_levels);
+  def_field(amg_param, fields, "Schwarz_mmsize", &AMG_param::Schwarz_mmsize);
+  def_field(amg_param, fields, "Schwarz_maxlvl", &AMG_param::Schwarz_maxlvl);
+  def_field(amg_param, fields, "Schwarz_type", &AMG_param::Schwarz_type);
+  def_field(amg_param, fields, "Schwarz_blksolver",
+            &AMG_param::Schwarz_blksolver);
+  def_field(amg_param, fields, "damping_param", &AMG_param::damping_param);
+  def_field(amg_param, fields, "fpwr", &AMG_param::fpwr);
+  amg_param.attr("fields") = nb::tuple(fields);
 
   nb::class_<Precond>(m, "Precond", "A HAZmath preconditioner")
       // z must not be converted: a converted copy would receive the result
@@ -384,6 +483,8 @@ NB_MODULE(_haznicsx, m)
       "(create_precond_famg). param.smoother must be a fractional smoother "
       "and the fractional power is param.fpwr.");
 
+  // Size in bytes of HAZmath's index type INT (4 or 8)
+  m.attr("INT_SIZE") = sizeof(INT);
   // Values for the AMGParam fields (include/macro.h)
   m.attr("UA_AMG") = UA_AMG;
   m.attr("SA_AMG") = SA_AMG;

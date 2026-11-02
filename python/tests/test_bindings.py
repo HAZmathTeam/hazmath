@@ -1,3 +1,8 @@
+# Copyright (C) 2026 Jørgen S. Dokken
+#
+# This file is part of HAZmath (https://github.com/HAZmathTeam/hazmath)
+#
+# SPDX-License-Identifier:    MIT
 """Tests of the HAZmath bindings that need only NumPy and SciPy."""
 
 import gc
@@ -12,12 +17,16 @@ import scipy.sparse.linalg as spla
 
 import haznicsx
 
+# HAZmath's index type: int32, or int64 when configured with int64=yes
+INDEX = haznicsx.index_dtype
+OTHER_INDEX = np.dtype(np.int64) if INDEX == np.int32 else np.dtype(np.int32)
 
-def poisson_2d(n: int) -> sp.csr_matrix:
-    """Five-point Laplacian on an n x n grid."""
-    T = sp.diags([-1.0, 2.0, -1.0], [-1, 0, 1], shape=(n, n))
-    identity = sp.identity(n)
-    return (sp.kron(T, identity) + sp.kron(identity, T)).tocsr()
+
+def with_index_dtype(A: sp.csr_matrix) -> sp.csr_matrix:
+    """A with index arrays of HAZmath's index type, which CSRMatrix shares."""
+    A.indptr = A.indptr.astype(INDEX)
+    A.indices = A.indices.astype(INDEX)
+    return A
 
 
 def pcg(A, b: npt.NDArray[np.float64], precond, rtol: float = 1e-10, maxit: int = 1000):
@@ -53,7 +62,7 @@ def test_csr_round_trip():
     np.testing.assert_array_equal(B.data, A.data)
 
 
-def test_csr_arrays_are_read_only_views():
+def test_csr_arrays_are_read_only_views(poisson_2d):
     B = haznicsx.csr_from_scipy(poisson_2d(4))
     indptr = B.indptr
     assert not indptr.flags.writeable
@@ -64,8 +73,8 @@ def test_csr_arrays_are_read_only_views():
 
 
 def test_csr_shares_arrays():
-    indptr = np.array([0, 1, 2], dtype=np.int32)
-    indices = np.array([0, 1], dtype=np.int32)
+    indptr = np.array([0, 1, 2], dtype=INDEX)
+    indices = np.array([0, 1], dtype=INDEX)
     data = np.array([1.0, 2.0])
     B = haznicsx.CSRMatrix(indptr, indices, data, (2, 2))
     assert np.shares_memory(B.indptr, indptr)
@@ -80,21 +89,21 @@ def test_csr_shares_arrays():
 
 
 def test_csr_constructor_does_not_convert():
-    indptr = np.array([0, 1, 2], dtype=np.int32)
-    indices = np.array([0, 1], dtype=np.int32)
+    indptr = np.array([0, 1, 2], dtype=INDEX)
+    indices = np.array([0, 1], dtype=INDEX)
     data = np.array([1.0, 2.0])
-    # would wrap around to 0 if cast to int32
+    # a cast from int64 to int32 would wrap indices around without a check
     with pytest.raises(TypeError):
-        haznicsx.CSRMatrix(indptr, np.array([2**32, 1]), data, (2, 2))
+        haznicsx.CSRMatrix(indptr, indices.astype(OTHER_INDEX), data, (2, 2))
     with pytest.raises(TypeError):
         haznicsx.CSRMatrix(indptr, indices, data.astype(np.float32), (2, 2))
     with pytest.raises(TypeError):
-        haznicsx.CSRMatrix(indptr, np.array([[0, 9], [1, 9]], dtype=np.int32)[:, 0], data, (2, 2))
+        haznicsx.CSRMatrix(indptr, np.array([[0, 9], [1, 9]], dtype=INDEX)[:, 0], data, (2, 2))
 
 
 def test_csr_converts_other_arrays():
-    indptr = np.array([0, 1, 2], dtype=np.int64)
-    indices = np.array([[0, 9], [1, 9]], dtype=np.int32)[:, 0]  # not contiguous
+    indptr = np.array([0, 1, 2], dtype=OTHER_INDEX)
+    indices = np.array([[0, 9], [1, 9]], dtype=INDEX)[:, 0]  # not contiguous
     data = np.array([1.0, 2.0], dtype=np.float32)
     B = haznicsx.csr_from_arrays(indptr, indices, data, (2, 2))
     assert not np.shares_memory(B.data, data)
@@ -106,9 +115,10 @@ def test_csr_converts_other_arrays():
     np.testing.assert_array_equal(B.data, [1.0, 2.0])
 
 
-def test_csr_from_scipy_shares_arrays():
-    A = poisson_2d(4)
+def test_csr_from_scipy_shares_arrays(poisson_2d):
+    A = with_index_dtype(poisson_2d(4))
     B = haznicsx.csr_from_scipy(A)
+    assert np.shares_memory(B.indptr, A.indptr)
     assert np.shares_memory(B.indices, A.indices)
     assert np.shares_memory(B.data, A.data)
 
@@ -126,14 +136,14 @@ def test_csr_from_scipy_canonical_format():
     np.testing.assert_array_equal(A.indices, [0, 0, 1, 0])
 
 
-def test_csr_checked_again_before_setup():
-    A = poisson_2d(4)
+def test_csr_checked_again_before_setup(poisson_2d):
+    A = with_index_dtype(poisson_2d(4))
     B = haznicsx.csr_from_scipy(A)
     A.indices[0] = 1000
     with pytest.raises(ValueError, match="Column index out of range"):
         haznicsx.amg(B, haznicsx.AMGParam())
     # eliminate_zeros changes the shared indptr in place
-    A = poisson_2d(4)
+    A = with_index_dtype(poisson_2d(4))
     B = haznicsx.csr_from_scipy(A)
     A.data[1] = 0.0
     A.eliminate_zeros()
@@ -167,17 +177,18 @@ def test_csr_complex_rejected():
 
 
 def test_csr_index_overflow():
-    big = np.array([0, 2**31], dtype=np.int64)
+    too_big = int(np.iinfo(INDEX).max) + 1
     with pytest.raises(OverflowError, match="indptr"):
-        haznicsx.csr_from_arrays(big, [0], [1.0], (1, 1))
-    # would wrap around to 0
-    with pytest.raises(OverflowError, match="indices"):
-        haznicsx.csr_from_arrays([0, 1], np.array([-(2**32)]), [1.0], (1, 1))
+        haznicsx.csr_from_arrays(np.array([0, too_big], dtype=np.uint64), [0], [1.0], (1, 1))
     with pytest.raises(OverflowError, match="dimensions"):
-        haznicsx.csr_from_arrays([0, 1], [0], [1.0], (1, 2**31))
+        haznicsx.csr_from_arrays([0, 1], [0], [1.0], (1, too_big))
+    if INDEX == np.int32:
+        # would wrap around to 0
+        with pytest.raises(OverflowError, match="indices"):
+            haznicsx.csr_from_arrays([0, 1], np.array([-(2**32)]), [1.0], (1, 1))
 
 
-def test_csr_int64_indices():
+def test_csr_int64_indices(poisson_2d):
     A = poisson_2d(5)
     B = haznicsx.csr_from_arrays(
         A.indptr.astype(np.int64), A.indices.astype(np.int64), A.data, A.shape
@@ -191,7 +202,7 @@ def test_csr_from_scipy_not_sparse():
 
 
 # None in sys.modules makes the import fail, as if the package were not installed
-def test_csr_from_scipy_without_scipy(monkeypatch: pytest.MonkeyPatch):
+def test_csr_from_scipy_without_scipy(monkeypatch: pytest.MonkeyPatch, poisson_2d):
     A = poisson_2d(3)
     monkeypatch.setitem(sys.modules, "scipy.sparse", None)
     with pytest.raises(ImportError, match="pip install scipy"):
@@ -213,6 +224,24 @@ def test_amg_param_defaults():
     assert param.print_level == haznicsx.PRINT_NONE
 
 
+def test_amg_param_fields():
+    fields = haznicsx.AMGParam.fields
+    assert "max_levels" in fields
+    assert "fpwr" in fields
+    assert "from_dict" not in fields
+    param = haznicsx.AMGParam()
+    for name in fields:
+        getattr(param, name)
+
+
+def test_default_param(poisson_2d):
+    A = haznicsx.csr_from_scipy(poisson_2d(8))
+    for B in (haznicsx.amg(A), haznicsx.famg(A, A)):
+        z = np.zeros(A.shape[0])
+        B.apply(np.ones(A.shape[0]), z)
+        assert np.isfinite(z).all()
+
+
 def test_amg_param_from_dict():
     param = haznicsx.AMGParam.from_dict({"max_levels": 5, "strong_coupled": 0.1})
     assert param.max_levels == 5
@@ -222,7 +251,7 @@ def test_amg_param_from_dict():
 
 
 @pytest.mark.parametrize("cycle_type, max_its", [("V_CYCLE", 45), ("W_CYCLE", 30)])
-def test_amg_pcg(cycle_type, max_its):
+def test_amg_pcg(cycle_type, max_its, poisson_2d):
     A = poisson_2d(64)
     b = np.ones(A.shape[0])
     param = haznicsx.AMGParam.from_dict({"cycle_type": getattr(haznicsx, cycle_type)})
@@ -234,7 +263,7 @@ def test_amg_pcg(cycle_type, max_its):
     np.testing.assert_allclose(x, spla.spsolve(A.tocsc(), b), rtol=1e-7)
 
 
-def test_amg_iterations_bounded_under_refinement():
+def test_amg_iterations_bounded_under_refinement(poisson_2d):
     its = []
     for n in (32, 64, 128):
         A = poisson_2d(n)
@@ -244,7 +273,7 @@ def test_amg_iterations_bounded_under_refinement():
     assert its[-1] < 1.6 * its[0]
 
 
-def test_apply_does_not_modify_r():
+def test_apply_does_not_modify_r(poisson_2d):
     A = poisson_2d(16)
     B = haznicsx.amg(haznicsx.csr_from_scipy(A), haznicsx.AMGParam())
     r = np.random.default_rng(2).random(A.shape[0])
@@ -264,7 +293,7 @@ def test_apply_does_not_modify_r():
     np.testing.assert_array_equal(x, z)
 
 
-def test_apply_arguments():
+def test_apply_arguments(poisson_2d):
     A = poisson_2d(8)
     B = haznicsx.amg(haznicsx.csr_from_scipy(A), haznicsx.AMGParam())
     n = A.shape[0]
@@ -287,7 +316,7 @@ def test_amg_non_square():
         haznicsx.amg(A, haznicsx.AMGParam())
 
 
-def test_amg_unsupported_smoother():
+def test_amg_unsupported_smoother(poisson_2d):
     A = haznicsx.csr_from_scipy(poisson_2d(4))
     param = haznicsx.AMGParam.from_dict({"smoother": haznicsx.SMOOTHER_FGS})
     with pytest.raises(ValueError, match="smoother"):
@@ -304,7 +333,7 @@ def test_amg_unsupported_smoother():
         ({"cycle_type": haznicsx.AMLI_CYCLE, "amli_degree": -1}, "amli_degree"),
     ],
 )
-def test_amg_invalid_param(options, message):
+def test_amg_invalid_param(options, message, poisson_2d):
     A = haznicsx.csr_from_scipy(poisson_2d(4))
     with pytest.raises(ValueError, match=message):
         haznicsx.amg(A, haznicsx.AMGParam.from_dict(options))
@@ -314,7 +343,7 @@ def test_amg_invalid_param(options, message):
 
 
 @pytest.mark.parametrize("aggregation_type", ["VMB", "HEC", "HEM"])
-def test_amg_aggregation_types(aggregation_type):
+def test_amg_aggregation_types(aggregation_type, poisson_2d):
     A = poisson_2d(16)
     param = haznicsx.AMGParam.from_dict({"aggregation_type": getattr(haznicsx, aggregation_type)})
     B = haznicsx.amg(haznicsx.csr_from_scipy(A), param)
@@ -322,7 +351,7 @@ def test_amg_aggregation_types(aggregation_type):
     assert its < 30
 
 
-def test_amg_param_not_modified():
+def test_amg_param_not_modified(poisson_2d):
     param = haznicsx.AMGParam.from_dict({"cycle_type": haznicsx.AMLI_CYCLE})
     haznicsx.amg(haznicsx.csr_from_scipy(poisson_2d(16)), param)
     assert param.cycle_type == haznicsx.AMLI_CYCLE
@@ -330,7 +359,7 @@ def test_amg_param_not_modified():
 
 
 @pytest.mark.parametrize("cycle_type", ["V_CYCLE", "W_CYCLE", "AMLI_CYCLE", "NL_AMLI_CYCLE"])
-def test_amg_cycles(cycle_type):
+def test_amg_cycles(cycle_type, poisson_2d):
     A = poisson_2d(32)
     param = haznicsx.AMGParam.from_dict({"cycle_type": getattr(haznicsx, cycle_type)})
     B = haznicsx.amg(haznicsx.csr_from_scipy(A), param)
@@ -339,7 +368,7 @@ def test_amg_cycles(cycle_type):
     assert np.isfinite(z).all()
 
 
-def test_famg():
+def test_famg(poisson_2d):
     n = 32
     A = poisson_2d(n)
     M = sp.identity(A.shape[0], format="csr") / (n + 1) ** 2
@@ -349,13 +378,13 @@ def test_famg():
     assert its < 30
 
 
-def test_famg_unsupported_smoother():
+def test_famg_unsupported_smoother(poisson_2d):
     A = haznicsx.csr_from_scipy(poisson_2d(4))
     with pytest.raises(ValueError, match="smoother"):
         haznicsx.famg(A, A, haznicsx.AMGParam())
 
 
-def test_precond_outlives_matrix():
+def test_precond_outlives_matrix(poisson_2d):
     A = poisson_2d(16)
     B = haznicsx.amg(haznicsx.csr_from_scipy(A), haznicsx.AMGParam())
     gc.collect()
@@ -371,7 +400,7 @@ def test_precond_outlives_matrix():
     np.testing.assert_array_equal(z2, z)
 
 
-def test_create_and_free_repeatedly():
+def test_create_and_free_repeatedly(poisson_2d):
     A = poisson_2d(16)
     for cycle_type in (haznicsx.V_CYCLE, haznicsx.AMLI_CYCLE) * 10:
         param = haznicsx.AMGParam.from_dict({"cycle_type": cycle_type})
@@ -382,7 +411,7 @@ def test_create_and_free_repeatedly():
     gc.collect()
 
 
-def test_threads():
+def test_threads(poisson_2d):
     """Applies from several threads, while other setups run, give the serial results."""
     A = poisson_2d(16)
     r = np.random.default_rng(3).random(A.shape[0])
@@ -398,7 +427,7 @@ def test_threads():
     def work(i: int) -> None:
         haznicsx.amg(haznicsx.csr_from_scipy(A), haznicsx.AMGParam())
         for _ in range(5):
-            for B, z_expected in zip(preconds, expected):
+            for B, z_expected in zip(preconds, expected, strict=True):
                 z = np.zeros_like(r)
                 B.apply(r, z)
                 if not np.array_equal(z, z_expected):
