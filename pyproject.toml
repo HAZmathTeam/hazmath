@@ -31,6 +31,7 @@ test = ["pytest", "scipy"]
 [dependency-groups]
 lint = [
   "clang-format",
+  "gersemi",
   "ruff",
   "mypy",
   # types for mypy

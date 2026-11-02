@@ -1,3 +1,8 @@
+# Copyright (C) 2026 Jørgen S. Dokken
+#
+# This file is part of HAZmath (https://github.com/HAZmathTeam/hazmath)
+#
+# SPDX-License-Identifier:    MIT
 """HAZmath preconditioners for DOLFINx and PETSc."""
 
 from haznicsx._haznicsx import (
@@ -31,13 +36,16 @@ from haznicsx._haznicsx import (
     V_CYCLE,
     VMB,
     W_CYCLE,
-    AMGParam,
-    CSRMatrix,
-    Precond,
-    amg,
-    famg,
 )
-from haznicsx.csr import csr_from_arrays, csr_from_petsc, csr_from_scipy
+from haznicsx.csr import (
+    csr_from_arrays,
+    csr_from_dolfinx,
+    csr_from_petsc,
+    csr_from_scipy,
+    index_dtype,
+)
+from haznicsx.pc import HazmathAMG, HazmathFAMG, amg_param_from_options
+from haznicsx.precond import AMGParam, CSRMatrix, Precond, amg, famg
 
 __all__ = [
     "ADD_CYCLE",
@@ -72,10 +80,15 @@ __all__ = [
     "W_CYCLE",
     "AMGParam",
     "CSRMatrix",
+    "HazmathAMG",
+    "HazmathFAMG",
     "Precond",
     "amg",
-    "famg",
+    "amg_param_from_options",
     "csr_from_arrays",
+    "csr_from_dolfinx",
     "csr_from_petsc",
     "csr_from_scipy",
+    "famg",
+    "index_dtype",
 ]

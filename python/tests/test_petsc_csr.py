@@ -1,3 +1,8 @@
+# Copyright (C) 2026 Jørgen S. Dokken
+#
+# This file is part of HAZmath (https://github.com/HAZmathTeam/hazmath)
+#
+# SPDX-License-Identifier:    MIT
 """Conversion of PETSc matrices. Runs with every PETSc build (PETSC_ARCH)."""
 
 import numpy as np
@@ -18,7 +23,7 @@ def petsc_matrix(A: sp.csr_matrix, mat_type: str = "aij", block_size: int = 1):
     M.setType(mat_type)
     M.setUp()
     C = A.tocoo()
-    for i, j, value in zip(C.row, C.col, C.data):
+    for i, j, value in zip(C.row, C.col, C.data, strict=True):
         M.setValue(int(i), int(j), value)
     M.assemble()
     return M

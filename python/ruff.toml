@@ -1,0 +1,52 @@
+# Ruff rules for the haznicsx package, the same as DOLFINx's
+# (python/pyproject.toml there). The root ruff.toml, used for the rest of
+# HAZmath, sets the base.
+extend = "../ruff.toml"
+
+[lint]
+extend-select = [
+    "D",      # pydocstyle
+    "RUF",    # Ruff-specific rules
+    "UP",     # pyupgrade
+    "ICN",    # flake8-import-conventions
+    "NPY",    # numpy-specific rules
+    "FLY",    # use f-string not static joins
+    "NPY201", # numpy 2.x ruleset
+    "B905",   # zip-without-explicit-strict
+    "TID251", # banned-api: haznicsx._haznicsx outside the package
+]
+ignore = ["RUF012"]
+
+[lint.flake8-tidy-imports.banned-api]
+"haznicsx._haznicsx".msg = """\
+Use the pure Python haznicsx API, not the nanobind-wrapped haznicsx._haznicsx \
+module, which is for internal use by the haznicsx package itself.\
+"""
+
+[lint.isort]
+known-first-party = ["haznicsx"]
+known-third-party = ["basix", "dolfinx", "ffcx", "numpy", "pytest", "scipy", "ufl"]
+section-order = [
+    "future",
+    "standard-library",
+    "mpi",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[lint.isort.sections]
+"mpi" = ["mpi4py", "petsc4py"]
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.per-file-ignores]
+"test*.py" = [
+    "D100", # undocumented-public-module
+    "D103", # undocumented-public-function
+    "D205", # missing-blank-line-after-summary
+]
+"conftest.py" = ["D100", "D103", "D205"]
+# haznicsx._haznicsx is the nanobind wrapping layer itself
+"src/haznicsx/**/*.py" = ["TID251"]

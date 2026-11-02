@@ -11,7 +11,9 @@ find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 # Detect the installed nanobind package and import it into CMake
 execute_process(
   COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
-  OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE NB_DIR)
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  OUTPUT_VARIABLE NB_DIR
+)
 list(APPEND CMAKE_PREFIX_PATH "${NB_DIR}")
 find_package(nanobind CONFIG REQUIRED)
 
@@ -26,8 +28,12 @@ endif()
 
 # The preconditioner builders (create_precond_*) are in src/haznics/helper.c of
 # the HAZmath source tree, which is not part of libhazmath
-set(HAZMATH_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.." CACHE PATH
-  "HAZmath source tree, for src/haznics/helper.c")
+set(
+  HAZMATH_SOURCE_DIR
+  "${CMAKE_CURRENT_SOURCE_DIR}/.."
+  CACHE PATH
+  "HAZmath source tree, for src/haznics/helper.c"
+)
 set(HAZNICS_HELPER "${HAZMATH_SOURCE_DIR}/src/haznics/helper.c")
 set(HAZNICS_HEADER_AWK "${HAZMATH_SOURCE_DIR}/haz_shutils/mkheaders_simple.awk")
 if(NOT EXISTS "${HAZNICS_HELPER}")
@@ -41,12 +47,16 @@ execute_process(
   COMMAND "${AWK}" -v name=haznics_add.h -f "${HAZNICS_HEADER_AWK}"
   INPUT_FILE "${HAZNICS_HELPER}"
   OUTPUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/haznics_add.h"
-  RESULT_VARIABLE HAZNICS_HEADER_RESULT)
+  RESULT_VARIABLE HAZNICS_HEADER_RESULT
+)
 if(NOT HAZNICS_HEADER_RESULT EQUAL 0)
   message(FATAL_ERROR "Generating haznics_add.h failed")
 endif()
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-  "${HAZNICS_HELPER}" "${HAZNICS_HEADER_AWK}")
+set_property(
+  DIRECTORY
+  APPEND
+  PROPERTY CMAKE_CONFIGURE_DEPENDS "${HAZNICS_HELPER}" "${HAZNICS_HEADER_AWK}"
+)
 
 add_library(haznicsx_helper OBJECT "${HAZNICS_HELPER}")
 set_target_properties(haznicsx_helper PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -60,8 +70,10 @@ target_link_libraries(_haznicsx PRIVATE haznicsx_helper hazmath::hazmath)
 # the repository
 get_target_property(HAZMATH_TYPE hazmath::hazmath TYPE)
 if(HAZMATH_TYPE STREQUAL "SHARED_LIBRARY")
-  set_target_properties(_haznicsx PROPERTIES
-    INSTALL_RPATH "$<TARGET_FILE_DIR:hazmath::hazmath>")
+  set_target_properties(
+    _haznicsx
+    PROPERTIES INSTALL_RPATH "$<TARGET_FILE_DIR:hazmath::hazmath>"
+  )
 endif()
 
 install(TARGETS _haznicsx LIBRARY DESTINATION haznicsx)

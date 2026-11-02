@@ -51,12 +51,17 @@ jobs:
           fi
 
   root-install:
-    name: pip install from the repository root (SuiteSparse ${{ matrix.suitesparse }})
+    name: pip install from the repository root (SuiteSparse ${{ matrix.suitesparse }}, int64 ${{ matrix.int64 }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         suitesparse: ["OFF", "ON"]
+        int64: ["OFF"]
+        include:
+          # 64-bit INT; UMFPACK then uses its long (umfpack_dl_*) interface
+          - suitesparse: "ON"
+            int64: "ON"
     steps:
       - uses: actions/checkout@v7
 
@@ -70,6 +75,11 @@ jobs:
           if [ "${{ matrix.suitesparse }}" = "ON" ]; then pkgs="$pkgs libsuitesparse-dev liblapack-dev"; fi
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends $pkgs
+
+      # writes include/haz_int.h, which sets the INT width for the builds below
+      - name: Configure a 64-bit INT
+        if: matrix.int64 == 'ON'
+        run: make config int64=yes
 
       # libhazmath and haznicsx in one build (pyproject.toml at the root)
       - name: Install haznicsx
@@ -175,5 +185,8 @@ jobs:
       - name: Run tests
         run: python3 -m pytest -v python/tests
 
-      - name: Run PETSc tests in parallel
-        run: mpirun -n 2 python3 -m pytest -v python/tests/test_csr.py
+      - name: Run PETSc and DOLFINx tests in parallel
+        run: |
+          mpirun -n 2 python3 -m pytest -v python/tests/test_dolfinx.py \
+            python/tests/test_petsc_csr.py python/tests/test_petsc_pc.py \
+            python/tests/test_petsc_dolfinx.py

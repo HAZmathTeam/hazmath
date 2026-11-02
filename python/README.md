@@ -4,18 +4,22 @@ HAZmath preconditioners for [DOLFINx](https://github.com/FEniCS/dolfinx) and
 [PETSc](https://petsc.org), the successor of the SWIG-based `haznics` module
 for legacy FEniCS.
 
-This first version provides the core bindings:
+It provides:
 
+- `HazmathAMG` and `HazmathFAMG`: AMG and fractional AMG as petsc4py
+  preconditioners (`PCPYTHON` contexts), configurable through the PETSc
+  options database.
 - `CSRMatrix`: a HAZmath sparse matrix, built from CSR arrays
-  (`csr_from_arrays`), a SciPy sparse matrix (`csr_from_scipy`) or an assembled
-  sequential PETSc matrix (`csr_from_petsc`). It shares the arrays that need
-  no conversion, so changing them afterwards changes the matrix.
+  (`csr_from_arrays`), a SciPy sparse matrix (`csr_from_scipy`), an assembled
+  sequential PETSc matrix (`csr_from_petsc`) or a DOLFINx matrix
+  (`csr_from_dolfinx`). It shares the arrays that need no conversion, so
+  changing them afterwards changes the matrix.
 - `AMGParam`: the HAZmath AMG parameters, with the HAZmath defaults.
 - `amg(A, param)` and `famg(A, M, param)`: AMG and fractional AMG
   preconditioners. `Precond.apply(r, z)` computes `z = B r`.
 
-PETSc `PC` classes and the auxiliary space (HX), rational approximation and
-metric AMG preconditioners come in later versions.
+The auxiliary space (HX), rational approximation and metric AMG
+preconditioners come in later versions.
 
 ## Installation
 
@@ -37,6 +41,11 @@ LAPACK (`apt install libsuitesparse-dev liblapack-dev`):
 python3 -m pip install . -C cmake.define.USE_SUITESPARSE=ON -C cmake.define.USE_LAPACK=ON
 ```
 
+HAZmath's index type `INT` is 32-bit by default. For problems with more than
+about 2.1e9 indices, run `make config int64=yes` first; it writes
+`include/haz_int.h`, which the build then uses. `haznicsx.index_dtype` tells
+which width the package was built with.
+
 **Against an installed libhazmath**, with its CMake package. Only a C/C++
 compiler is needed for the second step:
 
@@ -52,7 +61,38 @@ CMAKE_PREFIX_PATH=$HOME/.local/hazmath python3 -m pip install .[test] \
 Either way, `src/haznics/helper.c` (the `create_precond_*` functions) is
 compiled into the extension.
 
-## Example
+## Examples
+
+With DOLFINx, the preconditioner is chosen through the PETSc options:
+
+```python
+problem = dolfinx.fem.petsc.LinearProblem(
+    a,
+    L,
+    bcs=[bc],
+    petsc_options_prefix="poisson_",
+    petsc_options={
+        "ksp_type": "cg",
+        "pc_type": "python",
+        "pc_python_type": "haznicsx.HazmathAMG",
+        "pc_hazmath_cycle_type": "w",  # any AMGParam field: pc_hazmath_<field>
+    },
+)
+uh = problem.solve()
+```
+
+In parallel, use it on each process's block:
+`"pc_type": "bjacobi", "sub_pc_type": "python", "sub_pc_python_type": "haznicsx.HazmathAMG"`.
+
+With petsc4py directly:
+
+```python
+pc = ksp.getPC()
+pc.setType("python")
+pc.setPythonContext(haznicsx.HazmathAMG(haznicsx.AMGParam()))
+```
+
+Without PETSc:
 
 ```python
 import numpy as np
@@ -71,14 +111,25 @@ B.apply(r, z)
 
 ## Limitations
 
-- HAZmath uses 32-bit indices and real double precision values. Matrices
-  from PETSc builds with complex or single precision scalars are rejected
-  with a `TypeError`; indices from 64-bit PETSc builds are converted, and an
+- HAZmath uses real double precision values. Matrices from PETSc or DOLFINx
+  with complex or single precision values are rejected with a `TypeError`.
+  Indices of another width than `haznicsx.index_dtype` are converted, and an
   `OverflowError` is raised if they do not fit.
-- HAZmath is serial: `csr_from_petsc` accepts matrices on one process only.
+- HAZmath is serial: the converters and preconditioners accept matrices on
+  one process only. In parallel, use the preconditioners as sub-preconditioners
+  of block Jacobi or additive Schwarz.
+- A 64-bit `INT` needs the build in one go: the CMake install of libhazmath
+  does not install `include/haz_int.h`, so code built against the installed
+  headers assumes a 32-bit `INT`.
+- PETSc objects that hold a haznicsx preconditioner should be destroyed
+  before Python exits (as `LinearProblem` does); otherwise nanobind reports
+  the haznicsx objects they still hold as leaked.
 
 ## Tests
 
 ```bash
 python3 -m pytest python/tests
 ```
+
+Tests that need PETSc are in files with `petsc` in the name, so they can be
+deselected without PETSc: `python3 -m pytest python/tests --ignore-glob="*petsc*"`.

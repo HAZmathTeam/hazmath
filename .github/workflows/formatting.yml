@@ -75,6 +75,11 @@ jobs:
         if: ${{ !cancelled() }}
         run: mypy  # files and options in pyproject.toml
 
+      # CMake style of the Python package, as in DOLFINx (python/.gersemirc)
+      - name: gersemi on the Python package's CMake files
+        if: ${{ !cancelled() }}
+        run: gersemi --check python
+
   whole-repo:
     name: Whole repository (report only)
     runs-on: ubuntu-latest
