@@ -18,7 +18,10 @@ static void coarse_solve(dCSRmat* A, const REAL* b, REAL* x,
   if (aux->Numeric) {
     hazmath_solve(&aux->At_coarse, &bv, &uv, aux->Numeric, 0);
   } else {
-    directsolve_HAZ(A, &bv, &uv, 0);
+    // directsolve_HAZ returns its error code; this void cycle cannot pass
+    // it on, so it stops, as directsolve_HAZ itself used to
+    INT status = directsolve_HAZ(A, &bv, &uv, 0);
+    if (status < 0) exit(status);
   }
 }
 

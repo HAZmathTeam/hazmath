@@ -88,14 +88,15 @@ INT directsolve_HAZ(dCSRmat *A,
   //  error_extlib(252, __FUNCTION__, "SuiteSparse not present");
   //  return 0;
 #endif
-  // Error Check
+  // Error Check: the error code is returned to the caller (who can, e.g.,
+  // fall back to another solver) instead of ending the program
   if(err_flag_s<0) {
     printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- DIRECT SOLVE ERROR!!!\n\n",__FUNCTION__);
-    exit(err_flag_s);
+    return err_flag_s;
   }
   if(err_flag_f<0) {
     printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- DIRECT SOLVE FREE ERROR!!!\n\n",__FUNCTION__);
-    exit(err_flag_f);
+    return err_flag_f;
   }
   return err_flag_s;
 }
@@ -213,10 +214,10 @@ INT solve_HAZ(dCSRmat *A,
   //  error_extlib(252, __FUNCTION__, "SuiteSparse");
   //  return 0;
 #endif
-  // Error Check
+  // Error Check: the error code is returned to the caller instead of
+  // ending the program
   if(err_flag<0) {
     printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- DIRECT SOLVE ERROR!!!\n\n",__FUNCTION__);
-    exit(err_flag);
   }
   return err_flag;
 }

@@ -116,7 +116,10 @@ void python_wrapper_direct(INT *n,
     rhs.row = *n; rhs.val = b;
     sol.row = *n; sol.val = u;
 
-    directsolve_HAZ(&mat, &rhs, &sol, *print_lvl);
+    // directsolve_HAZ returns its error code; this void wrapper cannot pass
+    // it on, so it stops, as directsolve_HAZ itself used to
+    INT status = directsolve_HAZ(&mat, &rhs, &sol, *print_lvl);
+    if (status < 0) exit(status);
 }
 
 /*************************************************************************************/
