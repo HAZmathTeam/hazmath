@@ -134,9 +134,10 @@ B.apply(r, z)
 - HAZmath is serial: the converters and preconditioners accept matrices on
   one process only. In parallel, use `HazmathAMG` as the sub-preconditioner of
   block Jacobi or additive Schwarz; the HX preconditioners are serial only.
-- A 64-bit `INT` needs the build in one go: the CMake install of libhazmath
-  does not install `include/haz_int.h`, so code built against the installed
-  headers assumes a 32-bit `INT`.
+- For a 64-bit `INT` against an installed libhazmath, run
+  `make config int64=yes` before the `cmake` steps under Installation. The
+  install then carries `include/haz_int.h` along with the other headers.
+  Without it, code built against the installed headers assumes a 32-bit `INT`.
 - PETSc objects that hold a haznicsx preconditioner should be destroyed
   before Python exits (as `LinearProblem` does); otherwise nanobind reports
   the haznicsx objects they still hold as leaked.

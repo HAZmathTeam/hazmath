@@ -561,6 +561,10 @@ else()
   list(TRANSFORM HAZMATH_PUBLIC_HEADERS PREPEND "${HAZMATH_SOURCE_DIR}/include/")
   install(FILES ${HAZMATH_PUBLIC_HEADERS}
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hazmath)
+  # haz_int.h (INT width) is written by "make config"; a plain cmake or
+  # pip build has none, and macro.h then defaults to 32-bit INT
+  install(FILES "${HAZMATH_SOURCE_DIR}/include/haz_int.h" OPTIONAL
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hazmath)
   set(HAZMATH_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/hazmath)
   install(EXPORT hazmathTargets
     NAMESPACE hazmath::
