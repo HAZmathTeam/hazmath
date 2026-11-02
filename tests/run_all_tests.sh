@@ -63,7 +63,9 @@ record() { # name status seconds
 run() { # name dir command... (log in logs/name.log)
   local name=$1 dir=$2; shift 2
   local t0=$(date +%s)
-  ( cd "$dir" && $TIMEOUT "$@" ) > "$OUT/logs/$name.log" 2>&1
+  # stdin from /dev/null: a program that reads stdin (as test_aaa.ex does)
+  # must not wait on the terminal (under timeout it would be stopped)
+  ( cd "$dir" && $TIMEOUT "$@" ) < /dev/null > "$OUT/logs/$name.log" 2>&1
   local st=$?
   record "$name" $st $(( $(date +%s) - t0 ))
 }
@@ -141,7 +143,8 @@ if [ $do_examples = 1 ]; then
   run amr_grids_dgs_adaptive_2d   "$EX/amr_grids" ./test_dgs_adaptive.ex 2 3 1
   run amr_grids_dgs_adaptive_3d   "$EX/amr_grids" ./test_dgs_adaptive.ex 3 2 1
   run amr_grids_msh_roundtrip     "$EX/amr_grids" ./test_msh_roundtrip.ex
-  run approximation_test_aaa      "$EX/approximation" ./test_aaa.ex
+  # test_aaa.ex reads "s t alpha beta xmin xmax" from stdin (its usage example)
+  run approximation_test_aaa      "$EX/approximation" sh -c 'echo "0.60 -0.20 1.00 1.00 0.00 1.00" | ./test_aaa.ex'
   run basic_elliptic              "$EX/basic_elliptic" ./basic_elliptic.ex
   run elliptic_p1                 "$EX/elliptic_p1" ./elliptic_p1.ex
   run heat_equation               "$EX/heat_equation" ./heat_equation.ex
