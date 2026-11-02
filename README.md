@@ -5,6 +5,7 @@
 **Contributors:**
 
 - ***HAZNICS (HAZMATH+FEniCS) and Python interface:*** Ana Budisa (Simula, Norway), Miroslav Kuchta (Simula, Norway), Kent-Andre Mardal (Simula, Univ Oslo, Norway).
+- ***Python package haznicsx (DOLFINx and PETSc):*** Jørgen S. Dokken (Simula, Norway).
 - ***Rational Approximation of Functions***: Clemens Hofreither (RICAM, Austrian Academy of Sciences)
 - ***Grid refinement and adaptive FE***: Yuwen Li (Penn State)
 - ***Geometric MultiGrid:*** Johannes Kraus (Universitat Duisburg-Essen, Germany), Peter Ohm (Sandia), Yunrong Zhu (Idaho State).
@@ -17,7 +18,7 @@ Our aim is to provide a basic tool, which can be used to tackle specific problem
 
 ---
 
-**Components:** As of early 2017, the main components of the HAZMATH FE/Graph library are:
+**Components:** The main components of the HAZMATH FE/Graph library are:
 
 1. **Basic FE:**  Low order (up to order 2) continuous FE and mixed FE discretizations for Darcy's flow and scalar elliptic equations; Stable discretizations for Stokes and linear elasticity; Discretization for full Maxwell's equations using Nedelec and Raviart-Thomas elements.
 
@@ -25,7 +26,9 @@ Our aim is to provide a basic tool, which can be used to tackle specific problem
 
 3. **HAZNICS:** Collaboration with Simula; Interface with Python and use of HAZMATH solvers in applications modeled by [FEniCS](https://fenicsproject.org/) finite element libraries.
 
-4. **Interfaces with External Libraries:** Some routines require a direct linear solver and these depend on the [SuiteSparse](http://faculty.cse.tamu.edu/davis/suitesparse.html) library (by Tim Davis, Texas A & M), which the user needs to install. We also provide an interface for using [Multigraph 2.1](http://ccom.ucsd.edu/~reb/software.html) (by Randolph E Bank, UCSD) as a solver.  
+4. **haznicsx:** Python package with HAZMATH preconditioners for [DOLFINx](https://github.com/FEniCS/dolfinx) and [PETSc](https://petsc.org), the successor of the SWIG-based HAZNICS module for legacy FEniCS: AMG and fractional AMG, and HX (auxiliary space) preconditioners for H(curl) and H(div) in 2D and 3D, usable as petsc4py preconditioners or on their own. See [python/README.md](python/README.md).
+
+5. **Interfaces with External Libraries:** Some routines require a direct linear solver and these depend on the [SuiteSparse](http://faculty.cse.tamu.edu/davis/suitesparse.html) library (by Tim Davis, Texas A & M), which the user needs to install. We also provide an interface for using [Multigraph 2.1](http://ccom.ucsd.edu/~reb/software.html) (by Randolph E Bank, UCSD) as a solver.  
 
 ---
 
