@@ -5,13 +5,13 @@
 # SPDX-License-Identifier:    MIT
 """Tests of the PCs through dolfinx.fem.petsc."""
 
-from mpi4py import MPI
-
 import numpy as np
 import pytest
 
 pytest.importorskip("dolfinx")
 PETSc = pytest.importorskip("petsc4py.PETSc")
+
+from mpi4py import MPI
 
 import dolfinx.fem.petsc
 import ufl

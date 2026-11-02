@@ -7,14 +7,14 @@
 
 import sys
 
-from mpi4py import MPI
-
 import numpy as np
 import pytest
 
 import haznicsx
 
 pytest.importorskip("dolfinx")
+
+from mpi4py import MPI
 
 import ufl
 from dolfinx import fem, mesh
