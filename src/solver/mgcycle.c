@@ -619,7 +619,7 @@ void nl_amli (AMG_data *mgl,
             }
             else { // recursively call preconditioned Krylov method on coarse grid
 
-                precond_data pcdata;
+                precond_data pcdata = {0};
 
                 param_amg_to_prec(&pcdata, param);
                 pcdata.maxit = 1;

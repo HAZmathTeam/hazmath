@@ -180,6 +180,7 @@ void precond_amg(REAL *r,
       mgcycle(mgl,&amgparam);
     }
     array_cp(m,mgl->x.val,z);
+    free(amgparam.amli_coef); // copy made by param_prec_to_amg
 }
 
 /***********************************************************************************************/
@@ -214,6 +215,7 @@ void precond_famg(REAL *r,
     for (i=0;i<maxit;++i) fmgcycle(mgl,&amgparam);
 
     array_cp(m,mgl->x.val,z);
+    free(amgparam.amli_coef); // copy made by param_prec_to_amg
 }
 
 /***********************************************************************************************/
@@ -248,6 +250,7 @@ void precond_amli(REAL *r,
     for (i=0;i<maxit;++i) amli(mgl,&amgparam,0);
 
     array_cp(m,mgl->x.val,z);
+    free(amgparam.amli_coef); // copy made by param_prec_to_amg
 }
 
 
@@ -283,6 +286,7 @@ void precond_famli(REAL *r,
     for (i=0;i<maxit;++i) famli(mgl,&amgparam,0);
 
     array_cp(m,mgl->x.val,z);
+    free(amgparam.amli_coef); // copy made by param_prec_to_amg
 }
 
 /***********************************************************************************************/
@@ -318,6 +322,7 @@ void precond_nl_amli(REAL *r,
     for (i=0;i<maxit;++i) nl_amli(mgl, &amgparam, 0, num_levels);
 
     array_cp(m,mgl->x.val,z);
+    free(amgparam.amli_coef); // copy made by param_prec_to_amg
 }
 
 /***********************************************************************************************/
@@ -353,6 +358,7 @@ void precond_amg_add(REAL *r,
     //mgcycle_add_update(mgl,&amgparam);
 
     array_cp(m,mgl->x.val,z);
+    free(amgparam.amli_coef); // copy made by param_prec_to_amg
 }
 
 /***********************************************************************************************/
@@ -419,10 +425,12 @@ void precond_famg_add(REAL *r,
         // call iterative solver
         for (i=0;i<maxit;++i) fmgcycle_add_update(mgl,&amgparam);
         //fmgcycle_add(mgl,&amgparam);
+        free(amgparam.amli_coef); // copy made by param_prec_to_amg
         return;
     }
 
     array_cp(m,mgl->x.val,z);
+    free(amgparam.amli_coef); // copy made by param_prec_to_amg
 }
 
 
@@ -489,6 +497,7 @@ void precond_famg_add2(REAL *r,
         array_cp(m,mgl->x.val,z);
     }
 
+    free(amgparam.amli_coef); // copy made by param_prec_to_amg
 }
 
 
@@ -603,13 +612,18 @@ void precond_sum_famg_add2(REAL *r,
  * \author Xiaozhe Hu
  * \date   02/10/2016
  */
-void precond_hx_curl_additive(REAL *r,
+void precond_hx_curl_additive(REAL *r_in,
                               REAL *z,
                               void *data)
 {
     HX_curl_data *hxcurldata=(HX_curl_data *)data;
     INT n = hxcurldata->A->row;
     SHORT smooth_iter = hxcurldata->smooth_iter;
+
+    // work on a copy of r: the caller's r is not written, and r and z may
+    // be the same array
+    REAL *r = hxcurldata->backup_r;
+    array_cp(n, r_in, r);
 
     // make sure z is initialzied by zeros
     array_set(n, z, 0.0);
@@ -668,7 +682,7 @@ void precond_hx_curl_additive(REAL *r,
  * \author Xiaozhe Hu
  * \date   02/10/2016
  */
-void precond_hx_curl_multiplicative(REAL *r,
+void precond_hx_curl_multiplicative(REAL *r_in,
                                     REAL *z,
                                     void *data)
 {
@@ -677,8 +691,17 @@ void precond_hx_curl_multiplicative(REAL *r,
     INT n = hxcurldata->A->row;
     SHORT smooth_iter = hxcurldata->smooth_iter;
 
-    // backup r
-    array_cp(n, r, hxcurldata->backup_r);
+    // The caller's r is only read (r0); the residual r is updated in
+    // backup_r. If r and z are the same array, r0 is a copy, since z is
+    // overwritten.
+    REAL *r0 = r_in, *r0_copy = NULL;
+    if (r_in == z) {
+        r0_copy = (REAL*)malloc(n*sizeof(REAL));
+        array_cp(n, r_in, r0_copy);
+        r0 = r0_copy;
+    }
+    REAL *r = hxcurldata->backup_r;
+    array_cp(n, r0, r);
 
     // make sure z is initialzied by zeros
     array_set(n, z, 0.0);
@@ -712,7 +735,7 @@ void precond_hx_curl_multiplicative(REAL *r,
     dcsr_aAxpy(1.0, hxcurldata->P_curl, mgl_vgrad->x.val, z);
 
     // update r
-    array_cp(n, hxcurldata->backup_r, r);
+    array_cp(n, r0, r);
     dcsr_aAxpy(-1.0, hxcurldata->A, zz.val, rr.val);
 
     // solve scalar Laplacian
@@ -729,8 +752,7 @@ void precond_hx_curl_multiplicative(REAL *r,
 
     dcsr_aAxpy(1.0, hxcurldata->Grad, mgl_grad->x.val, z);
 
-    // store r
-    array_cp(n, hxcurldata->backup_r, r);
+    free(r0_copy);
 
 }
 
@@ -747,7 +769,7 @@ void precond_hx_curl_multiplicative(REAL *r,
  * \author Xiaozhe Hu
  * \date   03/03/2019
  */
-void precond_hx_div_additive_2D(REAL *r,
+void precond_hx_div_additive_2D(REAL *r_in,
                                 REAL *z,
                                 void *data)
 {
@@ -755,6 +777,11 @@ void precond_hx_div_additive_2D(REAL *r,
     HX_div_data *hxdivdata=(HX_div_data *)data;
     INT n = hxdivdata->A->row;
     SHORT smooth_iter = hxdivdata->smooth_iter;
+
+    // work on a copy of r: the caller's r is not written, and r and z may
+    // be the same array
+    REAL *r = hxdivdata->backup_r;
+    array_cp(n, r_in, r);
 
     // make sure z is initialzied by zeros
     array_set(n, z, 0.0);
@@ -826,7 +853,7 @@ void precond_hx_div_additive_2D(REAL *r,
  * \author Xiaozhe Hu
  * \date   03/03/2019
  */
-void precond_hx_div_multiplicative_2D(REAL *r,
+void precond_hx_div_multiplicative_2D(REAL *r_in,
                                       REAL *z,
                                       void *data)
 {
@@ -835,8 +862,17 @@ void precond_hx_div_multiplicative_2D(REAL *r,
     INT n = hxdivdata->A->row;
     SHORT smooth_iter = hxdivdata->smooth_iter;
 
-    // backup r
-    array_cp(n, r, hxdivdata->backup_r);
+    // The caller's r is only read (r0); the residual r is updated in
+    // backup_r. If r and z are the same array, r0 is a copy, since z is
+    // overwritten.
+    REAL *r0 = r_in, *r0_copy = NULL;
+    if (r_in == z) {
+        r0_copy = (REAL*)malloc(n*sizeof(REAL));
+        array_cp(n, r_in, r0_copy);
+        r0 = r0_copy;
+    }
+    REAL *r = hxdivdata->backup_r;
+    array_cp(n, r0, r);
 
     // make sure z is initialzied by zeros
     array_set(n, z, 0.0);
@@ -848,6 +884,7 @@ void precond_hx_div_multiplicative_2D(REAL *r,
     rr.row = n; rr.val = r;
 
     //SHORT maxit;
+    SHORT maxit, i;
 
     //-----------
     // smoothing
@@ -884,7 +921,25 @@ void precond_hx_div_multiplicative_2D(REAL *r,
     dcsr_aAxpy(1.0, hxdivdata->P_div, mgl_divgrad->x.val, z);
     */
 
-    // solve wth AMG+krylov
+    maxit = amgparam_divgrad->maxit;
+
+    // maxit AMG cycles, as in the other HX preconditioners (this used an
+    // inner FGMRES to 1e-3, which made the preconditioner nonlinear)
+    mgl_divgrad->b.row = hxdivdata->A_divgrad->row;
+    dcsr_mxv(hxdivdata->Pt_div, r, mgl_divgrad->b.val);
+    mgl_divgrad->x.row = hxdivdata->A_divgrad->row;
+    dvec_set(hxdivdata->A_divgrad->row, &mgl_divgrad->x, 0.0);
+
+    for (i=0;i<maxit;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
+
+    //-----------------
+    // update solution
+    //-----------------
+    dcsr_aAxpy(1.0, hxdivdata->P_div, mgl_divgrad->x.val, z);
+
+    /*
+    // solve wth AMG+krylov (instead of the maxit cycles above; makes the
+    // preconditioner nonlinear, so the outer method must be FGMRES)
     dvector r_divgrad;
     dvec_alloc(hxdivdata->A_divgrad->row, &r_divgrad);
     dcsr_mxv(hxdivdata->Pt_div, r, r_divgrad.val);
@@ -893,7 +948,7 @@ void precond_hx_div_multiplicative_2D(REAL *r,
     dvec_alloc(hxdivdata->A_divgrad->row, &x_divgrad);
     dvec_set(hxdivdata->A_divgrad->row, &x_divgrad, 0.0);
 
-    precond_data pcdata_divgrad;
+    precond_data pcdata_divgrad = {0};
     param_amg_to_prec(&pcdata_divgrad,amgparam_divgrad);
     precond pc_divgrad;
     pc_divgrad.fct = precond_amg;
@@ -909,11 +964,12 @@ void precond_hx_div_multiplicative_2D(REAL *r,
 
     dvec_free(&r_divgrad);
     dvec_free(&x_divgrad);
+    */
 
     //----------
     // update r
     //----------
-    array_cp(n, hxdivdata->backup_r, r);
+    array_cp(n, r0, r);
     dcsr_aAxpy(-1.0, hxdivdata->A, zz.val, rr.val);
 
     //------------------------
@@ -940,7 +996,25 @@ void precond_hx_div_multiplicative_2D(REAL *r,
     dcsr_aAxpy(1.0, hxdivdata->Curl, mgl_grad->x.val, z);
     */
 
-    // solve wth AMG+krylov
+    maxit = amgparam_grad->maxit;
+
+    // maxit AMG cycles, as in the other HX preconditioners (this used an
+    // inner FGMRES to 1e-3, which made the preconditioner nonlinear)
+    mgl_grad->b.row = hxdivdata->Curlt->row;
+    dcsr_mxv(hxdivdata->Curlt, r, mgl_grad->b.val);
+    mgl_grad->x.row=hxdivdata->A_grad->row;
+    dvec_set(hxdivdata->A_grad->row, &mgl_grad->x, 0.0);
+
+    for (i=0;i<maxit;++i) mgcycle(mgl_grad, amgparam_grad);
+
+    //-----------------
+    // update solution
+    //-----------------
+    dcsr_aAxpy(1.0, hxdivdata->Curl, mgl_grad->x.val, z);
+
+    /*
+    // solve wth AMG+krylov (instead of the maxit cycles above; makes the
+    // preconditioner nonlinear, so the outer method must be FGMRES)
     dvector r_grad;
     dvec_alloc(hxdivdata->A_grad->row, &r_grad);
     dcsr_mxv(hxdivdata->Curlt, r, r_grad.val);
@@ -949,7 +1023,7 @@ void precond_hx_div_multiplicative_2D(REAL *r,
     dvec_alloc(hxdivdata->A_grad->row, &x_grad);
     dvec_set(hxdivdata->A_grad->row, &x_grad, 0.0);
 
-    precond_data pcdata_grad;
+    precond_data pcdata_grad = {0};
     param_amg_to_prec(&pcdata_grad,amgparam_grad);
     precond pc_grad;
     pc_grad.fct = precond_amg;
@@ -963,8 +1037,11 @@ void precond_hx_div_multiplicative_2D(REAL *r,
 
     dcsr_aAxpy(1.0, hxdivdata->Curl, x_grad.val, z);
 
-    // restore r
-    array_cp(n, hxdivdata->backup_r, r);
+    dvec_free(&r_grad);
+    dvec_free(&x_grad);
+    */
+
+    free(r0_copy);
 
 }
 
@@ -982,7 +1059,7 @@ void precond_hx_div_multiplicative_2D(REAL *r,
  * \author Peter Ohm
  * \date   05/10/2018
  */
-void precond_hx_div_additive(REAL *r,
+void precond_hx_div_additive(REAL *r_in,
                               REAL *z,
                               void *data)
 {
@@ -990,6 +1067,11 @@ void precond_hx_div_additive(REAL *r,
     HX_div_data *hxdivdata=(HX_div_data *)data;
     INT n = hxdivdata->A->row;
     SHORT smooth_iter = hxdivdata->smooth_iter;
+
+    // work on a copy of r: the caller's r is not written, and r and z may
+    // be the same array
+    REAL *r = hxdivdata->backup_r;
+    array_cp(n, r_in, r);
 
     // make sure z is initialzied by zeros
     array_set(n, z, 0.0);
@@ -1091,7 +1173,7 @@ void precond_hx_div_additive(REAL *r,
  * \author Peter Ohm
  * \date   05/10/2018
  */
-void precond_hx_div_multiplicative(REAL *r,
+void precond_hx_div_multiplicative(REAL *r_in,
                               REAL *z,
                               void *data)
 {
@@ -1103,8 +1185,17 @@ void precond_hx_div_multiplicative(REAL *r,
     INT n = hxdivdata->A->row;
     SHORT smooth_iter = hxdivdata->smooth_iter;
 
-    // backup r
-    array_cp(n, r, hxdivdata->backup_r);
+    // The caller's r is only read (r0); the residual r is updated in
+    // backup_r. If r and z are the same array, r0 is a copy, since z is
+    // overwritten.
+    REAL *r0 = r_in, *r0_copy = NULL;
+    if (r_in == z) {
+        r0_copy = (REAL*)malloc(n*sizeof(REAL));
+        array_cp(n, r_in, r0_copy);
+        r0 = r0_copy;
+    }
+    REAL *r = hxdivdata->backup_r;
+    array_cp(n, r0, r);
 
     // make sure z is initialzied by zeros
     array_set(n, z, 0.0);
@@ -1157,7 +1248,7 @@ void precond_hx_div_multiplicative(REAL *r,
     dvec_alloc(hxdivdata->A_divgrad->row, &x_divgrad);
     dvec_set(hxdivdata->A_divgrad->row, &x_divgrad, 0.0);
 
-    precond_data pcdata_divgrad;
+    precond_data pcdata_divgrad = {0};
     param_amg_to_prec(&pcdata_divgrad,amgparam_divgrad);
     precond pc_divgrad;
     pc_divgrad.fct = precond_amg;
@@ -1176,7 +1267,7 @@ void precond_hx_div_multiplicative(REAL *r,
     */
 
     // update r
-    array_cp(n, hxdivdata->backup_r, r);
+    array_cp(n, r0, r);
     dcsr_aAxpy(-1.0, hxdivdata->A, zz.val, rr.val);
 
     //--------------------------
@@ -1197,7 +1288,7 @@ void precond_hx_div_multiplicative(REAL *r,
     dcsr_aAxpy(1.0,hxdivdata->Curl,Cz.val,z);
 
     // update r
-    array_cp(n, hxdivdata->backup_r, r);
+    array_cp(n, r0, r);
     dcsr_aAxpy(-1.0, hxdivdata->A, zz.val, rr.val);
 
     //-----------------------------
@@ -1232,7 +1323,7 @@ void precond_hx_div_multiplicative(REAL *r,
     dvec_alloc(hxdivdata->A_curlgrad->row, &x_curlgrad);
     dvec_set(hxdivdata->A_curlgrad->row, &x_curlgrad, 0.0);
 
-    precond_data pcdata_curlgrad;
+    precond_data pcdata_curlgrad = {0};
     param_amg_to_prec(&pcdata_curlgrad,amgparam_curlgrad);
     precond pc_curlgrad;
     pc_curlgrad.fct = precond_amg;
@@ -1255,7 +1346,7 @@ void precond_hx_div_multiplicative(REAL *r,
     // store r
     //--------------------------
     //printf("restore r\n");
-    array_cp(n, hxdivdata->backup_r, r);
+    free(r0_copy);
     //printf("preconditioner done\n");
 
 }
@@ -1544,7 +1635,7 @@ void precond_block_diag_2_amg_krylov(REAL *r,
     r0.val = r; r1.val = &(r[N0]);
     z0.val = z; z1.val = &(z[N0]);
 
-    precond_data pcdata;
+    precond_data pcdata = {0};
     param_amg_to_prec(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
@@ -1744,7 +1835,7 @@ void precond_block_lower_2_amg_krylov(REAL *r,
     r0.val = r; r1.val = &(r[N0]);
     z0.val = z; z1.val = &(z[N0]);
 
-    precond_data pcdata;
+    precond_data pcdata = {0};
     param_amg_to_prec(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
@@ -1945,7 +2036,7 @@ void precond_block_upper_2_amg_krylov(REAL *r,
     r0.val = r; r1.val = &(r[N0]);
     z0.val = z; z1.val = &(z[N0]);
 
-    precond_data pcdata;
+    precond_data pcdata = {0};
     param_amg_to_prec(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
@@ -2146,7 +2237,7 @@ void precond_block_diag_3_amg_krylov(REAL *r,
     r0.val = r; r1.val = &(r[N0]); r2.val = &(r[N0+N1]);
     z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
 
-    precond_data pcdata;
+    precond_data pcdata = {0};
     param_amg_to_prec(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
@@ -2378,7 +2469,7 @@ void precond_block_lower_3_amg_krylov(REAL *r,
     r0.val = r; r1.val = &(r[N0]); r2.val = &(r[N0+N1]);
     z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
 
-    precond_data pcdata;
+    precond_data pcdata = {0};
     param_amg_to_prec(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
@@ -2620,7 +2711,7 @@ void precond_block_upper_3_amg_krylov(REAL *r,
     r0.val = r; r1.val = &(r[N0]); r2.val = &(r[N0+N1]);
     z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
 
-    precond_data pcdata;
+    precond_data pcdata = {0};
     param_amg_to_prec(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
@@ -2872,7 +2963,7 @@ void precond_block_diag_4_amg_krylov(REAL *r,
     z2.val = &(z[N0+N1]);
     z3.val = &(z[N0+N1+N2]);
 
-    precond_data pcdata;
+    precond_data pcdata = {0};
     param_amg_to_prec(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
@@ -3181,7 +3272,7 @@ void precond_block_lower_4_amg_krylov(REAL *r,
     z2.val = &(z[N0+N1]);
     z3.val = &(z[N0+N1+N2]);
 
-    precond_data pcdata;
+    precond_data pcdata = {0};
     param_amg_to_prec(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
@@ -3509,7 +3600,7 @@ void precond_block_upper_4_amg_krylov(REAL *r,
     z2.val = &(z[N0+N1]);
     z3.val = &(z[N0+N1+N2]);
 
-    precond_data pcdata;
+    precond_data pcdata = {0};
     param_amg_to_prec(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
@@ -3617,7 +3708,7 @@ void precond_block_diag_5_amg_krylov(REAL *r,
     z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
     z3.val = &(z[N0+N1+N2]); z4.val = &(z[N0+N1+N2+N3]);
 
-    precond_data pcdata;
+    precond_data pcdata = {0};
     param_amg_to_prec(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
@@ -4145,7 +4236,7 @@ void precond_block_diag_mixed_darcy_krylov(REAL *r,
   //#endif
 
   // Preconditioning A00 block (flux)
-  precond_data pcdata_p;
+  precond_data pcdata_p = {0};
   param_amg_to_prec(&pcdata_p,amgparam);
   pcdata_p.max_levels = mgl[0][0].num_levels;
   pcdata_p.mgl_data = mgl[0];
@@ -4213,7 +4304,7 @@ void precond_block_lower_mixed_darcy_krylov(REAL *r,
   //#endif
 
   // Preconditioning A00 block (flux)
-  precond_data pcdata_p;
+  precond_data pcdata_p = {0};
   param_amg_to_prec(&pcdata_p,amgparam);
   pcdata_p.max_levels = mgl[0][0].num_levels;
   pcdata_p.mgl_data = mgl[0];
@@ -4292,7 +4383,7 @@ void precond_block_upper_mixed_darcy_krylov(REAL *r,
   dcsr_aAxpy(-1.0, A->blocks[1], z1.val, r0.val);
 
   // Preconditioning A00 block (flux)
-  precond_data pcdata_p;
+  precond_data pcdata_p = {0};
   param_amg_to_prec(&pcdata_p,amgparam);
   pcdata_p.max_levels = mgl[0][0].num_levels;
   pcdata_p.mgl_data = mgl[0];
@@ -5063,7 +5154,7 @@ void precond_block_diag_mixed_darcy_lap_krylov(REAL *r,
   //#endif
 
   // Preconditioning A00 block (flux)
-  precond_data pcdata_p;
+  precond_data pcdata_p = {0};
   param_amg_to_prec(&pcdata_p,amgparam);
   pcdata_p.max_levels = mgl[0][0].num_levels;
   pcdata_p.mgl_data = mgl[0];
@@ -5074,7 +5165,7 @@ void precond_block_diag_mixed_darcy_lap_krylov(REAL *r,
   dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_p, 1e-3, 100, 100, 1, 1);
 
   // Preconditioning A11 block (head)
-  precond_data pcdata_h;
+  precond_data pcdata_h = {0};
   param_amg_to_prec(&pcdata_h,amgparam);
   pcdata_h.max_levels = mgl[1][0].num_levels;
   pcdata_h.mgl_data = mgl[1];
@@ -5135,7 +5226,7 @@ void precond_block_lower_mixed_darcy_lap_krylov(REAL *r,
   //#endif
 
   // Preconditioning A00 block (flux)
-  precond_data pcdata_p;
+  precond_data pcdata_p = {0};
   param_amg_to_prec(&pcdata_p,amgparam);
   pcdata_p.max_levels = mgl[0][0].num_levels;
   pcdata_p.mgl_data = mgl[0];
@@ -5149,7 +5240,7 @@ void precond_block_lower_mixed_darcy_lap_krylov(REAL *r,
   dcsr_aAxpy(-1.0, A->blocks[2], z0.val, r1.val);
 
   // Preconditioning A11 block (head)
-  precond_data pcdata_h;
+  precond_data pcdata_h = {0};
   param_amg_to_prec(&pcdata_h,amgparam);
   pcdata_h.max_levels = mgl[1][0].num_levels;
   pcdata_h.mgl_data = mgl[1];
@@ -5210,7 +5301,7 @@ void precond_block_upper_mixed_darcy_lap_krylov(REAL *r,
   //#endif
 
   // Preconditioning A11 block (head)
-  precond_data pcdata_h;
+  precond_data pcdata_h = {0};
   param_amg_to_prec(&pcdata_h,amgparam);
   pcdata_h.max_levels = mgl[1][0].num_levels;
   pcdata_h.mgl_data = mgl[1];
@@ -5224,7 +5315,7 @@ void precond_block_upper_mixed_darcy_lap_krylov(REAL *r,
   dcsr_aAxpy(-1.0, A->blocks[1], z1.val, r0.val);
 
   // Preconditioning A00 block (flux)
-  precond_data pcdata_p;
+  precond_data pcdata_p = {0};
   param_amg_to_prec(&pcdata_p,amgparam);
   pcdata_p.max_levels = mgl[0][0].num_levels;
   pcdata_p.mgl_data = mgl[0];
@@ -5286,7 +5377,7 @@ void precond_block_ilu_mixed_darcy_lap_krylov(REAL *r,
   //#endif
 
   // Preconditioning A00 block (flux)
-  precond_data pcdata_p;
+  precond_data pcdata_p = {0};
   param_amg_to_prec(&pcdata_p,amgparam);
   pcdata_p.max_levels = mgl[0][0].num_levels;
   pcdata_p.mgl_data = mgl[0];
@@ -5300,7 +5391,7 @@ void precond_block_ilu_mixed_darcy_lap_krylov(REAL *r,
   dcsr_aAxpy(-1.0, A->blocks[2], z0.val, r1.val);
 
   // Preconditioning A11 block (head)
-  precond_data pcdata_h;
+  precond_data pcdata_h = {0};
   param_amg_to_prec(&pcdata_h,amgparam);
   pcdata_h.max_levels = mgl[1][0].num_levels;
   pcdata_h.mgl_data = mgl[1];
@@ -5382,7 +5473,7 @@ void precond_block_ilu_mixed_darcy_graph_lap_krylov(REAL *r,
   dcsr_aAxpy(-1.0, A->blocks[2], z0.val, r1.val);
 
   // Preconditioning A11 block (head)
-  precond_data pcdata_h;
+  precond_data pcdata_h = {0};
   param_amg_to_prec(&pcdata_h,amgparam);
   pcdata_h.max_levels = mgl[1][0].num_levels;
   pcdata_h.mgl_data = mgl[1];
@@ -5603,7 +5694,7 @@ void precond_block2_babuska_diag(REAL *r,
     // pc for krylov for shifted Laplacians
     precond pc_frac_A;
     pc_frac_A.fct = precond_amg;
-    precond_data pcdata;
+    precond_data pcdata = {0};
     param_amg_to_prec(&pcdata, &(amgparam[1]));
     pc_frac_A.data = &pcdata;
     /*----------------------------------------*/
@@ -5777,7 +5868,7 @@ void precond_block2_babuska_lower(REAL *r,
     // pc for krylov for shifted Laplacians
     precond pc_frac_A;
     pc_frac_A.fct = precond_amg;
-    precond_data pcdata;
+    precond_data pcdata = {0};
     param_amg_to_prec(&pcdata, &(amgparam[1]));
     pc_frac_A.data = &pcdata;
     /*----------------------------------------*/
@@ -5908,7 +5999,7 @@ void precond_block2_babuska_upper(REAL *r,
     // pc for krylov for shifted Laplacians
     precond pc_frac_A;
     pc_frac_A.fct = precond_amg;
-    precond_data pcdata;
+    precond_data pcdata = {0};
     param_amg_to_prec(&pcdata, &(amgparam[1]));
     pc_frac_A.data = &pcdata;
     /*----------------------------------------*/
@@ -6085,7 +6176,7 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
     // pc for krylov for shifted Laplacians
     precond pc_frac_A;
     pc_frac_A.fct = precond_amg;
-    precond_data pcdata;
+    precond_data pcdata = {0};
     param_amg_to_prec(&pcdata, amgparam);
     pc_frac_A.data = &pcdata;
 

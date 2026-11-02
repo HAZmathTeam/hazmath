@@ -319,6 +319,40 @@ void iarray_shuffle(const INT n,
 
 /***********************************************************************************************/
 /*!
+ * \fn void iarray_shuffle_seeded(const INT n, INT *x, unsigned long long *state)
+ *
+ * \brief shuffle an INT array with a random generator whose state is given
+ *        (splitmix64), instead of the process-wide rand(): the same state
+ *        gives the same order, and calls with different states are
+ *        independent (also in different threads)
+ *
+ * \param n      Number of entries
+ * \param x      Pointer to the INT array (OUTPUT)
+ * \param state  State of the generator (updated)
+ *
+ */
+void iarray_shuffle_seeded(const INT n,
+                           INT *x,
+                           unsigned long long *state)
+{
+    INT i, j, temp;
+    unsigned long long z;
+
+    for (i = 0; i < n-1; i++) {
+      // splitmix64
+      z = (*state += 0x9E3779B97F4A7C15ULL);
+      z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+      z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
+      z = z ^ (z >> 31);
+      j = i + (INT)(z % (unsigned long long)(n - i));
+      temp = x[j];
+      x[j] = x[i];
+      x[i] = temp;
+    }
+}
+
+/***********************************************************************************************/
+/*!
  * \fn void array_ax (const INT n, const REAL a, REAL *x)
  *
  * \brief Compute x = a*x

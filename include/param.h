@@ -263,6 +263,10 @@ typedef struct {
     // User defined smoother
     void *smoother_function;
 
+    //! seed of the random node order in HEC aggregation: the same seed
+    //! gives the same hierarchy
+    INT random_seed;
+
 } AMG_param; /**< Parameters for AMG */
 
 /**

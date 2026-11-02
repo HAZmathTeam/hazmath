@@ -613,6 +613,7 @@ INT linear_solver_amg(dCSRmat *A,
 
     // clean-up memory
     amg_data_free(mgl, param);
+    free(mgl); // the array from amg_data_create
 
     // print out CPU time if needed
     if ( prtlvl > PRINT_NONE ) {
@@ -887,7 +888,7 @@ INT linear_solver_dcsr_krylov_amg(dCSRmat *A,
     if (status < 0) goto FINISHED;
 
     // setup preconditioner
-    precond_data pcdata;
+    precond_data pcdata = {0};
     precond_data_null(&pcdata);
     param_amg_to_prec(&pcdata,amgparam);
     pcdata.max_levels = mgl[0].num_levels;
@@ -1008,7 +1009,7 @@ INT linear_solver_dcsr_krylov_famg(dCSRmat *A_frac,
     if (status < 0) goto FINISHED;
 
     // setup preconditioner
-    precond_data pcdata;
+    precond_data pcdata = {0};
     precond_data_null(&pcdata);
     param_amg_to_prec(&pcdata, amgparam);
     pcdata.max_levels = mgl[0].num_levels;
@@ -1040,6 +1041,7 @@ INT linear_solver_dcsr_krylov_famg(dCSRmat *A_frac,
 
 FINISHED:
     amg_data_free(mgl, amgparam);
+    free(mgl); // the array from amg_data_create
     return status;
 }
 
@@ -1163,6 +1165,7 @@ INT linear_solver_dcsr_krylov_famg2(dCSRmat *A_frac,
 
 FINISHED:
     amg_data_free(mgl, amgparam);
+    free(mgl); // the array from amg_data_create
     // precond_free(&pc)??
     return status;
 }
@@ -1273,6 +1276,7 @@ INT linear_solver_dcsr_krylov_famg_sum(dCSRmat *A_frac,
         break;
 
     }
+    if (status < 0) goto FINISHED;
 
     // setup FAMG
     switch (famgparam->AMG_type) {
@@ -1332,6 +1336,7 @@ INT linear_solver_dcsr_krylov_famg_sum(dCSRmat *A_frac,
 FINISHED:
     amg_data_free(fmgl, famgparam);
     amg_data_free(mgl, amgparam);
+    free(fmgl); free(mgl); // the arrays from amg_data_create
     dcsr_free(&MAM); dcsr_free(&MAM_t); dcsr_free(&M_lump_mat);
     dvec_free(&M_lump); dvec_free(&x1);
     // precond_free(&pc); ??
@@ -1455,6 +1460,7 @@ INT linear_solver_dcsr_krylov_famg_sum2(dCSRmat *A_frac,
         break;
 
     }
+    if (status < 0) goto FINISHED;
 
     // setup FAMG
     switch (famgparam->AMG_type) {
@@ -1528,6 +1534,7 @@ INT linear_solver_dcsr_krylov_famg_sum2(dCSRmat *A_frac,
 FINISHED:
     amg_data_free(fmgl, famgparam);
     amg_data_free(mgl, amgparam);
+    free(fmgl); free(mgl); // the arrays from amg_data_create
     dcsr_free(&MAM); dcsr_free(&MAM_t); dcsr_free(&M_lump_mat);
     dvec_free(&M_lump); dvec_free(&x1);
     // precond_free(&pc); ??
@@ -2492,6 +2499,7 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
                   break;
 
           }
+          if (status < 0) return status;
 
       }
 
@@ -2697,6 +2705,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
                     break;
 
             }
+            if (status < 0) return status;
 
         }
 
@@ -3097,6 +3106,7 @@ INT linear_solver_bdcsr_krylov_block_5(block_dCSRmat *A,
                     break;
 
             }
+            if (status < 0) return status;
 
         }
 
@@ -3442,6 +3452,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
           break;
 
       }
+      if (status < 0) return status;
 
       dcsr_free(&BTB);
       //dcsr_free(&invMp);
@@ -3684,6 +3695,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
           break;
 
       }
+      if (status < 0) return status;
 
       /* set AMG for the pressure block */
       mgl[1] = amg_data_create(max_levels);
@@ -3723,6 +3735,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
           break;
 
       }
+      if (status < 0) return status;
 
       dcsr_free(&BTB);
       dcsr_free(&invM);
@@ -3771,6 +3784,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
           break;
 
       }
+      if (status < 0) return status;
 
       dcsr_free(&BTB);
       dcsr_free(&invM);
@@ -4033,6 +4047,10 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
     free(zf[0]);
     free(zf[1]);
     free(zf);
+    if (rpnwf[0] == NULL) { // AAA failed (e.g. no LAPACK)
+        free(rpnwf);
+        return ERROR_SOLVER_TYPE;
+    }
     // assign poles and residules
     dvec_alloc(k,  &residues_r);
     dvec_alloc(k-1, &poles_r);
@@ -4076,6 +4094,7 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
           break;
 
     }
+    if (status < 0) return status;
 
     /* get the scaled mass matrix  */
     // scaling mass matrix
@@ -4118,6 +4137,7 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
               break;
 
         }
+        if (status < 0) return status;
 
     }
 
@@ -5161,7 +5181,7 @@ INT linear_solver_dcsr_krylov_metric_amg(dCSRmat *A,
     }
 
     // setup preconditioner
-    precond_data pcdata;
+    precond_data pcdata = {0};
     precond_data_null(&pcdata);
     param_amg_to_prec(&pcdata, amgparam);
     pcdata.max_levels = mgl[0].num_levels;

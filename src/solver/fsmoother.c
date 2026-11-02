@@ -54,7 +54,7 @@ void smoother_dcsr_fjacobi(dvector *u,
     REAL *r = (REAL *)calloc(N,sizeof(REAL)); // b - \sum Aij * uj
     REAL *d = (REAL *)calloc(N,sizeof(REAL)); // jacobi part
 
-    dvector Mdiag_1mp = dvec_create(M->row); // diag of mass matrix
+    dvector Mdiag_1mp = dvec_create(0); // diag of mass matrix (dcsr_getdiag_pow allocates it)
 
     dcsr_getdiag_pow(0, 1-p, M, &Mdiag_1mp); // get M_ii^(1-p)
 
@@ -135,7 +135,7 @@ void smoother_dcsr_fgs(dvector *u,
     INT   i,j,k,begin_row,end_row;
     REAL  t,d=0.0;
 
-    dvector Mdiag_1mp = dvec_create(M->row); // diag of mass matrix
+    dvector Mdiag_1mp = dvec_create(0); // diag of mass matrix (dcsr_getdiag_pow allocates it)
     dcsr_getdiag_pow(0, 1-p, M, &Mdiag_1mp); // get M_ii^(1-p)
 
     if (s > 0) {
@@ -193,6 +193,7 @@ void smoother_dcsr_fgs(dvector *u,
             } // end for i
         } // end while
     } // end if
+    dvec_free(&Mdiag_1mp);
     return;
 }
 
@@ -227,7 +228,7 @@ void smoother_dcsr_fsgs(dvector *u,
     INT   i,j,k,begin_row,end_row;
     REAL  t,d=0;
 
-    dvector Mdiag_1mp = dvec_create(M->row); // diag of mass matrix
+    dvector Mdiag_1mp = dvec_create(0); // diag of mass matrix (dcsr_getdiag_pow allocates it)
     dcsr_getdiag_pow(0, 1-p, M, &Mdiag_1mp); // get M_ii^(1-p)
 
     while (L--) {
@@ -257,6 +258,7 @@ void smoother_dcsr_fsgs(dvector *u,
 
     } // end while
 
+    dvec_free(&Mdiag_1mp);
     return;
 }
 

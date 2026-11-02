@@ -271,6 +271,14 @@ REAL get_rpzwf(INT numval,REAL16 *z, REAL16 *f,		\
 	       REAL tolaaa,
 	       INT print_level)
 {
+#if !WITH_LAPACK
+  // the AAA algorithm needs the SVD from LAPACK (svdgeneral would end the
+  // program): report it and return rpzwf[0] == NULL instead
+  fprintf(stderr,"\n### HAZMATH ERROR: %s: the AAA algorithm needs LAPACK, but libhazmath was built without it\n",__FUNCTION__);
+  rpzwf[0]=NULL;
+  m_out[0]=0;
+  return -1e0;
+#endif
   /*
    *  \param mmax_in is the max number of
    *  nodes taking part in the interpolation, mmax_in should be much
@@ -471,6 +479,9 @@ REAL16 **set_f_values(REAL16 (*func)(REAL16 , REAL16 , REAL16 , REAL16 , REAL16 
     numval=k;
     z=realloc(z,numval*sizeof(REAL16));
     f=realloc(f,numval*sizeof(REAL16));
+    // realloc may move the arrays: return the new pointers
+    zf[0]=z;
+    zf[1]=f;
   }
   *numval_in=numval;
   return zf;

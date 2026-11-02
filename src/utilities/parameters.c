@@ -199,6 +199,7 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->damping_param        = 1.0;
     amgparam->BSR_alpha            = -1000.;
     amgparam->BSR_omega            = -1000.;
+    amgparam->random_seed          = 0;
 
     // user def smoother
     // amgparam->smoother_function = NULL;
@@ -343,6 +344,7 @@ void param_amg_set (AMG_param *amgparam,
     amgparam->damping_param=0.;
     amgparam->BSR_alpha            = inparam->BSR_alpha;
     amgparam->BSR_omega            = inparam->BSR_omega;
+    amgparam->random_seed          = 0;
 
 }
 
@@ -380,7 +382,13 @@ void param_amg_cp (AMG_param *amgparam1,
     amgparam2->coarse_scaling       = amgparam1->coarse_scaling;
     amgparam2->amli_degree          = amgparam1->amli_degree;
 
-    if(amgparam1->amli_coef) array_cp(amgparam1->amli_degree + 1, amgparam1->amli_coef, amgparam2->amli_coef);
+    // amgparam2 gets its own copy of the coefficients (param_amg_init leaves
+    // amli_coef NULL; an array amgparam2 already has is resized)
+    if(amgparam1->amli_coef && amgparam1->amli_coef != amgparam2->amli_coef) {
+        amgparam2->amli_coef = (REAL *)realloc(amgparam2->amli_coef,
+                                               (amgparam1->amli_degree + 1)*sizeof(REAL));
+        array_cp(amgparam1->amli_degree + 1, amgparam1->amli_coef, amgparam2->amli_coef);
+    }
 
     amgparam2->nl_amli_krylov_type  = amgparam1->nl_amli_krylov_type;
     amgparam2->fpwr                 = amgparam1->fpwr;
@@ -411,6 +419,7 @@ void param_amg_cp (AMG_param *amgparam1,
     amgparam2->damping_param        = amgparam1->damping_param;
     amgparam2->BSR_alpha            = amgparam1->BSR_alpha;
     amgparam2->BSR_omega            = amgparam1->BSR_omega;
+    amgparam2->random_seed          = amgparam1->random_seed;
 
 }
 
