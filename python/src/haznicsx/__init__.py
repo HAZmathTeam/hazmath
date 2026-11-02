@@ -44,8 +44,9 @@ from haznicsx.csr import (
     csr_from_scipy,
     index_dtype,
 )
-from haznicsx.pc import HazmathAMG, HazmathFAMG, amg_param_from_options
-from haznicsx.precond import AMGParam, CSRMatrix, Precond, amg, famg
+from haznicsx.dolfinx_utils import hx_curl_operators, hx_div_operators
+from haznicsx.pc import HazmathAMG, HazmathFAMG, HazmathHXCurl, HazmathHXDiv, amg_param_from_options
+from haznicsx.precond import AMGParam, CSRMatrix, Precond, amg, famg, hx_curl, hx_div
 
 __all__ = [
     "ADD_CYCLE",
@@ -82,6 +83,8 @@ __all__ = [
     "CSRMatrix",
     "HazmathAMG",
     "HazmathFAMG",
+    "HazmathHXCurl",
+    "HazmathHXDiv",
     "Precond",
     "amg",
     "amg_param_from_options",
@@ -90,5 +93,9 @@ __all__ = [
     "csr_from_petsc",
     "csr_from_scipy",
     "famg",
+    "hx_curl",
+    "hx_curl_operators",
+    "hx_div",
+    "hx_div_operators",
     "index_dtype",
 ]

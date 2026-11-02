@@ -20,9 +20,11 @@ Every :class:`haznicsx.AMGParam` field can be set with
 fields that select a method also accept names, see :data:`OPTION_CHOICES`.
 
 HAZmath is serial: the preconditioning matrix must be on one process. In
-parallel, use a context as the sub-preconditioner of block Jacobi or
+parallel, use ``HazmathAMG`` as the sub-preconditioner of block Jacobi or
 additive Schwarz (``-pc_type bjacobi -sub_pc_type python
--sub_pc_python_type haznicsx.HazmathAMG``).
+-sub_pc_python_type haznicsx.HazmathAMG``). The HX contexts need their
+auxiliary matrices, so they are created in code, e.g.
+``HazmathHXCurl(*haznicsx.hx_curl_operators(V))``.
 """
 
 from __future__ import annotations
@@ -30,13 +32,20 @@ from __future__ import annotations
 import typing
 
 from haznicsx import _haznicsx as _hz
-from haznicsx.csr import csr_from_petsc
-from haznicsx.precond import AMGParam, CSRMatrix, Precond, amg, famg
+from haznicsx.csr import csr_from_dolfinx, csr_from_petsc, csr_from_scipy
+from haznicsx.precond import AMGParam, CSRMatrix, Precond, amg, famg, hx_curl, hx_div
 
 if typing.TYPE_CHECKING:
     from petsc4py import PETSc
 
-__all__ = ["OPTION_CHOICES", "HazmathAMG", "HazmathFAMG", "amg_param_from_options"]
+__all__ = [
+    "OPTION_CHOICES",
+    "HazmathAMG",
+    "HazmathFAMG",
+    "HazmathHXCurl",
+    "HazmathHXDiv",
+    "amg_param_from_options",
+]
 
 #: Names accepted in the options database, besides the integer values, for
 #: the AMGParam fields that select a method
@@ -136,6 +145,17 @@ def _to_hazmath(A: PETSc.Mat, hint: str = "") -> CSRMatrix:
         raise
 
 
+def _auxiliary(M: typing.Any) -> CSRMatrix:
+    """HAZmath matrix of an auxiliary matrix: HAZmath, PETSc, DOLFINx or SciPy."""
+    if isinstance(M, CSRMatrix):
+        return M
+    if hasattr(M, "getValuesCSR"):
+        return csr_from_petsc(M)
+    if hasattr(M, "to_scipy") and hasattr(M, "block_size"):
+        return csr_from_dolfinx(M)
+    return csr_from_scipy(M)
+
+
 class HazmathAMG:
     """HAZmath AMG preconditioner (:func:`haznicsx.amg`) as a ``PCPYTHON`` context.
 
@@ -228,3 +248,80 @@ class HazmathFAMG(HazmathAMG):
             self._M = _to_hazmath(self.M)
             self._M_source = self.M
         return famg(_to_hazmath(P), self._M, self.param)
+
+
+class HazmathHXCurl(HazmathAMG):
+    """HAZmath HX preconditioner for H(curl) (:func:`haznicsx.hx_curl`).
+
+    A ``PCPYTHON`` context. The auxiliary matrices are converted once, when
+    the context is created; :func:`haznicsx.hx_curl_operators` builds them
+    for a DOLFINx Nedelec space.
+    """
+
+    def __init__(
+        self,
+        Pcurl: typing.Any,
+        Grad: typing.Any,
+        param: AMGParam | None = None,
+        multiplicative: bool = False,
+    ) -> None:
+        """Create the context.
+
+        Args:
+            Pcurl: Interpolation from vector P1 into the H(curl) space; a
+                :class:`haznicsx.CSRMatrix`, PETSc, DOLFINx or SciPy matrix.
+            Grad: Discrete gradient from P1 into the H(curl) space.
+            param: AMG parameters for the auxiliary Laplacians. ``None``
+                means the HAZmath defaults.
+            multiplicative: Combine the corrections multiplicatively; the
+                result is not symmetric, so use it with e.g. GMRES, not CG.
+        """
+        super().__init__(param)
+        self._Pcurl = _auxiliary(Pcurl)
+        self._Grad = _auxiliary(Grad)
+        self.multiplicative = multiplicative
+
+    def _build(self, P: PETSc.Mat) -> Precond:
+        return hx_curl(_to_hazmath(P), self._Pcurl, self._Grad, self.param, self.multiplicative)
+
+
+class HazmathHXDiv(HazmathAMG):
+    """HAZmath HX preconditioner for H(div) (:func:`haznicsx.hx_div`).
+
+    A ``PCPYTHON`` context. The auxiliary matrices are converted once, when
+    the context is created; :func:`haznicsx.hx_div_operators` builds them
+    for a DOLFINx Raviart-Thomas space.
+    """
+
+    def __init__(
+        self,
+        Pdiv: typing.Any,
+        Curl: typing.Any,
+        Pcurl: typing.Any | None = None,
+        param: AMGParam | None = None,
+        multiplicative: bool = False,
+    ) -> None:
+        """Create the context.
+
+        Args:
+            Pdiv: Interpolation from vector P1 into the H(div) space; a
+                :class:`haznicsx.CSRMatrix`, PETSc, DOLFINx or SciPy matrix.
+            Curl: In 3D, the discrete curl from Nedelec into the H(div)
+                space; in 2D, the discrete rot from P1.
+            Pcurl: In 3D, the interpolation from vector P1 into Nedelec;
+                ``None`` in 2D.
+            param: AMG parameters for the auxiliary Laplacians. ``None``
+                means the HAZmath defaults.
+            multiplicative: Combine the corrections multiplicatively; the
+                result is not symmetric, so use it with e.g. GMRES, not CG.
+        """
+        super().__init__(param)
+        self._Pdiv = _auxiliary(Pdiv)
+        self._Curl = _auxiliary(Curl)
+        self._Pcurl = None if Pcurl is None else _auxiliary(Pcurl)
+        self.multiplicative = multiplicative
+
+    def _build(self, P: PETSc.Mat) -> Precond:
+        return hx_div(
+            _to_hazmath(P), self._Pdiv, self._Curl, self._Pcurl, self.param, self.multiplicative
+        )

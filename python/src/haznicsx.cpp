@@ -12,6 +12,7 @@
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/pair.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -19,10 +20,12 @@
 #include <initializer_list>
 #include <mutex>
 #include <new>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 extern "C"
 {
@@ -172,8 +175,12 @@ public:
   /// @param[in] param Parameters `pc` was built with.
   /// @param[in] size Number of rows of the operator.
   /// @param[in] free_data Frees `pc`.
-  Precond(precond* pc, AMG_param param, INT size, deleter free_data)
-      : _pc(pc), _param(param), _size(size), _free_data(free_data)
+  /// @param[in] writes_r Whether `pc` writes to its input vector, which is
+  /// then passed a copy.
+  Precond(precond* pc, AMG_param param, INT size, deleter free_data,
+          bool writes_r)
+      : _pc(pc), _param(param), _size(size), _free_data(free_data),
+        _r(writes_r ? size : 0)
   {
   }
 
@@ -183,7 +190,7 @@ public:
   /// Move constructor
   Precond(Precond&& B) noexcept
       : _pc(std::exchange(B._pc, nullptr)), _param(B._param), _size(B._size),
-        _free_data(B._free_data)
+        _free_data(B._free_data), _r(std::move(B._r))
   {
   }
 
@@ -203,6 +210,7 @@ public:
       _param = B._param;
       _size = B._size;
       _free_data = B._free_data;
+      _r = std::move(B._r);
     }
     return *this;
   }
@@ -220,9 +228,16 @@ public:
     }
     nb::gil_scoped_release release;
     std::lock_guard lock(hazmath_mutex);
-    // r is non-const in HAZmath, but the AMG/FAMG cycles only copy it to the
-    // level 0 right-hand side (precond.c)
-    apply_precond(const_cast<REAL*>(r.data()), z.data(), _pc);
+    if (_r.empty())
+    {
+      // r is non-const in HAZmath; this preconditioner only reads it
+      apply_precond(const_cast<REAL*>(r.data()), z.data(), _pc);
+    }
+    else
+    {
+      std::ranges::copy(std::span(r.data(), r.size()), _r.begin());
+      apply_precond(_r.data(), z.data(), _pc);
+    }
   }
 
   /// Number of rows of the operator
@@ -246,6 +261,8 @@ private:
   AMG_param _param;
   INT _size;
   deleter _free_data;
+  // Copy of the input vector, for preconditioners that write to it
+  std::vector<REAL> _r;
 };
 
 /// @brief Free a preconditioner from `create_precond_amg` or
@@ -266,6 +283,96 @@ void free_amg(precond* pc, AMG_param* param)
   std::free(data->amli_coef);
   std::free(data);
   std::free(pc);
+}
+
+/// @brief Free the matrices of an HX preconditioner.
+///
+/// Each was allocated as one block with its struct (`dcsr_create_p`), or as
+/// a struct alone (`dcsr_rap` results). Copies (`dcsr_cp`) keep their arrays
+/// in the block; transposes (`dcsr_trans`) and `dcsr_rap` results have
+/// separately allocated arrays.
+/// @param[in] in_block Matrices with their arrays in the block, or `nullptr`.
+/// @param[in] separate Matrices with separate arrays, or `nullptr`.
+void free_hx_matrices(std::initializer_list<dCSRmat*> in_block,
+                      std::initializer_list<dCSRmat*> separate)
+{
+  for (dCSRmat* M : in_block)
+    std::free(M);
+  for (dCSRmat* M : separate)
+  {
+    dcsr_free(M);
+    std::free(M);
+  }
+}
+
+/// @brief Free an AMG hierarchy of an HX preconditioner.
+/// @param[in] mgl Hierarchy from `amg_data_create`, or `nullptr`.
+/// @param[in] param Parameters it was built with.
+void free_hx_amg(AMG_data* mgl, AMG_param* param)
+{
+  if (mgl)
+  {
+    amg_data_free(mgl, param);
+    std::free(mgl);
+  }
+}
+
+/// @brief Free a preconditioner from `create_precond_hxcurl`.
+///
+/// `HX_curl_data_free` is not used: it calls `dcsr_free` on `dcsr_create_p`
+/// matrices, and leaves structs, the hierarchies and the parameters.
+/// @param[in] pc Preconditioner.
+void free_hx_curl(precond* pc, AMG_param*)
+{
+  HX_curl_data* data = static_cast<HX_curl_data*>(pc->data);
+  free_hx_matrices({data->A, data->P_curl, data->Grad},
+                   {data->Pt_curl, data->Gradt, data->A_vgrad, data->A_grad});
+  free_hx_amg(data->mgl_vgrad, data->amgparam_vgrad);
+  free_hx_amg(data->mgl_grad, data->amgparam_grad);
+  // amgparam_vgrad and amgparam_grad are the same copy
+  std::free(data->amgparam_vgrad);
+  std::free(data->backup_r);
+  std::free(data->w);
+  std::free(data);
+  std::free(pc);
+}
+
+/// @brief Free a preconditioner from `create_precond_hxdiv_3D` or
+/// `create_precond_hxdiv_2D`.
+///
+/// `HX_div_data_free` is not used, for the reasons given for
+/// `free_hx_curl`. Fields that a variant does not use are `nullptr`.
+/// @param[in] pc Preconditioner.
+void free_hx_div(precond* pc, AMG_param*)
+{
+  HX_div_data* data = static_cast<HX_div_data*>(pc->data);
+  free_hx_matrices({data->A, data->P_curl, data->P_div, data->Curl},
+                   {data->Pt_curl, data->Pt_div, data->Curlt, data->A_curl,
+                    data->A_curlgrad, data->A_divgrad, data->A_grad});
+  // the hierarchies share one copy of the parameters, amgparam_divgrad
+  free_hx_amg(data->mgl_curlgrad, data->amgparam_divgrad);
+  free_hx_amg(data->mgl_divgrad, data->amgparam_divgrad);
+  free_hx_amg(data->mgl_grad, data->amgparam_divgrad);
+  std::free(data->amgparam_divgrad);
+  std::free(data->backup_r);
+  std::free(data->w);
+  std::free(data);
+  std::free(pc);
+}
+
+/// @brief Throw unless a matrix has the given number of rows.
+/// @param[in] A Matrix.
+/// @param[in] rows Expected number of rows.
+/// @param[in] name Name of `A` in the error message.
+/// @param[in] what What `rows` is, for the error message.
+void check_rows(const CSRMatrix& A, INT rows, std::string_view name,
+                std::string_view what)
+{
+  if (A.get()->row != rows)
+  {
+    throw std::invalid_argument(std::format("{} must have {} rows ({}), not {}",
+                                            name, rows, what, A.get()->row));
+  }
 }
 
 /// @brief Throw unless a matrix is square.
@@ -305,6 +412,28 @@ void check_param(const AMG_param& param, std::initializer_list<SHORT> smoothers,
   throw std::invalid_argument(
       std::format("smoother {} is not supported by {}; use one of {}",
                   param.smoother, method, names));
+}
+
+/// @brief Check AMG parameters for an HX preconditioner.
+///
+/// Its sub-problems use `mgcycle`, so the cycle must be V or W; with the AMLI
+/// cycle, both setups would allocate coefficients into shared parameters.
+/// @param[in] param Parameters.
+/// @param[in] method Name of the method in the error message.
+void check_hx_param(const AMG_param& param, std::string_view method)
+{
+  check_param(param,
+              {SMOOTHER_JACOBI, SMOOTHER_GS, SMOOTHER_SGS, SMOOTHER_CG,
+               SMOOTHER_SOR, SMOOTHER_SSOR, SMOOTHER_GSOR, SMOOTHER_SGSOR,
+               SMOOTHER_L1DIAG},
+              method);
+  if (param.cycle_type != V_CYCLE and param.cycle_type != W_CYCLE)
+  {
+    throw std::invalid_argument(
+        std::format("cycle_type {} is not supported by {}; use V_CYCLE or "
+                    "W_CYCLE",
+                    param.cycle_type, method));
+  }
 }
 
 /// @brief Bind a field of `AMG_param` and record its name.
@@ -450,7 +579,7 @@ NB_MODULE(_haznicsx, m)
         }
         if (!pc)
           throw std::runtime_error("HAZmath AMG setup failed");
-        return new Precond(pc, p, A.get()->row, free_amg);
+        return new Precond(pc, p, A.get()->row, free_amg, false);
       },
       "A"_a, "param"_a, nb::rv_policy::take_ownership,
       "AMG preconditioner for A (create_precond_amg)");
@@ -476,12 +605,92 @@ NB_MODULE(_haznicsx, m)
         }
         if (!pc)
           throw std::runtime_error("HAZmath FAMG setup failed");
-        return new Precond(pc, p, A.get()->row, free_amg);
+        return new Precond(pc, p, A.get()->row, free_amg, false);
       },
       "A"_a, "M"_a, "param"_a, nb::rv_policy::take_ownership,
       "Fractional AMG preconditioner for A with mass matrix M "
       "(create_precond_famg). param.smoother must be a fractional smoother "
       "and the fractional power is param.fpwr.");
+
+  m.def(
+      "hx_curl",
+      [](CSRMatrix& A, CSRMatrix& Pcurl, CSRMatrix& Grad,
+         const AMG_param& param, bool multiplicative)
+      {
+        check_square(A, "A");
+        const INT n = A.get()->row;
+        check_rows(Pcurl, n, "Pcurl", "the size of A");
+        check_rows(Grad, n, "Grad", "the size of A");
+        check_hx_param(param, "hx_curl");
+        A.check();
+        Pcurl.check();
+        Grad.check();
+        AMG_param p = param;
+        precond* pc;
+        {
+          nb::gil_scoped_release release;
+          std::lock_guard lock(hazmath_mutex);
+          pc = create_precond_hxcurl(
+              A.get(), Pcurl.get(), Grad.get(),
+              multiplicative ? PREC_HX_CURL_M : PREC_HX_CURL_A, &p);
+        }
+        if (!pc)
+          throw std::runtime_error("HAZmath HX-curl setup failed");
+        // the multiplicative variant updates r in place
+        return new Precond(pc, p, n, free_hx_curl, multiplicative);
+      },
+      "A"_a, "Pcurl"_a, "Grad"_a, "param"_a, "multiplicative"_a,
+      nb::rv_policy::take_ownership,
+      "HX (auxiliary space) preconditioner for an H(curl) matrix A "
+      "(create_precond_hxcurl). Pcurl interpolates vector P1 into the space "
+      "of A, Grad is the discrete gradient from P1.");
+
+  m.def(
+      "hx_div",
+      [](CSRMatrix& A, CSRMatrix& Pdiv, CSRMatrix& Curl, CSRMatrix* Pcurl,
+         const AMG_param& param, bool multiplicative)
+      {
+        check_square(A, "A");
+        const INT n = A.get()->row;
+        check_rows(Pdiv, n, "Pdiv", "the size of A");
+        check_rows(Curl, n, "Curl", "the size of A");
+        if (Pcurl)
+          check_rows(*Pcurl, Curl.get()->col, "Pcurl", "the columns of Curl");
+        check_hx_param(param, "hx_div");
+        A.check();
+        Pdiv.check();
+        Curl.check();
+        if (Pcurl)
+          Pcurl->check();
+        AMG_param p = param;
+        const SHORT prectype = multiplicative ? PREC_HX_DIV_M : PREC_HX_DIV_A;
+        precond* pc;
+        {
+          nb::gil_scoped_release release;
+          std::lock_guard lock(hazmath_mutex);
+          if (Pcurl)
+          {
+            pc = create_precond_hxdiv_3D(A.get(), Pdiv.get(), Curl.get(),
+                                         Pcurl->get(), prectype, &p);
+          }
+          else
+          {
+            pc = create_precond_hxdiv_2D(A.get(), Pdiv.get(), Curl.get(),
+                                         prectype, &p);
+          }
+        }
+        if (!pc)
+          throw std::runtime_error("HAZmath HX-div setup failed");
+        // the multiplicative variants update r in place
+        return new Precond(pc, p, n, free_hx_div, multiplicative);
+      },
+      "A"_a, "Pdiv"_a, "Curl"_a, "Pcurl"_a.none(), "param"_a,
+      "multiplicative"_a, nb::rv_policy::take_ownership,
+      "HX (auxiliary space) preconditioner for an H(div) matrix A "
+      "(create_precond_hxdiv_3D, or _2D without Pcurl). Pdiv interpolates "
+      "vector P1 into the space of A. In 3D, Curl is the discrete curl from "
+      "Nedelec and Pcurl interpolates vector P1 into Nedelec; in 2D, Curl is "
+      "the discrete rot from P1.");
 
   // Size in bytes of HAZmath's index type INT (4 or 8)
   m.attr("INT_SIZE") = sizeof(INT);

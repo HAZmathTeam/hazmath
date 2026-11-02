@@ -188,5 +188,6 @@ jobs:
       - name: Run PETSc and DOLFINx tests in parallel
         run: |
           mpirun -n 2 python3 -m pytest -v python/tests/test_dolfinx.py \
-            python/tests/test_petsc_csr.py python/tests/test_petsc_pc.py \
-            python/tests/test_petsc_dolfinx.py
+            python/tests/test_hx.py python/tests/test_petsc_csr.py \
+            python/tests/test_petsc_pc.py python/tests/test_petsc_dolfinx.py \
+            python/tests/test_petsc_hx.py
