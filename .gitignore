@@ -51,6 +51,7 @@ examples/xd_1d_models/input/solver.input
 # CI and formatting configuration
 !.github/
 !.clang-format
+!python/.gersemirc
 # Python
 __pycache__/
 *.egg-info/
