@@ -4789,8 +4789,12 @@ INT bdcsr_getdiagblk_dcsr(block_dCSRmat *Ab,
 	break;
       }
     }
-    // check error
-    if (status < SUCCESS) check_error(ERROR_BLKMAT_ZERO, __FUNCTION__);
+    // check error (was check_error, which ends the program)
+    if (status < SUCCESS) {
+      printf("### ERROR: %s: block row %lld has no nonzero block!\n", __FUNCTION__, (long long)i);
+      free(row); free(col);
+      return ERROR_BLKMAT_ZERO;
+    }
   }
 
   // count number of columns
@@ -4804,8 +4808,12 @@ INT bdcsr_getdiagblk_dcsr(block_dCSRmat *Ab,
 	break;
       }
     }
-    // check error
-    if (status < SUCCESS) check_error(ERROR_BLKMAT_ZERO, __FUNCTION__);
+    // check error (was check_error, which ends the program)
+    if (status < SUCCESS) {
+      printf("### ERROR: %s: block column %lld has no nonzero block!\n", __FUNCTION__, (long long)i);
+      free(row); free(col);
+      return ERROR_BLKMAT_ZERO;
+    }
   }
   // count number of nonzeros
   for (i=n1;i<n2;++i) {

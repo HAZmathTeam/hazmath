@@ -210,6 +210,21 @@ SHORT amg_setup_ua_bsr(AMG_data_bsr  *mgl,
     printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
 #endif
 
+    // wrong input gives an error code instead of ending the program
+    // (check_error in the aggregation switch)
+    if (param->max_levels < 1) {
+        fprintf(stderr, "### HAZMATH ERROR: %s: max_levels = %lld, it must be at least 1\n",
+                __FUNCTION__, (long long)param->max_levels);
+        return ERROR_INPUT_PAR;
+    }
+    switch (param->aggregation_type) {
+        case VMB: case HEC: case HEM: break;
+        default:
+            fprintf(stderr, "### HAZMATH ERROR: %s: unknown aggregation type %lld\n",
+                    __FUNCTION__, (long long)param->aggregation_type);
+            return ERROR_AMG_AGG_TYPE;
+    }
+
     SHORT status = amg_setup_unsmoothP_unsmoothR_bsr(mgl, param);
 
 #if DEBUG_MODE > 0

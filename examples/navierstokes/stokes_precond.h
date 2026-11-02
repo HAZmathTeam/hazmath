@@ -49,7 +49,7 @@ static precond_block_data *get_precond_block_data_stokes(block_dCSRmat *Ab,dCSRm
   //-----------------------------------------
   // grab the velocity block
   n1=0; n2=dim;
-  bdcsr_getdiagblk_dcsr(Ab,n1,n2, &(precdata->A_diag[0]));
+  if (bdcsr_getdiagblk_dcsr(Ab,n1,n2, &(precdata->A_diag[0])) < 0) exit(ERROR_BLKMAT_ZERO);
 
   /*
   // get the LU factorization of this block

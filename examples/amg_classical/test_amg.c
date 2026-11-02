@@ -199,7 +199,10 @@ int main(int argc, char** argv) {
 
     fprintf(stderr, "\nBuilding UA AMG hierarchy ...\n");
     t0 = clock();
-    amg_setup_ua(mgl, &param);
+    if (amg_setup_ua(mgl, &param) < 0) {
+      fprintf(stderr, "UA AMG setup failed\n");
+      return 1;
+    }
     t_hier = (double)(clock() - t0) / CLOCKS_PER_SEC;
     fprintf(stderr, "UA hierarchy built in %.2f s (%d levels)\n",
             t_hier, mgl[0].num_levels);

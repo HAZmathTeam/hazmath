@@ -650,6 +650,31 @@ void param_amg_to_prec (precond_data *pcdata,
 
 /*************************************************************************************/
 /*!
+ * \fn void param_amg_to_prec_shared (precond_data *pcdata, AMG_param *amgparam)
+ *
+ * \brief As param_amg_to_prec, but pcdata->amli_coef points to
+ *        amgparam->amli_coef instead of a new copy
+ *
+ * \param pcdata      Pointer to the precond_data structure
+ * \param amgparam    Pointer to the AMG_param structure
+ *
+ * \note For a precond_data that is a local variable used while amgparam
+ *       exists (most apply functions and solvers): the copy that
+ *       param_amg_to_prec allocates was never freed there, a leak on every
+ *       call with the AMLI cycle. pcdata->amli_coef must not be freed.
+ */
+void param_amg_to_prec_shared (precond_data *pcdata,
+                               AMG_param *amgparam)
+{
+    REAL *amli_coef = amgparam->amli_coef;
+    amgparam->amli_coef = NULL;  // so that param_amg_to_prec does not copy
+    param_amg_to_prec(pcdata, amgparam);
+    amgparam->amli_coef = amli_coef;
+    pcdata->amli_coef = amli_coef;
+}
+
+/*************************************************************************************/
+/*!
  * \fn void param_prec_to_amg (AMG_param *amgparam, precond_data *pcdata)
  *
  * \brief Set AMG parameters using parameters in precond_data

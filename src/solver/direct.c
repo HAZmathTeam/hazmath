@@ -15,7 +15,34 @@
 #if WITH_SUITESPARSE
 #include "umfpack.h"
 #include "haz_direct_solve.h"
+
+/* What a UMFPACK status means, for the error messages */
+static const char *umfpack_status_text(INT status)
+{
+  switch (status) {
+  case UMFPACK_WARNING_singular_matrix:       return "the matrix is singular";
+  case UMFPACK_ERROR_out_of_memory:           return "out of memory";
+  case UMFPACK_ERROR_invalid_Numeric_object:  return "invalid Numeric object (failed factorization)";
+  case UMFPACK_ERROR_invalid_Symbolic_object: return "invalid Symbolic object (failed symbolic analysis)";
+  case UMFPACK_ERROR_argument_missing:        return "an argument is missing";
+  case UMFPACK_ERROR_n_nonpositive:           return "the matrix dimension is not positive";
+  case UMFPACK_ERROR_invalid_matrix:          return "invalid matrix (CSR/CSC arrays)";
+  case UMFPACK_ERROR_different_pattern:       return "the pattern changed since the symbolic analysis";
+  case UMFPACK_ERROR_invalid_system:          return "invalid system";
+  case UMFPACK_ERROR_invalid_permutation:     return "invalid permutation";
+  case UMFPACK_ERROR_file_IO:                 return "file input/output error";
+  case UMFPACK_ERROR_ordering_failed:         return "the ordering failed";
+  case UMFPACK_ERROR_internal_error:          return "internal UMFPACK error";
+  default:                                    return "unknown UMFPACK status";
+  }
+}
 #endif
+
+/* Factorization of hazmath_factorize, which also gives its status (< 0:
+ * failed, and NULL is returned), so that directsolve_HAZ can report the
+ * failure and return it instead of calling the solve with no
+ * factorization. */
+static void *factorize_status(dCSRmat *ptrA, const SHORT prtlvl, INT *status_out);
 
 /************************************************************/
 /**
@@ -63,7 +90,16 @@ INT directsolve_HAZ(dCSRmat *A,
   }
   // Factorize
   //  fprintf(stdout,"\n%s: USING UMFPACK\n\n",__FUNCTION__);fflush(stdout);
-  Numeric = hazmath_factorize(&At,print_level);
+  INT err_flag_fac;
+  Numeric = factorize_status(&At,print_level,&err_flag_fac);
+  if(err_flag_fac<0) {
+    // report the factorization failure (not the solve's "invalid Numeric
+    // object", which is what solving without a factorization gives)
+    dcsr_free(&At);
+    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- DIRECT SOLVE ERROR: the factorization failed: %s (status = %lld)!!!\n\n",
+           __FUNCTION__, umfpack_status_text(err_flag_fac), (long long )err_flag_fac);
+    return err_flag_fac;
+  }
   // Solve
   err_flag_s = hazmath_solve(&At,f,x,Numeric,print_level);
   // Clean up
@@ -91,7 +127,13 @@ INT directsolve_HAZ(dCSRmat *A,
   // Error Check: the error code is returned to the caller (who can, e.g.,
   // fall back to another solver) instead of ending the program
   if(err_flag_s<0) {
-    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- DIRECT SOLVE ERROR!!!\n\n",__FUNCTION__);
+#if WITH_SUITESPARSE
+    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- DIRECT SOLVE ERROR: the solve failed: %s (status = %lld)!!!\n\n",
+           __FUNCTION__, umfpack_status_text(err_flag_s), (long long )err_flag_s);
+#else
+    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- DIRECT SOLVE ERROR (status = %lld)!!!\n\n",
+           __FUNCTION__, (long long )err_flag_s);
+#endif
     return err_flag_s;
   }
   if(err_flag_f<0) {
@@ -217,7 +259,13 @@ INT solve_HAZ(dCSRmat *A,
   // Error Check: the error code is returned to the caller instead of
   // ending the program
   if(err_flag<0) {
-    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- DIRECT SOLVE ERROR!!!\n\n",__FUNCTION__);
+#if WITH_SUITESPARSE
+    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- DIRECT SOLVE ERROR: %s (status = %lld)!!!\n\n",
+           __FUNCTION__, umfpack_status_text(err_flag), (long long )err_flag);
+#else
+    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- DIRECT SOLVE ERROR (status = %lld)!!!\n\n",
+           __FUNCTION__, (long long )err_flag);
+#endif
   }
   return err_flag;
 }
@@ -367,7 +415,16 @@ INT block_solve_HAZ(block_dCSRmat *bA,
 void* hazmath_factorize (dCSRmat *ptrA,
                          const SHORT prtlvl)
 {
-  void *Numeric;
+  INT status;
+  return factorize_status(ptrA, prtlvl, &status);
+}
+
+static void *factorize_status(dCSRmat *ptrA,
+                              const SHORT prtlvl,
+                              INT *status_out)
+{
+  void *Numeric = NULL;
+  *status_out = SUCCESS;
   clock_t start_time = clock();
 #if WITH_SUITESPARSE
   const INT n = ptrA->col;
@@ -379,11 +436,18 @@ void* hazmath_factorize (dCSRmat *ptrA,
   INT status = SUCCESS;
   status = haz_umfpack_symbolic (n, n, Ap, Ai, Ax, &Symbolic, NULL, NULL);
   if(status<0) {
-    fprintf(stderr,"UMFPACK ERROR in Symbolic, status = %lld\n\n",(long long )status);
+    fprintf(stderr,"UMFPACK ERROR in the symbolic analysis: %s (status = %lld)\n\n",
+            umfpack_status_text(status),(long long )status);
+    // no numeric factorization without a symbolic analysis
+    *status_out = status;
+    return NULL;
   }
   status = haz_umfpack_numeric (Ap, Ai, Ax, Symbolic, &Numeric, NULL, NULL);
   if(status<0) {
-    fprintf(stderr,"UMFPACK ERROR in Numeric, status = %lld\n\n",(long long )status);
+    fprintf(stderr,"UMFPACK ERROR in the numeric factorization: %s (status = %lld)\n\n",
+            umfpack_status_text(status),(long long )status);
+    *status_out = status;
+    Numeric = NULL;
   }
   haz_umfpack_free_symbolic (&Symbolic);
   if ( prtlvl > PRINT_MIN ) {

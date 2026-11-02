@@ -101,6 +101,7 @@ static void solveit(dCSRmat* A, dvector* rhs, dvector* sol) {
     solver_flag = linear_solver_dcsr_krylov_amg(A, rhs, sol, &linear_itparam, &amgparam);
     break;
   }
+  if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %lld!\n", (long long)solver_flag);
   return;
 }
 void find_bndry_vertices(const INT dim, const INT ns, INT* je, INT* iess) {

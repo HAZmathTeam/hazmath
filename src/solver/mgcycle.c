@@ -621,7 +621,7 @@ void nl_amli (AMG_data *mgl,
 
                 precond_data pcdata = {0};
 
-                param_amg_to_prec(&pcdata, param);
+                param_amg_to_prec_shared(&pcdata, param);
                 pcdata.maxit = 1;
                 pcdata.max_levels = num_levels-1;
                 pcdata.mgl_data = &mgl[level+1];

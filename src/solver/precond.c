@@ -425,8 +425,8 @@ void precond_famg_add(REAL *r,
         // call iterative solver
         for (i=0;i<maxit;++i) fmgcycle_add_update(mgl,&amgparam);
         //fmgcycle_add(mgl,&amgparam);
-        free(amgparam.amli_coef); // copy made by param_prec_to_amg
-        return;
+        // (this branch returned here before copying the result to z, so z
+        // was left unset; it now continues to the copy below)
     }
 
     array_cp(m,mgl->x.val,z);
@@ -949,7 +949,7 @@ void precond_hx_div_multiplicative_2D(REAL *r_in,
     dvec_set(hxdivdata->A_divgrad->row, &x_divgrad, 0.0);
 
     precond_data pcdata_divgrad = {0};
-    param_amg_to_prec(&pcdata_divgrad,amgparam_divgrad);
+    param_amg_to_prec_shared(&pcdata_divgrad,amgparam_divgrad);
     precond pc_divgrad;
     pc_divgrad.fct = precond_amg;
 
@@ -1024,7 +1024,7 @@ void precond_hx_div_multiplicative_2D(REAL *r_in,
     dvec_set(hxdivdata->A_grad->row, &x_grad, 0.0);
 
     precond_data pcdata_grad = {0};
-    param_amg_to_prec(&pcdata_grad,amgparam_grad);
+    param_amg_to_prec_shared(&pcdata_grad,amgparam_grad);
     precond pc_grad;
     pc_grad.fct = precond_amg;
 
@@ -1249,7 +1249,7 @@ void precond_hx_div_multiplicative(REAL *r_in,
     dvec_set(hxdivdata->A_divgrad->row, &x_divgrad, 0.0);
 
     precond_data pcdata_divgrad = {0};
-    param_amg_to_prec(&pcdata_divgrad,amgparam_divgrad);
+    param_amg_to_prec_shared(&pcdata_divgrad,amgparam_divgrad);
     precond pc_divgrad;
     pc_divgrad.fct = precond_amg;
 
@@ -1324,7 +1324,7 @@ void precond_hx_div_multiplicative(REAL *r_in,
     dvec_set(hxdivdata->A_curlgrad->row, &x_curlgrad, 0.0);
 
     precond_data pcdata_curlgrad = {0};
-    param_amg_to_prec(&pcdata_curlgrad,amgparam_curlgrad);
+    param_amg_to_prec_shared(&pcdata_curlgrad,amgparam_curlgrad);
     precond pc_curlgrad;
     pc_curlgrad.fct = precond_amg;
 
@@ -1636,7 +1636,7 @@ void precond_block_diag_2_amg_krylov(REAL *r,
     z0.val = z; z1.val = &(z[N0]);
 
     precond_data pcdata = {0};
-    param_amg_to_prec(&pcdata,amgparam);
+    param_amg_to_prec_shared(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
 
@@ -1836,7 +1836,7 @@ void precond_block_lower_2_amg_krylov(REAL *r,
     z0.val = z; z1.val = &(z[N0]);
 
     precond_data pcdata = {0};
-    param_amg_to_prec(&pcdata,amgparam);
+    param_amg_to_prec_shared(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
 
@@ -2037,7 +2037,7 @@ void precond_block_upper_2_amg_krylov(REAL *r,
     z0.val = z; z1.val = &(z[N0]);
 
     precond_data pcdata = {0};
-    param_amg_to_prec(&pcdata,amgparam);
+    param_amg_to_prec_shared(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
 
@@ -2238,7 +2238,7 @@ void precond_block_diag_3_amg_krylov(REAL *r,
     z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
 
     precond_data pcdata = {0};
-    param_amg_to_prec(&pcdata,amgparam);
+    param_amg_to_prec_shared(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
 
@@ -2470,7 +2470,7 @@ void precond_block_lower_3_amg_krylov(REAL *r,
     z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
 
     precond_data pcdata = {0};
-    param_amg_to_prec(&pcdata,amgparam);
+    param_amg_to_prec_shared(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
 
@@ -2712,7 +2712,7 @@ void precond_block_upper_3_amg_krylov(REAL *r,
     z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
 
     precond_data pcdata = {0};
-    param_amg_to_prec(&pcdata,amgparam);
+    param_amg_to_prec_shared(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
 
@@ -2964,7 +2964,7 @@ void precond_block_diag_4_amg_krylov(REAL *r,
     z3.val = &(z[N0+N1+N2]);
 
     precond_data pcdata = {0};
-    param_amg_to_prec(&pcdata,amgparam);
+    param_amg_to_prec_shared(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
 
@@ -3273,7 +3273,7 @@ void precond_block_lower_4_amg_krylov(REAL *r,
     z3.val = &(z[N0+N1+N2]);
 
     precond_data pcdata = {0};
-    param_amg_to_prec(&pcdata,amgparam);
+    param_amg_to_prec_shared(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
 
@@ -3601,7 +3601,7 @@ void precond_block_upper_4_amg_krylov(REAL *r,
     z3.val = &(z[N0+N1+N2]);
 
     precond_data pcdata = {0};
-    param_amg_to_prec(&pcdata,amgparam);
+    param_amg_to_prec_shared(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
 
@@ -3709,7 +3709,7 @@ void precond_block_diag_5_amg_krylov(REAL *r,
     z3.val = &(z[N0+N1+N2]); z4.val = &(z[N0+N1+N2+N3]);
 
     precond_data pcdata = {0};
-    param_amg_to_prec(&pcdata,amgparam);
+    param_amg_to_prec_shared(&pcdata,amgparam);
     precond pc;
     pc.fct = precond_amg;
 
@@ -4237,7 +4237,7 @@ void precond_block_diag_mixed_darcy_krylov(REAL *r,
 
   // Preconditioning A00 block (flux)
   precond_data pcdata_p = {0};
-  param_amg_to_prec(&pcdata_p,amgparam);
+  param_amg_to_prec_shared(&pcdata_p,amgparam);
   pcdata_p.max_levels = mgl[0][0].num_levels;
   pcdata_p.mgl_data = mgl[0];
 
@@ -4305,7 +4305,7 @@ void precond_block_lower_mixed_darcy_krylov(REAL *r,
 
   // Preconditioning A00 block (flux)
   precond_data pcdata_p = {0};
-  param_amg_to_prec(&pcdata_p,amgparam);
+  param_amg_to_prec_shared(&pcdata_p,amgparam);
   pcdata_p.max_levels = mgl[0][0].num_levels;
   pcdata_p.mgl_data = mgl[0];
 
@@ -4384,7 +4384,7 @@ void precond_block_upper_mixed_darcy_krylov(REAL *r,
 
   // Preconditioning A00 block (flux)
   precond_data pcdata_p = {0};
-  param_amg_to_prec(&pcdata_p,amgparam);
+  param_amg_to_prec_shared(&pcdata_p,amgparam);
   pcdata_p.max_levels = mgl[0][0].num_levels;
   pcdata_p.mgl_data = mgl[0];
 
@@ -5155,7 +5155,7 @@ void precond_block_diag_mixed_darcy_lap_krylov(REAL *r,
 
   // Preconditioning A00 block (flux)
   precond_data pcdata_p = {0};
-  param_amg_to_prec(&pcdata_p,amgparam);
+  param_amg_to_prec_shared(&pcdata_p,amgparam);
   pcdata_p.max_levels = mgl[0][0].num_levels;
   pcdata_p.mgl_data = mgl[0];
 
@@ -5166,7 +5166,7 @@ void precond_block_diag_mixed_darcy_lap_krylov(REAL *r,
 
   // Preconditioning A11 block (head)
   precond_data pcdata_h = {0};
-  param_amg_to_prec(&pcdata_h,amgparam);
+  param_amg_to_prec_shared(&pcdata_h,amgparam);
   pcdata_h.max_levels = mgl[1][0].num_levels;
   pcdata_h.mgl_data = mgl[1];
 
@@ -5227,7 +5227,7 @@ void precond_block_lower_mixed_darcy_lap_krylov(REAL *r,
 
   // Preconditioning A00 block (flux)
   precond_data pcdata_p = {0};
-  param_amg_to_prec(&pcdata_p,amgparam);
+  param_amg_to_prec_shared(&pcdata_p,amgparam);
   pcdata_p.max_levels = mgl[0][0].num_levels;
   pcdata_p.mgl_data = mgl[0];
 
@@ -5241,7 +5241,7 @@ void precond_block_lower_mixed_darcy_lap_krylov(REAL *r,
 
   // Preconditioning A11 block (head)
   precond_data pcdata_h = {0};
-  param_amg_to_prec(&pcdata_h,amgparam);
+  param_amg_to_prec_shared(&pcdata_h,amgparam);
   pcdata_h.max_levels = mgl[1][0].num_levels;
   pcdata_h.mgl_data = mgl[1];
 
@@ -5302,7 +5302,7 @@ void precond_block_upper_mixed_darcy_lap_krylov(REAL *r,
 
   // Preconditioning A11 block (head)
   precond_data pcdata_h = {0};
-  param_amg_to_prec(&pcdata_h,amgparam);
+  param_amg_to_prec_shared(&pcdata_h,amgparam);
   pcdata_h.max_levels = mgl[1][0].num_levels;
   pcdata_h.mgl_data = mgl[1];
 
@@ -5316,7 +5316,7 @@ void precond_block_upper_mixed_darcy_lap_krylov(REAL *r,
 
   // Preconditioning A00 block (flux)
   precond_data pcdata_p = {0};
-  param_amg_to_prec(&pcdata_p,amgparam);
+  param_amg_to_prec_shared(&pcdata_p,amgparam);
   pcdata_p.max_levels = mgl[0][0].num_levels;
   pcdata_p.mgl_data = mgl[0];
 
@@ -5378,7 +5378,7 @@ void precond_block_ilu_mixed_darcy_lap_krylov(REAL *r,
 
   // Preconditioning A00 block (flux)
   precond_data pcdata_p = {0};
-  param_amg_to_prec(&pcdata_p,amgparam);
+  param_amg_to_prec_shared(&pcdata_p,amgparam);
   pcdata_p.max_levels = mgl[0][0].num_levels;
   pcdata_p.mgl_data = mgl[0];
 
@@ -5392,7 +5392,7 @@ void precond_block_ilu_mixed_darcy_lap_krylov(REAL *r,
 
   // Preconditioning A11 block (head)
   precond_data pcdata_h = {0};
-  param_amg_to_prec(&pcdata_h,amgparam);
+  param_amg_to_prec_shared(&pcdata_h,amgparam);
   pcdata_h.max_levels = mgl[1][0].num_levels;
   pcdata_h.mgl_data = mgl[1];
 
@@ -5474,7 +5474,7 @@ void precond_block_ilu_mixed_darcy_graph_lap_krylov(REAL *r,
 
   // Preconditioning A11 block (head)
   precond_data pcdata_h = {0};
-  param_amg_to_prec(&pcdata_h,amgparam);
+  param_amg_to_prec_shared(&pcdata_h,amgparam);
   pcdata_h.max_levels = mgl[1][0].num_levels;
   pcdata_h.mgl_data = mgl[1];
 
@@ -5646,7 +5646,7 @@ void precond_block2_babuska_diag(REAL *r,
       precond pc00;
       pc00.fct = precond_amg;
       precond_data pcdata00;
-      param_amg_to_prec(&pcdata00, &(amgparam[0]));
+      param_amg_to_prec_shared(&pcdata00, &(amgparam[0]));
       pc00.data = &pcdata00;
 
       pcdata00.max_levels = mgl[0]->num_levels;
@@ -5695,7 +5695,7 @@ void precond_block2_babuska_diag(REAL *r,
     precond pc_frac_A;
     pc_frac_A.fct = precond_amg;
     precond_data pcdata = {0};
-    param_amg_to_prec(&pcdata, &(amgparam[1]));
+    param_amg_to_prec_shared(&pcdata, &(amgparam[1]));
     pc_frac_A.data = &pcdata;
     /*----------------------------------------*/
 
@@ -5814,7 +5814,7 @@ void precond_block2_babuska_lower(REAL *r,
       precond pc00;
       pc00.fct = precond_amg;
       precond_data pcdata00;
-      param_amg_to_prec(&pcdata00, &(amgparam[0]));
+      param_amg_to_prec_shared(&pcdata00, &(amgparam[0]));
       pc00.data = &pcdata00;
 
       pcdata00.max_levels = mgl[0]->num_levels;
@@ -5869,7 +5869,7 @@ void precond_block2_babuska_lower(REAL *r,
     precond pc_frac_A;
     pc_frac_A.fct = precond_amg;
     precond_data pcdata = {0};
-    param_amg_to_prec(&pcdata, &(amgparam[1]));
+    param_amg_to_prec_shared(&pcdata, &(amgparam[1]));
     pc_frac_A.data = &pcdata;
     /*----------------------------------------*/
 
@@ -6000,7 +6000,7 @@ void precond_block2_babuska_upper(REAL *r,
     precond pc_frac_A;
     pc_frac_A.fct = precond_amg;
     precond_data pcdata = {0};
-    param_amg_to_prec(&pcdata, &(amgparam[1]));
+    param_amg_to_prec_shared(&pcdata, &(amgparam[1]));
     pc_frac_A.data = &pcdata;
     /*----------------------------------------*/
 
@@ -6077,7 +6077,7 @@ void precond_block2_babuska_upper(REAL *r,
     precond pc00;
     pc00.fct = precond_amg;
     precond_data pcdata00;
-    param_amg_to_prec(&pcdata00, &(amgparam[0]));
+    param_amg_to_prec_shared(&pcdata00, &(amgparam[0]));
     pc00.data = &pcdata00;
 
     pcdata00.max_levels = mgl[0]->num_levels;
@@ -6177,7 +6177,7 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
     precond pc_frac_A;
     pc_frac_A.fct = precond_amg;
     precond_data pcdata = {0};
-    param_amg_to_prec(&pcdata, amgparam);
+    param_amg_to_prec_shared(&pcdata, amgparam);
     pc_frac_A.data = &pcdata;
 
     /*----------------------------------------*/

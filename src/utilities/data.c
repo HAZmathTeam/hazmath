@@ -490,12 +490,12 @@ void HX_curl_data_free (HX_curl_data *hxcurldata,
     dcsr_free(hxcurldata->Pt_curl);
     dcsr_free(hxcurldata->A_vgrad);
 
-    amg_data_free(hxcurldata->mgl_vgrad, hxcurldata->amgparam_vgrad);
+    if (hxcurldata->mgl_vgrad) amg_data_free(hxcurldata->mgl_vgrad, hxcurldata->amgparam_vgrad);
 
     dcsr_free(hxcurldata->Gradt);
     dcsr_free(hxcurldata->A_grad);
 
-    amg_data_free(hxcurldata->mgl_grad, hxcurldata->amgparam_grad);
+    if (hxcurldata->mgl_grad) amg_data_free(hxcurldata->mgl_grad, hxcurldata->amgparam_grad);
 
     if (hxcurldata->backup_r) free(hxcurldata->backup_r);
 

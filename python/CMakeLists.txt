@@ -63,7 +63,10 @@ set_target_properties(haznicsx_helper PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(haznicsx_helper PUBLIC hazmath::hazmath)
 
 nanobind_add_module(_haznicsx src/haznicsx.cpp)
-target_include_directories(_haznicsx PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+# BEFORE: the haznics_add.h generated above from helper.c, not an older one
+# that the SWIG build (haz_shutils/headmk_haznics.sh) may have left in
+# include/ of the source tree
+target_include_directories(_haznicsx BEFORE PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(_haznicsx PRIVATE haznicsx_helper hazmath::hazmath)
 # find a shared libhazmath where it was installed. INSTALL_RPATH_USE_LINK_PATH
 # is not enough: it skips directories inside the project, such as a prefix in
