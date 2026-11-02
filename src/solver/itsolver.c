@@ -1968,7 +1968,9 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
     hxdivdata.amgparam_divgrad = amgparam;
     hxdivdata.mgl_divgrad = mgl_divgrad;
     hxdivdata.amgparam_grad = amgparam;
-    hxdivdata.mgl_grad = mgl_divgrad;
+    // the hierarchy of A_grad (2D); this was mgl_divgrad, so the scalar
+    // Laplacian was solved with the div-grad hierarchy
+    hxdivdata.mgl_grad = mgl_grad;
 
     hxdivdata.backup_r = (REAL*)calloc(A->row, sizeof(REAL));
     hxdivdata.w = (REAL*)calloc(2*(A_curl.row)+A->row, sizeof(REAL));
