@@ -10,7 +10,6 @@ import sys
 import threading
 
 import numpy as np
-import numpy.typing as npt
 import pytest
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
@@ -27,29 +26,6 @@ def with_index_dtype(A: sp.csr_matrix) -> sp.csr_matrix:
     A.indptr = A.indptr.astype(INDEX)
     A.indices = A.indices.astype(INDEX)
     return A
-
-
-def pcg(A, b: npt.NDArray[np.float64], precond, rtol: float = 1e-10, maxit: int = 1000):
-    """Preconditioned conjugate gradients. Returns the solution and iteration count."""
-    x = np.zeros_like(b)
-    r = b.copy()
-    z = np.zeros_like(b)
-    precond(r, z)
-    p = z.copy()
-    rz = r @ z
-    b_norm = np.linalg.norm(b)
-    for k in range(1, maxit + 1):
-        Ap = A @ p
-        alpha = rz / (p @ Ap)
-        x += alpha * p
-        r -= alpha * Ap
-        if np.linalg.norm(r) < rtol * b_norm:
-            return x, k
-        precond(r, z)
-        rz_new = r @ z
-        p = z + rz_new / rz * p
-        rz = rz_new
-    raise RuntimeError("PCG did not converge")
 
 
 def test_csr_round_trip():
@@ -251,7 +227,7 @@ def test_amg_param_from_dict():
 
 
 @pytest.mark.parametrize("cycle_type, max_its", [("V_CYCLE", 45), ("W_CYCLE", 30)])
-def test_amg_pcg(cycle_type, max_its, poisson_2d):
+def test_amg_pcg(cycle_type, max_its, poisson_2d, pcg):
     A = poisson_2d(64)
     b = np.ones(A.shape[0])
     param = haznicsx.AMGParam.from_dict({"cycle_type": getattr(haznicsx, cycle_type)})
@@ -263,7 +239,7 @@ def test_amg_pcg(cycle_type, max_its, poisson_2d):
     np.testing.assert_allclose(x, spla.spsolve(A.tocsc(), b), rtol=1e-7)
 
 
-def test_amg_iterations_bounded_under_refinement(poisson_2d):
+def test_amg_iterations_bounded_under_refinement(poisson_2d, pcg):
     its = []
     for n in (32, 64, 128):
         A = poisson_2d(n)
@@ -343,7 +319,7 @@ def test_amg_invalid_param(options, message, poisson_2d):
 
 
 @pytest.mark.parametrize("aggregation_type", ["VMB", "HEC", "HEM"])
-def test_amg_aggregation_types(aggregation_type, poisson_2d):
+def test_amg_aggregation_types(aggregation_type, poisson_2d, pcg):
     A = poisson_2d(16)
     param = haznicsx.AMGParam.from_dict({"aggregation_type": getattr(haznicsx, aggregation_type)})
     B = haznicsx.amg(haznicsx.csr_from_scipy(A), param)
@@ -368,7 +344,7 @@ def test_amg_cycles(cycle_type, poisson_2d):
     assert np.isfinite(z).all()
 
 
-def test_famg(poisson_2d):
+def test_famg(poisson_2d, pcg):
     n = 32
     A = poisson_2d(n)
     M = sp.identity(A.shape[0], format="csr") / (n + 1) ** 2
@@ -439,3 +415,34 @@ def test_threads(poisson_2d):
     for t in threads:
         t.join()
     assert not mismatches
+
+
+def random_csr(rows: int, cols: int) -> haznicsx.CSRMatrix:
+    return haznicsx.csr_from_scipy(sp.random(rows, cols, density=0.5, format="csr", random_state=0))
+
+
+def test_hx_curl_arguments(poisson_2d):
+    A = haznicsx.csr_from_scipy(poisson_2d(4))
+    n = A.shape[0]
+    with pytest.raises(ValueError, match="Pcurl must have 16 rows"):
+        haznicsx.hx_curl(A, random_csr(n - 1, 8), random_csr(n, 4))
+    with pytest.raises(ValueError, match="Grad must have 16 rows"):
+        haznicsx.hx_curl(A, random_csr(n, 8), random_csr(n + 1, 4))
+    param = haznicsx.AMGParam.from_dict({"cycle_type": haznicsx.AMLI_CYCLE})
+    with pytest.raises(ValueError, match="cycle_type"):
+        haznicsx.hx_curl(A, random_csr(n, 8), random_csr(n, 4), param)
+
+
+def test_hx_div_arguments(poisson_2d):
+    A = haznicsx.csr_from_scipy(poisson_2d(4))
+    n = A.shape[0]
+    with pytest.raises(ValueError, match="Pdiv must have 16 rows"):
+        haznicsx.hx_div(A, random_csr(n - 1, 8), random_csr(n, 6))
+    with pytest.raises(ValueError, match="Curl must have 16 rows"):
+        haznicsx.hx_div(A, random_csr(n, 8), random_csr(n - 1, 6))
+    # 3D: Pcurl maps vector P1 into the space that Curl maps from
+    with pytest.raises(ValueError, match="Pcurl must have 6 rows"):
+        haznicsx.hx_div(A, random_csr(n, 8), random_csr(n, 6), random_csr(5, 8))
+    param = haznicsx.AMGParam.from_dict({"cycle_type": haznicsx.NL_AMLI_CYCLE})
+    with pytest.raises(ValueError, match="cycle_type"):
+        haznicsx.hx_div(A, random_csr(n, 8), random_csr(n, 6), param=param)
