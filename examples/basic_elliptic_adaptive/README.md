@@ -28,20 +28,68 @@ The adaptive loop is SOLVE -> ESTIMATE -> MARK -> REFINE:
   (`ae_theta{1.0}` marks every element, i.e. uniform bisection);
 - REFINE: newest vertex bisection (Diening-Gehring-Storn).
 
-## Build and run
+## Build
 
 ```sh
 cd HAZMATH_DIR
 make distclean; make config suitesparse=yes lapack=yes shared=yes; make install
 cd examples/basic_elliptic_adaptive
-make
-./basic_elliptic_adaptive.ex input/2d_L.input        # L-shaped domain
-./basic_elliptic_adaptive.ex input/3d_fichera.input  # Fichera domain
+make clean; make
 ```
 
-The solver parameters and `FE_type` are read from `./input.dat`; the grid,
-the problem and the adaptivity parameters from the grid file given on the
-command line.
+## Run
+
+Two files control a run:
+
+- `input.dat` (read from the current directory): `FE_type` and the solver
+  parameters;
+- the grid file given on the command line (`input/2d_L.input` or
+  `input/3d_fichera.input`): the domain, `ae_problem`, `ae_eps`, `ae_kappa`,
+  `ae_theta` and the other adaptivity parameters (table below).
+
+```sh
+./basic_elliptic_adaptive.ex input/2d_L.input        # L-shaped domain (2D)
+./basic_elliptic_adaptive.ex input/3d_fichera.input  # Fichera domain (3D)
+```
+
+### Poisson (P1)
+
+In `input.dat`:
+
+    FE_type = 1
+
+In the grid file: `ae_problem{1}` (L-shape only, singular exact solution),
+`ae_problem{2}` (`f = 1`) or `ae_problem{3}` (smooth exact solution).
+The files as shipped run P1: `2d_L.input` has `ae_problem{1}`,
+`3d_fichera.input` has `ae_problem{2}`.
+
+### Curl-curl (Nedelec)
+
+In `input.dat`:
+
+    FE_type = 20
+
+In the grid file: `ae_problem{3}` (smooth exact solution, the effectivity
+index `eta/err` is printed) or `ae_problem{2}` (`f = (1,...,1)`);
+`ae_problem{1}` is P1 only, so change it in `2d_L.input`. Set the
+coefficients with `ae_eps{...}` and `ae_kappa{...}` (default 1 and 1), e.g.
+
+    ae_problem{3}
+    ae_eps{0.1}
+    ae_kappa{10.}
+
+### Div-div (Raviart-Thomas)
+
+In `input.dat`:
+
+    FE_type = 30
+
+The grid file keys are the same as for curl-curl (`ae_problem{3}` or `{2}`,
+`ae_eps`, `ae_kappa`).
+
+The convergence table is printed on the screen and written to `output/`
+(see Output below). For long 3D runs `ae_max_dofs{N}` stops the loop after the
+first mesh with more than `N` dofs.
 
 ## Problems
 
