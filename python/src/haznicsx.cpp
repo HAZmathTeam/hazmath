@@ -709,9 +709,10 @@ NB_MODULE(_haznicsx, m)
         }
         if (!pc)
           throw std::runtime_error("HAZmath RA setup failed");
-        // the apply scales r in place and back, which need not be exact,
-        // and zeroes z before it reads r
-        return new Precond(pc, p, n, free_ra, true);
+        // no copy of r needed: precond_ra_fenics (src/solver/precond.c)
+        // scales its own copy of r, leaves r unchanged, and allows r and z
+        // to be the same array
+        return new Precond(pc, p, n, free_ra, false);
       },
       "A"_a, "M"_a, "s"_a, "t"_a, "alpha"_a, "beta"_a, "scaling_a"_a,
       "scaling_m"_a, "ra_tol"_a, "param"_a, nb::rv_policy::take_ownership,

@@ -6130,23 +6130,14 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
     INT n = precdata->scaled_A->col; // general size of the problem
     INT i;
 
-    // back up r, setup z
-    /* array_set(n, z, 0.0); */
-    /* dvector z_vec = dvec_create(n); memcpy(z_vec.val, z, n*sizeof(REAL)); */
-    dvector z_vec, r_vec;
+    // copy r before z is set: r is not modified, and r and z may be the
+    // same array
+    dvector r_vec = dvec_create(n);
+    array_cp(n, r, r_vec.val);
+    dvector z_vec;
     z_vec.row = n;
     z_vec.val = z;
     array_set(n, z_vec.val, 0e0);
-    r_vec.row = n;
-    r_vec.val = r;
-    // printf("Norm residual (n=%lld)before copy: %.5e\n", n, array_norm2(n, r));
-    /* dvector r_vec = dvec_create(n); // we probably can just have r_vec.val=r; */
-    /* fprintf(stderr,"\nr_vec %ld: %lld\n",sizeof(r_vec.val)/sizeof(REAL),r_vec.row); */
-    /* if(r_vec.val == NULL){ */
-    /*   fprintf(stderr,"\nCOULD NOT ALLOCATE r_vec\n"); */
-    /*   fflush(stderr); */
-    /* } */
-    /* memcpy(r_vec.val, r, n*sizeof(REAL)); */
     /*----------------------------------------*/
     // get scaled mass matrix
     dCSRmat *scaled_M = precdata->scaled_M;
@@ -6185,7 +6176,7 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
     /*----------------------------------------*/
     /* main loop of applying rational approximation */
     /*----------------------------------------*/
-    // scaling r
+    // scaling the copy of r
     if (scaled_alpha > scaled_beta)
     {
       dvec_ax(1./scaled_alpha, &r_vec);
@@ -6317,15 +6308,8 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
     // if(count) printf("Inner solver took total of %lld iterations. \n", count);
 
     // cleanup
-    // UNSCALLING r
-    if (scaled_alpha > scaled_beta) {
-      dvec_ax(scaled_alpha, &r_vec);
-    }
-    else {
-      dvec_ax(scaled_beta, &r_vec);
-    }
     dvec_free(&update);
-    //    dvec_free(&r_vec);
+    dvec_free(&r_vec);
     /* dvec_free(&z_vec); */
     return;
 }
