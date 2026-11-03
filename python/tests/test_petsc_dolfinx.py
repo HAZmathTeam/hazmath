@@ -61,7 +61,7 @@ def unit_mesh(comm: MPI.Comm, dim: int, n: int) -> mesh.Mesh:
 @pytest.mark.parametrize(
     "dim, n, max_its",
     # serial iterations: 2D about 25, 27, 33 and 3D about 13, 19, 20 for
-    # degrees 1, 2, 3; HEC aggregation is randomized
+    # degrees 1, 2, 3
     [(2, 64, 50), (3, 12, 30)],
     ids=["2D", "3D"],
 )

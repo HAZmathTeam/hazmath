@@ -25,6 +25,8 @@ repository = "https://github.com/HAZmathTeam/hazmath"
 
 [project.optional-dependencies]
 petsc = ["petsc4py"]
+# for the default scaling of haznicsx.ra and HazmathRA
+slepc = ["petsc4py", "slepc4py"]
 test = ["pytest", "scipy"]
 
 # Tools for .github/workflows/formatting.yml (python3 -m pip install --group lint)

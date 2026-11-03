@@ -4,8 +4,11 @@
 include("${CMAKE_CURRENT_LIST_DIR}/hazmathTargets.cmake")
 
 set(hazmath_LIBRARY_TYPE "@HAZMATH_LIBRARY_TYPE@")
-set(hazmath_WITH_SUITESPARSE "@SUITESPARSE_FOUND@")
-set(hazmath_WITH_LAPACK "@LAPACK_FOUND@")
+# whether libhazmath is compiled with SuiteSparse (WITH_SUITESPARSE) and with
+# LAPACK (WITH_LAPACK). New names: the hazmath_WITH_* of earlier configs
+# followed SUITESPARSE_FOUND and LAPACK_FOUND, which can be TRUE without them.
+set(hazmath_HAS_SUITESPARSE "@HAZMATH_WITH_SUITESPARSE@")
+set(hazmath_HAS_LAPACK "@HAZMATH_WITH_LAPACK@")
 
 # A static libhazmath exports the external libraries it was built with, by
 # the paths found at that time

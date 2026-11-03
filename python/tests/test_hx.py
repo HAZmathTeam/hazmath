@@ -148,7 +148,7 @@ def test_hx_additive_bounded_under_refinement(kind, dim, sizes, pcg):
         b = np.random.default_rng(1).random(A.shape[0])
         _, k = pcg(A, b, B.apply, rtol=1e-8)
         its.append(k)
-    # about 14 to 27 iterations; HEC aggregation is randomized
+    # about 14 to 27 iterations
     assert max(its) < 40
     assert its[-1] < its[0] + 20
 
@@ -158,7 +158,6 @@ def test_hx_additive_bounded_under_refinement(kind, dim, sizes, pcg):
 def test_hx_multiplicative(kind, dim, n):
     A, B = hx_preconditioner(kind, dim, n, multiplicative=True)
     b = np.random.default_rng(2).random(A.shape[0])
-    # the multiplicative variant changes r in HAZmath; haznicsx passes a copy
     b0 = b.copy()
     z = np.zeros_like(b)
     B.apply(b, z)

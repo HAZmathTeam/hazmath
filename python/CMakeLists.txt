@@ -20,11 +20,30 @@ find_package(nanobind CONFIG REQUIRED)
 if(TARGET hazmath::hazmath)
   # built together with libhazmath ("pip install ." from the repository root)
   message(STATUS "Using libhazmath from this build")
+  set(HAZNICSX_WITH_LAPACK "${HAZMATH_WITH_LAPACK}")
 else()
   # libhazmath, installed with -DHAZMATH_RELOCATABLE_INSTALL=ON
   find_package(hazmath 0.1 CONFIG REQUIRED)
   message(STATUS "Found HAZmath at ${hazmath_DIR}")
+  if(DEFINED hazmath_HAS_LAPACK)
+    set(HAZNICSX_WITH_LAPACK "${hazmath_HAS_LAPACK}")
+  else()
+    # an earlier config, whose hazmath_WITH_LAPACK can be wrong
+    message(
+      WARNING
+      "${hazmath_DIR} does not say whether libhazmath has LAPACK; "
+      "reinstall libhazmath to use the RA preconditioner"
+    )
+    set(HAZNICSX_WITH_LAPACK FALSE)
+  endif()
 endif()
+# the rational approximation (RA) needs libhazmath compiled with LAPACK
+if(HAZNICSX_WITH_LAPACK)
+  set(HAZNICSX_WITH_LAPACK 1)
+else()
+  set(HAZNICSX_WITH_LAPACK 0)
+endif()
+message(STATUS "libhazmath with LAPACK: ${HAZNICSX_WITH_LAPACK}")
 
 # The preconditioner builders (create_precond_*) are in src/haznics/helper.c of
 # the HAZmath source tree, which is not part of libhazmath
@@ -66,7 +85,15 @@ nanobind_add_module(_haznicsx src/haznicsx.cpp)
 # BEFORE: the haznics_add.h generated above from helper.c, not an older one
 # that the SWIG build (haz_shutils/headmk_haznics.sh) may have left in
 # include/ of the source tree
-target_include_directories(_haznicsx BEFORE PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+target_include_directories(
+  _haznicsx
+  BEFORE
+  PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
+)
+target_compile_definitions(
+  _haznicsx
+  PRIVATE HAZNICSX_WITH_LAPACK=${HAZNICSX_WITH_LAPACK}
+)
 target_link_libraries(_haznicsx PRIVATE haznicsx_helper hazmath::hazmath)
 # find a shared libhazmath where it was installed. INSTALL_RPATH_USE_LINK_PATH
 # is not enough: it skips directories inside the project, such as a prefix in

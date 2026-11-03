@@ -56,3 +56,5 @@ examples/xd_1d_models/input/solver.input
 __pycache__/
 *.egg-info/
 python/build/
+# output of issues/run.sh
+build-issues/

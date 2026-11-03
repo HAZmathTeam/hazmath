@@ -22,9 +22,14 @@ fields that select a method also accept names, see :data:`OPTION_CHOICES`.
 HAZmath is serial: the preconditioning matrix must be on one process. In
 parallel, use ``HazmathAMG`` as the sub-preconditioner of block Jacobi or
 additive Schwarz (``-pc_type bjacobi -sub_pc_type python
--sub_pc_python_type haznicsx.HazmathAMG``). The HX contexts need their
-auxiliary matrices, so they are created in code, e.g.
-``HazmathHXCurl(*haznicsx.hx_curl_operators(V))``.
+-sub_pc_python_type haznicsx.HazmathAMG``).
+
+``HazmathAMG`` and ``HazmathFAMG`` (with ``M`` set afterwards) can be created
+from the options database (``-pc_python_type``). The HX and RA contexts need
+matrices or parameters that the options database cannot provide, so they are
+created in code, e.g. ``HazmathHXCurl(*haznicsx.hx_curl_operators(V))`` or
+``HazmathRA(M, s=0.5)``; their AMG parameters can still be set with
+``-pc_hazmath_<field>``.
 """
 
 from __future__ import annotations
@@ -33,7 +38,18 @@ import typing
 
 from haznicsx import _haznicsx as _hz
 from haznicsx.csr import csr_from_dolfinx, csr_from_petsc, csr_from_scipy
-from haznicsx.precond import AMGParam, CSRMatrix, Precond, amg, famg, hx_curl, hx_div
+from haznicsx.precond import (
+    AMGParam,
+    CSRMatrix,
+    Precond,
+    _check_ra_available,
+    amg,
+    default_scaling_a,
+    famg,
+    hx_curl,
+    hx_div,
+    ra,
+)
 
 if typing.TYPE_CHECKING:
     from petsc4py import PETSc
@@ -44,6 +60,7 @@ __all__ = [
     "HazmathFAMG",
     "HazmathHXCurl",
     "HazmathHXDiv",
+    "HazmathRA",
     "amg_param_from_options",
 ]
 
@@ -156,6 +173,25 @@ def _auxiliary(M: typing.Any) -> CSRMatrix:
     return csr_from_scipy(M)
 
 
+class _Converted:
+    """HAZmath matrix of a context's auxiliary matrix, kept between setups.
+
+    Converted when the context is created, and again only after the context's
+    matrix is replaced.
+    """
+
+    def __init__(self, M: typing.Any) -> None:
+        self._source = M
+        self._matrix = None if M is None else _auxiliary(M)
+
+    def get(self, M: typing.Any) -> CSRMatrix:
+        """The HAZmath matrix of ``M``, converted if ``M`` is new."""
+        if self._matrix is None or M is not self._source:
+            self._matrix = _auxiliary(M)
+            self._source = M
+        return self._matrix
+
+
 class HazmathAMG:
     """HAZmath AMG preconditioner (:func:`haznicsx.amg`) as a ``PCPYTHON`` context.
 
@@ -224,12 +260,14 @@ class HazmathFAMG(HazmathAMG):
     the options database, so there is no parallel (sub-preconditioner) use.
     """
 
-    def __init__(self, M: PETSc.Mat | None = None, param: AMGParam | None = None) -> None:
+    def __init__(self, M: typing.Any = None, param: AMGParam | None = None) -> None:
         """Create the context.
 
         Args:
-            M: Mass matrix, on one process and of the same size as the
-                preconditioning matrix. It is converted at the first setup.
+            M: Mass matrix, of the same size as the preconditioning matrix; a
+                PETSc matrix on one process, :class:`haznicsx.CSRMatrix`,
+                DOLFINx or SciPy matrix. It is converted when the context is
+                created, and again at a setup after ``ctx.M`` is replaced.
             param: AMG parameters. ``None`` means the HAZmath defaults with
                 the fractional Gauss-Seidel smoother; see :func:`haznicsx.famg`.
         """
@@ -237,17 +275,12 @@ class HazmathFAMG(HazmathAMG):
             param = AMGParam.from_dict({"smoother": _hz.SMOOTHER_FGS})
         super().__init__(param)
         self.M = M
-        self._M: CSRMatrix | None = None
-        self._M_source: PETSc.Mat | None = None
+        self._M = _Converted(M)
 
     def _build(self, P: PETSc.Mat) -> Precond:
         if self.M is None:
             raise ValueError("HazmathFAMG needs the mass matrix: HazmathFAMG(M)")
-        # convert M once, not at every setup
-        if self._M is None or self._M_source is not self.M:
-            self._M = _to_hazmath(self.M)
-            self._M_source = self.M
-        return famg(_to_hazmath(P), self._M, self.param)
+        return famg(_to_hazmath(P), self._M.get(self.M), self.param)
 
 
 class HazmathHXCurl(HazmathAMG):
@@ -324,4 +357,97 @@ class HazmathHXDiv(HazmathAMG):
     def _build(self, P: PETSc.Mat) -> Precond:
         return hx_div(
             _to_hazmath(P), self._Pdiv, self._Curl, self._Pcurl, self.param, self.multiplicative
+        )
+
+
+class HazmathRA(HazmathAMG):
+    """HAZmath rational approximation preconditioner (:func:`haznicsx.ra`).
+
+    A ``PCPYTHON`` context for the fractional operator ``alpha A^s + beta A^t``
+    of the PC's preconditioning matrix ``A``, in the inner product of the mass
+    matrix ``M``. Its inner solves make it slightly nonlinear, so use it with
+    a flexible Krylov method (``-ksp_type fgmres``).
+    """
+
+    def __init__(
+        self,
+        M: typing.Any,
+        s: float,
+        t: float = 0.0,
+        alpha: float = 1.0,
+        beta: float = 0.0,
+        scaling_a: float | None = None,
+        scaling_m: float = 1.0,
+        ra_tol: float = 1e-10,
+        param: AMGParam | None = None,
+    ) -> None:
+        """Create the context.
+
+        Args:
+            M: Mass matrix; a PETSc, :class:`haznicsx.CSRMatrix`, DOLFINx or
+                SciPy matrix. It is converted when the context is created,
+                and again at a setup after ``ctx.M`` is replaced.
+            s: First fractional power, in ``[-1, 1]``.
+            t: Second fractional power, in ``[-1, 1]``.
+            alpha: Coefficient of ``A^s``.
+            beta: Coefficient of ``A^t``.
+            scaling_a: See :func:`haznicsx.ra`. ``None`` computes it at every
+                setup with :func:`haznicsx.default_scaling_a` (SLEPc).
+            scaling_m: See :func:`haznicsx.ra`.
+            ra_tol: Tolerance of the AAA algorithm.
+            param: AMG parameters for the shifted problems. ``None`` means the
+                HAZmath defaults.
+
+        Raises:
+            RuntimeError: If libhazmath has no LAPACK.
+            ImportError: If ``scaling_a`` is ``None`` and petsc4py or
+                slepc4py is not installed.
+        """
+        _check_ra_available(scaling_a)
+        super().__init__(param)
+        self.M = M
+        self._M = _Converted(M)
+        self.s, self.t, self.alpha, self.beta = s, t, alpha, beta
+        self.scaling_a, self.scaling_m, self.ra_tol = scaling_a, scaling_m, ra_tol
+        self._scaling_a_used: float | None = None
+
+    def _build(self, P: PETSc.Mat) -> Precond:
+        A = _to_hazmath(P)
+        M = self._M.get(self.M)
+        scaling_a = self.scaling_a
+        if scaling_a is None:
+            # SLEPc takes a PETSc M as it is; the others go through M
+            M_petsc = self.M if hasattr(self.M, "getValuesCSR") else M
+            scaling_a = default_scaling_a(P, M_petsc, self.scaling_m)
+        self._scaling_a_used = scaling_a
+        return ra(
+            A,
+            M,
+            self.s,
+            self.t,
+            self.alpha,
+            self.beta,
+            scaling_a,
+            self.scaling_m,
+            self.ra_tol,
+            self.param,
+        )
+
+    def view(self, pc: PETSc.PC, viewer: PETSc.Viewer) -> None:
+        """Print the RA and AMG parameters to an ASCII viewer (PETSc callback)."""
+        from petsc4py import PETSc
+
+        if viewer.getType() != PETSc.Viewer.Type.ASCII:
+            return
+        if self.scaling_a is not None:
+            scaling_a = f"{self.scaling_a}"
+        elif self._scaling_a_used is not None:
+            scaling_a = f"{self._scaling_a_used} (computed)"
+        else:
+            scaling_a = "computed at setup"
+        super().view(pc, viewer)
+        viewer.printfASCII(
+            f"    s = {self.s}, t = {self.t}, alpha = {self.alpha}, beta = {self.beta}\n"
+            f"    scaling_a = {scaling_a}, scaling_m = {self.scaling_m}, "
+            f"ra_tol = {self.ra_tol}\n"
         )

@@ -13,17 +13,20 @@ It provides:
   for H(curl) and H(div), in 2D and 3D. `hx_curl_operators(V)` and
   `hx_div_operators(V)` build their auxiliary matrices for a lowest order
   Nedelec or Raviart-Thomas space in DOLFINx.
+- `HazmathRA`: rational approximation preconditioner for fractional operators
+  `alpha A^s + beta A^t` (in the inner product of a mass matrix `M`), with
+  one AMG-preconditioned solve per pole. It needs libhazmath built with
+  LAPACK (`-C cmake.define.USE_LAPACK=ON`, `haznicsx.HAS_LAPACK`).
 - `CSRMatrix`: a HAZmath sparse matrix, built from CSR arrays
   (`csr_from_arrays`), a SciPy sparse matrix (`csr_from_scipy`), an assembled
   sequential PETSc matrix (`csr_from_petsc`) or a DOLFINx matrix
   (`csr_from_dolfinx`). It shares the arrays that need no conversion, so
   changing them afterwards changes the matrix.
 - `AMGParam`: the HAZmath AMG parameters, with the HAZmath defaults.
-- `amg`, `famg`, `hx_curl` and `hx_div`: the preconditioners without PETSc.
-  `Precond.apply(r, z)` computes `z = B r`.
+- `amg`, `famg`, `hx_curl`, `hx_div` and `ra`: the preconditioners without
+  PETSc. `Precond.apply(r, z)` computes `z = B r`.
 
-The rational approximation and metric AMG preconditioners come in later
-versions.
+The metric AMG preconditioner comes in a later version.
 
 ## Installation
 
@@ -99,6 +102,19 @@ problem.solver.getPC().setPythonContext(ctx)
 
 The additive variants (the default) are symmetric and work with CG; the
 multiplicative ones (`multiplicative=True`) need e.g. GMRES.
+
+The rational approximation preconditioner takes the mass matrix `M`:
+
+```python
+ctx = haznicsx.HazmathRA(M, s=0.5)  # (A^s)^-1 in the M inner product
+```
+
+Its inner solves make it slightly nonlinear, so use it with FGMRES
+(`-ksp_type fgmres`). The rational approximation is fitted on `[0, 1]`, so
+`A` is scaled by `scaling_a`, chosen such that `scaling_a / scaling_m` times
+the largest eigenvalue of `M^-1 A` is at most 1. By default haznicsx computes
+that eigenvalue with SLEPc (`pip install haznicsx[slepc]`) and leaves a 10%
+margin; without slepc4py, pass `scaling_a`.
 
 With petsc4py directly:
 

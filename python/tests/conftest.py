@@ -62,3 +62,64 @@ def pcg() -> collections.abc.Callable:
     needed.
     """
     return _pcg
+
+
+def _p1_1d(n: int) -> tuple[sp.csr_matrix, sp.csr_matrix]:
+    h = 1.0 / (n + 1)
+    A = sp.diags([-1.0, 2.0, -1.0], [-1, 0, 1], shape=(n, n)) / h
+    M = sp.diags([1.0, 4.0, 1.0], [-1, 0, 1], shape=(n, n)) * (h / 6)
+    return A.tocsr(), M.tocsr()
+
+
+@pytest.fixture
+def p1_1d() -> collections.abc.Callable[[int], tuple[sp.csr_matrix, sp.csr_matrix]]:
+    """P1 stiffness and mass matrices on n interior nodes of (0, 1), as a function of n."""
+    return _p1_1d
+
+
+def _preconditioner_matrix(B: typing.Any) -> npt.NDArray[np.float64]:
+    n = B.size
+    # row j of Zt is B applied to e_j (a contiguous output array)
+    Zt = np.zeros((n, n))
+    for j in range(n):
+        e = np.zeros(n)
+        e[j] = 1.0
+        B.apply(e, Zt[j])
+    return Zt.T
+
+
+@pytest.fixture
+def preconditioner_matrix() -> collections.abc.Callable:
+    """The dense matrix of a :class:`haznicsx.Precond`, as a function of it."""
+    return _preconditioner_matrix
+
+
+@pytest.fixture
+def petsc_matrix() -> collections.abc.Iterator[collections.abc.Callable]:
+    """``petsc_matrix(S, comm=None)``: AIJ matrix of a SciPy matrix.
+
+    The rows are split evenly over the processes of ``comm`` (default
+    ``PETSc.COMM_SELF``). The matrices are destroyed at the end of the test.
+    """
+    from petsc4py import PETSc
+
+    created: list[PETSc.Mat] = []
+
+    def create(S: sp.csr_matrix, comm: typing.Any = None) -> PETSc.Mat:
+        comm = PETSc.COMM_SELF if comm is None else comm
+        rank, size = comm.getRank(), comm.getSize()
+        n = S.shape[0]
+        start, end = rank * n // size, (rank + 1) * n // size
+        local = S[start:end]
+        M = PETSc.Mat().createAIJ(
+            size=((end - start, n), (end - start, n)),
+            csr=(local.indptr, local.indices, local.data),
+            comm=comm,
+        )
+        M.assemble()
+        created.append(M)
+        return M
+
+    yield create
+    for M in created:
+        M.destroy()

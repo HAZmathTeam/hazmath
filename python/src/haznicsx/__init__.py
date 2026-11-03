@@ -8,6 +8,7 @@
 from haznicsx._haznicsx import (
     ADD_CYCLE,
     AMLI_CYCLE,
+    HAS_LAPACK,
     HEC,
     HEM,
     NL_AMLI_CYCLE,
@@ -45,12 +46,31 @@ from haznicsx.csr import (
     index_dtype,
 )
 from haznicsx.dolfinx_utils import hx_curl_operators, hx_div_operators
-from haznicsx.pc import HazmathAMG, HazmathFAMG, HazmathHXCurl, HazmathHXDiv, amg_param_from_options
-from haznicsx.precond import AMGParam, CSRMatrix, Precond, amg, famg, hx_curl, hx_div
+from haznicsx.pc import (
+    HazmathAMG,
+    HazmathFAMG,
+    HazmathHXCurl,
+    HazmathHXDiv,
+    HazmathRA,
+    amg_param_from_options,
+)
+from haznicsx.precond import (
+    AMGParam,
+    CSRMatrix,
+    Precond,
+    amg,
+    default_scaling_a,
+    estimate_lambda_max,
+    famg,
+    hx_curl,
+    hx_div,
+    ra,
+)
 
 __all__ = [
     "ADD_CYCLE",
     "AMLI_CYCLE",
+    "HAS_LAPACK",
     "HEC",
     "HEM",
     "NL_AMLI_CYCLE",
@@ -85,6 +105,7 @@ __all__ = [
     "HazmathFAMG",
     "HazmathHXCurl",
     "HazmathHXDiv",
+    "HazmathRA",
     "Precond",
     "amg",
     "amg_param_from_options",
@@ -92,10 +113,13 @@ __all__ = [
     "csr_from_dolfinx",
     "csr_from_petsc",
     "csr_from_scipy",
+    "default_scaling_a",
+    "estimate_lambda_max",
     "famg",
     "hx_curl",
     "hx_curl_operators",
     "hx_div",
     "hx_div_operators",
     "index_dtype",
+    "ra",
 ]
