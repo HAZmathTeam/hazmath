@@ -57,7 +57,7 @@ void param_input (const char *filenm,		\
     // if input file is not specified, use the default values
     if (filenm==NULL) return;
     // ltz: if we are here, the "inparam->inifile" must be the same as filenm:
-    strcpy(inparam->inifile,filenm);
+    snprintf(inparam->inifile,sizeof(inparam->inifile),"%s",filenm);
     // end ltz:
     FILE *fp = fopen(filenm,"r");
     if (fp==NULL) {
@@ -101,7 +101,7 @@ void param_input (const char *filenm,		\
             }
             val = fscanf(fp,"%s",sbuff);
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
-            strncpy(inparam->output_dir,sbuff,128);
+            snprintf(inparam->output_dir,sizeof(inparam->output_dir),"%s",sbuff);
             fgets(buffer,maxb,fp); // skip rest of line
         }
 
@@ -126,7 +126,7 @@ void param_input (const char *filenm,		\
             }
             val = fscanf(fp,"%s",sbuff);
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
-            strncpy(inparam->gridfile,sbuff,128);
+            snprintf(inparam->gridfile,sizeof(inparam->gridfile),"%s",sbuff);
             fgets(buffer,maxb,fp); // skip rest of line
         }
 

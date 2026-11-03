@@ -503,12 +503,16 @@ precond* create_precond_ra(dCSRmat *A,
 
     // compute the rational approximation using AAA algorithms
     REAL err_max=get_rpzwf(numval, zf[0], zf[1], rpnwf, &mmax_in, &k, AAA_tol, print_level);
-    if(rpnwf == NULL) {
+    if(rpnwf[0] == NULL) { // e.g. libhazmath built without LAPACK
       fprintf(stderr,"\nUnsuccessful AAA computation of rational approximation\n");
       fflush(stderr);
+      free(rpnwf);
+      free(zf[0]); free(zf[1]); free(zf);
+      free(pcdata); free(pc);
       return 0;
     }
-    printf(" HAZ ---- Rational approx error in interp points: %.16e\n", err_max);
+    if (prtlvl > PRINT_NONE)
+      printf(" HAZ ---- Rational approx error in interp points: %.16e\n", err_max);
 
     // assign poles and residues
     REAL drop_tol = powl(2e0,-40e0);
@@ -626,7 +630,7 @@ precond* create_precond_ra(dCSRmat *A,
     for(i = 0; i < npoles; ++i) {
       //fprintf(stdout,"\nAMG for pole %d\n", i);
       pcdata->mgl[i] = amg_data_create(max_levels);
-      dcsr_alloc(n, n, 0, &(pcdata->mgl[i][0].A));
+      // dcsr_add allocates the sum
       dcsr_add(A, scaling_a, M, -pcdata->poles->val[i]*scaling_m, &(pcdata->mgl[i][0].A));
       pcdata->mgl[i][0].b = dvec_create(n);
       pcdata->mgl[i][0].x = dvec_create(n);
@@ -653,6 +657,12 @@ precond* create_precond_ra(dCSRmat *A,
       if(status < 0)
 	  {
 	    fprintf(stdout,"Unsuccessful AMG setup at pole %lld with status = %lld\n", (long long )i, (long long )status);
+	    // free what has been built so far (mgl[j] for j > i are still NULL)
+	    precond_ra_data_free(pcdata);
+	    free(pcdata); free(pc);
+	    free(resr); free(resi); free(polesr); free(polesi);
+	    free(rpnwf[0]); free(rpnwf);
+	    free(zf[0]); free(zf[1]); free(zf);
 	    return 0;
 	  }
       // for a new pole, we copy the amg_param back
@@ -678,7 +688,10 @@ precond* create_precond_ra(dCSRmat *A,
 
     // clean
     free(resr); free(resi); free(polesr); free(polesi);
-    if (rpnwf) free(rpnwf);
+    // get_rpzwf allocates one block, rpnwf[0]; rpnwf[1..6] point into it
+    if (rpnwf) { free(rpnwf[0]); free(rpnwf); }
+    // sample points and values from set_f_values
+    free(zf[0]); free(zf[1]); free(zf);
 
     return pc;
 }
@@ -720,9 +733,10 @@ dvector* ra_aaa(INT numval,
 
     // compute the rational approximation using AAA algorithms
     REAL err_max = get_rpzwf(numval, zz, ff, rpnwf, &mmax_in, &k, AAA_tol, print_level);
-    if(rpnwf == NULL) {
+    if(rpnwf[0] == NULL) { // e.g. libhazmath built without LAPACK
       fprintf(stderr,"\nUnsuccessful AAA computation of rational approximation\n");
       fflush(stderr);
+      free(rpnwf); free(zz); free(ff);
       return 0;
     }
     printf(" HAZ ---- Rational approx error in interp points: %.16e\n", err_max);
@@ -808,14 +822,23 @@ precond* create_precond_hxcurl(dCSRmat *Acurl,
                                SHORT prectype,
                                AMG_param *amgparam)
 {
+    // the HX apply functions use V/W-cycles (mgcycle) only
+    if (amgparam->cycle_type == AMLI_CYCLE) {
+        fprintf(stderr, "%s: the AMLI cycle is not supported by the HX preconditioners\n", __FUNCTION__);
+        return NULL;
+    }
+
     precond *pc = (precond*)calloc(1, sizeof(precond));
 
     HX_curl_data *pcdata = (HX_curl_data*)calloc(1, sizeof(HX_curl_data));
 
     const SHORT prtlvl = amgparam->print_level;
     const SHORT max_levels = amgparam->max_levels;
-    // always use iterative solver on coarsest grid
-    amgparam->coarse_solver = 0;
+    // always use iterative solver on coarsest grid; the setup uses a copy
+    // of the parameters, so the caller's are not changed
+    AMG_param amgparam_local = *amgparam;
+    amgparam_local.coarse_solver = 0;
+    amgparam = &amgparam_local;
     REAL setup_start, setup_end;
     pc->setup_time = 0.;
     get_time(&setup_start);
@@ -864,6 +887,12 @@ precond* create_precond_hxcurl(dCSRmat *Acurl,
     if(status < 0)
     {
         fprintf(stdout,"Unsuccessful AMG setup for vector Laplacian with status = %lld\n", (long long )status);
+        // free what has been built so far
+        pcdata->Pt_curl = Pt_curl;
+        pcdata->A_vgrad = A_vgrad;
+        pcdata->mgl_vgrad = mgl_vgrad;
+        HX_curl_data_free(pcdata, TRUE);
+        free(pcdata); free(pc);
         return 0;
     }
 
@@ -909,6 +938,15 @@ precond* create_precond_hxcurl(dCSRmat *Acurl,
     if(status < 0)
     {
         fprintf(stdout,"Unsuccessful AMG setup for scalar Laplacian with status = %lld\n", (long long )status);
+        // free what has been built so far
+        pcdata->Pt_curl = Pt_curl;
+        pcdata->A_vgrad = A_vgrad;
+        pcdata->mgl_vgrad = mgl_vgrad;
+        pcdata->Gradt = Gradt;
+        pcdata->A_grad = A_grad;
+        pcdata->mgl_grad = mgl_grad;
+        HX_curl_data_free(pcdata, TRUE);
+        free(pcdata); free(pc);
         return 0;
     }
 
@@ -963,14 +1001,23 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
                                  SHORT prectype,
                                  AMG_param *amgparam)
 {
+    // the HX apply functions use V/W-cycles (mgcycle) only
+    if (amgparam->cycle_type == AMLI_CYCLE) {
+        fprintf(stderr, "%s: the AMLI cycle is not supported by the HX preconditioners\n", __FUNCTION__);
+        return NULL;
+    }
+
     precond *pc = (precond*)calloc(1, sizeof(precond));
 
     HX_div_data *pcdata = (HX_div_data*)calloc(1, sizeof(HX_div_data));
 
     const SHORT prtlvl = amgparam->print_level;
     const SHORT max_levels = amgparam->max_levels;
-    // always use iterative solver on coarsest grid
-    amgparam->coarse_solver = 0;
+    // always use iterative solver on coarsest grid; the setup uses a copy
+    // of the parameters, so the caller's are not changed
+    AMG_param amgparam_local = *amgparam;
+    amgparam_local.coarse_solver = 0;
+    amgparam = &amgparam_local;
     REAL setup_start, setup_end;
     pc->setup_time = 0.;
     get_time(&setup_start);
@@ -1027,9 +1074,20 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
 
     }
 
+    // record what has been built, so that a failed setup can free it
+    pcdata->Pt_curl = Pt_curl;
+    pcdata->Pt_div = Pt_div;
+    pcdata->Curlt = Curlt;
+    pcdata->A_curl = A_curl;
+    pcdata->A_curlgrad = A_curlgrad;
+    pcdata->A_divgrad = A_divgrad;
+    pcdata->mgl_curlgrad = mgl_curlgrad;
+
     if(status < 0)
     {
         fprintf(stdout,"Unsuccessful AMG setup for curlgrad Laplacian with status = %lld\n", (long long )status);
+        HX_div_data_free(pcdata, TRUE);
+        free(pcdata); free(pc);
         return 0;
     }
 
@@ -1060,6 +1118,10 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
     if(status < 0)
     {
         fprintf(stdout,"Unsuccessful AMG setup for divgrad Laplacian with status = %lld\n", (long long )status);
+        // the other matrices and hierarchies are already in pcdata
+        pcdata->mgl_divgrad = mgl_divgrad;
+        HX_div_data_free(pcdata, TRUE);
+        free(pcdata); free(pc);
         return 0;
     }
 
@@ -1119,14 +1181,23 @@ precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
                                  SHORT prectype,
                                  AMG_param *amgparam)
 {
+    // the HX apply functions use V/W-cycles (mgcycle) only
+    if (amgparam->cycle_type == AMLI_CYCLE) {
+        fprintf(stderr, "%s: the AMLI cycle is not supported by the HX preconditioners\n", __FUNCTION__);
+        return NULL;
+    }
+
     precond *pc = (precond*)calloc(1, sizeof(precond));
 
     HX_div_data *pcdata = (HX_div_data*)calloc(1, sizeof(HX_div_data));
 
     const SHORT prtlvl = amgparam->print_level;
     const SHORT max_levels = amgparam->max_levels;
-    // always use iterative solver on coarsest grid
-    amgparam->coarse_solver = 0;
+    // always use iterative solver on coarsest grid; the setup uses a copy
+    // of the parameters, so the caller's are not changed
+    AMG_param amgparam_local = *amgparam;
+    amgparam_local.coarse_solver = 0;
+    amgparam = &amgparam_local;
     REAL setup_start, setup_end;
     pc->setup_time = 0.;
     get_time(&setup_start);
@@ -1178,9 +1249,18 @@ precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
 
     }
 
+    // record what has been built, so that a failed setup can free it
+    pcdata->Pt_div = Pt_div;
+    pcdata->Curlt = Curlt;
+    pcdata->A_grad = A_grad;
+    pcdata->A_divgrad = A_divgrad;
+    pcdata->mgl_grad = mgl_grad;
+
     if(status < 0)
     {
         fprintf(stdout,"Unsuccessful AMG setup for grad Laplacian with status = %lld\n", (long long )status);
+        HX_div_data_free(pcdata, TRUE);
+        free(pcdata); free(pc);
         return 0;
     }
 
@@ -1211,6 +1291,10 @@ precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
     if(status < 0)
     {
         fprintf(stdout,"Unsuccessful AMG setup for divgrad Laplacian with status = %lld\n", (long long )status);
+        // the other matrices and hierarchies are already in pcdata
+        pcdata->mgl_divgrad = mgl_divgrad;
+        HX_div_data_free(pcdata, TRUE);
+        free(pcdata); free(pc);
         return 0;
     }
 
@@ -1261,6 +1345,42 @@ precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
     pc->setup_time = setup_end - setup_start;
 
     return pc;
+}
+
+/* Free a whole preconditioner made by create_precond_hxcurl, the
+ * preconditioner itself included. */
+void free_precond_hxcurl(precond *pc)
+{
+    if (pc == NULL) return;
+    if (pc->data) {
+        HX_curl_data_free((HX_curl_data*)pc->data, TRUE);
+        free(pc->data);
+    }
+    free(pc);
+}
+
+/* Free a whole preconditioner made by create_precond_hxdiv_3D or
+ * create_precond_hxdiv_2D, the preconditioner itself included. */
+void free_precond_hxdiv(precond *pc)
+{
+    if (pc == NULL) return;
+    if (pc->data) {
+        HX_div_data_free((HX_div_data*)pc->data, TRUE);
+        free(pc->data);
+    }
+    free(pc);
+}
+
+/* Free a whole preconditioner made by create_precond_ra, the
+ * preconditioner itself included. */
+void free_precond_ra(precond *pc)
+{
+    if (pc == NULL) return;
+    if (pc->data) {
+        precond_ra_data_free((precond_ra_data*)pc->data);
+        free(pc->data);
+    }
+    free(pc);
 }
 
 void apply_precond(REAL *r, REAL *z, precond *pc)

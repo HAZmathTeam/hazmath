@@ -268,8 +268,8 @@ private:
 /// @brief Free a preconditioner from `create_precond_amg` or
 /// `create_precond_famg`.
 ///
-/// `precond_data_free` is not used: it passes no parameters to
-/// `amg_data_free`, which dereferences them.
+/// `precond_data_free` is not used: it has no parameters to pass to
+/// `amg_data_free`, so it would leave `param->amli_coef`.
 /// @param[in] pc Preconditioner.
 /// @param[in] param Parameters `pc` was built with.
 void free_amg(precond* pc, AMG_param* param)
@@ -285,80 +285,17 @@ void free_amg(precond* pc, AMG_param* param)
   std::free(pc);
 }
 
-/// @brief Free the matrices of an HX preconditioner.
-///
-/// Each was allocated as one block with its struct (`dcsr_create_p`), or as
-/// a struct alone (`dcsr_rap` results). Copies (`dcsr_cp`) keep their arrays
-/// in the block; transposes (`dcsr_trans`) and `dcsr_rap` results have
-/// separately allocated arrays.
-/// @param[in] in_block Matrices with their arrays in the block, or `nullptr`.
-/// @param[in] separate Matrices with separate arrays, or `nullptr`.
-void free_hx_matrices(std::initializer_list<dCSRmat*> in_block,
-                      std::initializer_list<dCSRmat*> separate)
-{
-  for (dCSRmat* M : in_block)
-    std::free(M);
-  for (dCSRmat* M : separate)
-  {
-    dcsr_free(M);
-    std::free(M);
-  }
-}
-
-/// @brief Free an AMG hierarchy of an HX preconditioner.
-/// @param[in] mgl Hierarchy from `amg_data_create`, or `nullptr`.
-/// @param[in] param Parameters it was built with.
-void free_hx_amg(AMG_data* mgl, AMG_param* param)
-{
-  if (mgl)
-  {
-    amg_data_free(mgl, param);
-    std::free(mgl);
-  }
-}
-
-/// @brief Free a preconditioner from `create_precond_hxcurl`.
-///
-/// `HX_curl_data_free` is not used: it calls `dcsr_free` on `dcsr_create_p`
-/// matrices, and leaves structs, the hierarchies and the parameters.
+/// @brief Free a preconditioner from `create_precond_hxcurl`, with
+/// `free_precond_hxcurl` (src/haznics/helper.c), which frees the
+/// preconditioner and everything it holds.
 /// @param[in] pc Preconditioner.
-void free_hx_curl(precond* pc, AMG_param*)
-{
-  HX_curl_data* data = static_cast<HX_curl_data*>(pc->data);
-  free_hx_matrices({data->A, data->P_curl, data->Grad},
-                   {data->Pt_curl, data->Gradt, data->A_vgrad, data->A_grad});
-  free_hx_amg(data->mgl_vgrad, data->amgparam_vgrad);
-  free_hx_amg(data->mgl_grad, data->amgparam_grad);
-  // amgparam_vgrad and amgparam_grad are the same copy
-  std::free(data->amgparam_vgrad);
-  std::free(data->backup_r);
-  std::free(data->w);
-  std::free(data);
-  std::free(pc);
-}
+void free_hx_curl(precond* pc, AMG_param*) { free_precond_hxcurl(pc); }
 
 /// @brief Free a preconditioner from `create_precond_hxdiv_3D` or
-/// `create_precond_hxdiv_2D`.
-///
-/// `HX_div_data_free` is not used, for the reasons given for
-/// `free_hx_curl`. Fields that a variant does not use are `nullptr`.
+/// `create_precond_hxdiv_2D`, with `free_precond_hxdiv`
+/// (src/haznics/helper.c).
 /// @param[in] pc Preconditioner.
-void free_hx_div(precond* pc, AMG_param*)
-{
-  HX_div_data* data = static_cast<HX_div_data*>(pc->data);
-  free_hx_matrices({data->A, data->P_curl, data->P_div, data->Curl},
-                   {data->Pt_curl, data->Pt_div, data->Curlt, data->A_curl,
-                    data->A_curlgrad, data->A_divgrad, data->A_grad});
-  // the hierarchies share one copy of the parameters, amgparam_divgrad
-  free_hx_amg(data->mgl_curlgrad, data->amgparam_divgrad);
-  free_hx_amg(data->mgl_divgrad, data->amgparam_divgrad);
-  free_hx_amg(data->mgl_grad, data->amgparam_divgrad);
-  std::free(data->amgparam_divgrad);
-  std::free(data->backup_r);
-  std::free(data->w);
-  std::free(data);
-  std::free(pc);
-}
+void free_hx_div(precond* pc, AMG_param*) { free_precond_hxdiv(pc); }
 
 /// @brief Throw unless a matrix has the given number of rows.
 /// @param[in] A Matrix.

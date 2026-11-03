@@ -199,6 +199,7 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->damping_param        = 1.0;
     amgparam->BSR_alpha            = -1000.;
     amgparam->BSR_omega            = -1000.;
+    amgparam->random_seed          = 0;
 
     // user def smoother
     // amgparam->smoother_function = NULL;
@@ -343,6 +344,7 @@ void param_amg_set (AMG_param *amgparam,
     amgparam->damping_param=0.;
     amgparam->BSR_alpha            = inparam->BSR_alpha;
     amgparam->BSR_omega            = inparam->BSR_omega;
+    amgparam->random_seed          = 0;
 
 }
 
@@ -380,7 +382,13 @@ void param_amg_cp (AMG_param *amgparam1,
     amgparam2->coarse_scaling       = amgparam1->coarse_scaling;
     amgparam2->amli_degree          = amgparam1->amli_degree;
 
-    if(amgparam1->amli_coef) array_cp(amgparam1->amli_degree + 1, amgparam1->amli_coef, amgparam2->amli_coef);
+    // amgparam2 gets its own copy of the coefficients (param_amg_init leaves
+    // amli_coef NULL; an array amgparam2 already has is resized)
+    if(amgparam1->amli_coef && amgparam1->amli_coef != amgparam2->amli_coef) {
+        amgparam2->amli_coef = (REAL *)realloc(amgparam2->amli_coef,
+                                               (amgparam1->amli_degree + 1)*sizeof(REAL));
+        array_cp(amgparam1->amli_degree + 1, amgparam1->amli_coef, amgparam2->amli_coef);
+    }
 
     amgparam2->nl_amli_krylov_type  = amgparam1->nl_amli_krylov_type;
     amgparam2->fpwr                 = amgparam1->fpwr;
@@ -411,6 +419,7 @@ void param_amg_cp (AMG_param *amgparam1,
     amgparam2->damping_param        = amgparam1->damping_param;
     amgparam2->BSR_alpha            = amgparam1->BSR_alpha;
     amgparam2->BSR_omega            = amgparam1->BSR_omega;
+    amgparam2->random_seed          = amgparam1->random_seed;
 
 }
 
@@ -637,6 +646,31 @@ void param_amg_to_prec (precond_data *pcdata,
       // param_prec_to_amg copies from a non-NULL amli_coef
       pcdata->amli_coef = NULL;
     }
+}
+
+/*************************************************************************************/
+/*!
+ * \fn void param_amg_to_prec_shared (precond_data *pcdata, AMG_param *amgparam)
+ *
+ * \brief As param_amg_to_prec, but pcdata->amli_coef points to
+ *        amgparam->amli_coef instead of a new copy
+ *
+ * \param pcdata      Pointer to the precond_data structure
+ * \param amgparam    Pointer to the AMG_param structure
+ *
+ * \note For a precond_data that is a local variable used while amgparam
+ *       exists (most apply functions and solvers): the copy that
+ *       param_amg_to_prec allocates was never freed there, a leak on every
+ *       call with the AMLI cycle. pcdata->amli_coef must not be freed.
+ */
+void param_amg_to_prec_shared (precond_data *pcdata,
+                               AMG_param *amgparam)
+{
+    REAL *amli_coef = amgparam->amli_coef;
+    amgparam->amli_coef = NULL;  // so that param_amg_to_prec does not copy
+    param_amg_to_prec(pcdata, amgparam);
+    amgparam->amli_coef = amli_coef;
+    pcdata->amli_coef = amli_coef;
 }
 
 /*************************************************************************************/

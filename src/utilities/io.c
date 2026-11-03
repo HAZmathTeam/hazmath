@@ -1839,7 +1839,9 @@ void sc_write_gmsh(const char *namemsh,scomplex *sc, const INT shift0)
  *
  * \brief Read a Gmsh .msh v2 ASCII file and return a simplicial complex.
  *        Reads nodes, volume elements (simplices), and boundary face elements.
- *        Element types: line(1)=1D, triangle(2)=2D, tetrahedron(4)=3D.
+ *        Element types: line(1)=1D, triangle(2)=2D, tetrahedron(4)=3D,
+ *        and for dim>3 the custom types written by sc_write_gmsh:
+ *        50+dim for the volume simplices, 50+dim-1 for the faces.
  *        Boundary faces are stored in sc->bndry via vertex boundary codes.
  *
  * \param namemsh   File name
@@ -1872,22 +1874,33 @@ scomplex* sc_read_gmsh(const char *namemsh)
     nv = (INT)nv_ll;
   }
 
-  /* Read node coordinates — count coordinates per line to detect dim */
-  REAL *x_tmp = (REAL*)calloc(3 * nv, sizeof(REAL));
+  /* Read node coordinates. Gmsh writes 3 coordinates per node; sc_write_gmsh
+     writes sc->nbig of them, which is more than 3 for dim>3.  The number of
+     coordinates (at least 3) is taken from the first node line and x_tmp
+     has that stride. */
+  REAL *x_tmp = NULL;
   INT *node_id = (INT*)calloc(nv, sizeof(INT));
-  INT coords_per_node = 0;
+  INT ncx = 3; /* stride of x_tmp */
   for (i = 0; i < nv; i++) {
     long long id;
     fscanf(fmesh, "%lld", &id);
     node_id[i] = (INT)id;
-    x_tmp[3*i] = 0.0; x_tmp[3*i+1] = 0.0; x_tmp[3*i+2] = 0.0;
-    /* Read rest of line to get coordinates */
-    if (fgets(line, sizeof(line), fmesh)) {
-      INT nc = sscanf(line, "%lg %lg %lg", &x_tmp[3*i], &x_tmp[3*i+1], &x_tmp[3*i+2]);
-      if (i == 0) coords_per_node = nc;
+    if (!fgets(line, sizeof(line), fmesh)) line[0] = '\0';
+    if (i == 0) { /* count the coordinates on the first line */
+      INT nc = 0;
+      char *p = line, *q;
+      while (strtod(p, &q), q != p) { nc++; p = q; }
+      if (nc > ncx) ncx = nc;
+      x_tmp = (REAL*)calloc(ncx * nv, sizeof(REAL));
+    }
+    char *p = line, *q;
+    for (j = 0; j < ncx; j++) {
+      REAL v = strtod(p, &q);
+      if (q == p) break;
+      x_tmp[ncx*i + j] = v;
+      p = q;
     }
   }
-  (void)coords_per_node;
   while (fgets(line, sizeof(line), fmesh)) {
     if (strstr(line, "$EndNodes")) break;
   }
@@ -1976,6 +1989,7 @@ scomplex* sc_read_gmsh(const char *namemsh)
     case 1: face_type = 15; break; /* point */
     case 2: face_type = 1;  break; /* line */
     case 3: face_type = 2;  break; /* triangle */
+    default: face_type = 50 + dim - 1; break; /* custom: dim-node simplex */
   }
   for (i = 0; i < nel_total; i++) {
     if (el_type[i] == vol_type) ns++;
@@ -1994,7 +2008,7 @@ scomplex* sc_read_gmsh(const char *namemsh)
   for (i = 0; i < nv; i++) {
     INT idx = node_id[i] - min_id;
     for (j = 0; j < dim; j++)
-      sc->x[idx * dim + j] = x_tmp[3 * i + j];
+      sc->x[idx * dim + j] = (j < ncx) ? x_tmp[ncx * i + j] : 0.0;
   }
 
   /* 8. Fill element connectivity and flags */

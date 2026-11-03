@@ -619,9 +619,9 @@ void nl_amli (AMG_data *mgl,
             }
             else { // recursively call preconditioned Krylov method on coarse grid
 
-                precond_data pcdata;
+                precond_data pcdata = {0};
 
-                param_amg_to_prec(&pcdata, param);
+                param_amg_to_prec_shared(&pcdata, param);
                 pcdata.maxit = 1;
                 pcdata.max_levels = num_levels-1;
                 pcdata.mgl_data = &mgl[level+1];
@@ -964,6 +964,7 @@ void mgcycle_bsr (AMG_data_bsr  *mgl,
     INT nu_l[MAX_AMG_LVL] = {0}, l = 0;
     REAL alpha = 1.0;
     INT i;
+    INT status_nk;
 
     dvector r_nk, z_nk;
 
@@ -1024,7 +1025,9 @@ ForwardSweep:
 
             // z_nk = A_nk^{-1}*r_nk
 	    //#if WITH_UMFPACK // use UMFPACK directly
-            directsolve_HAZ(mgl[l].A_nk, &r_nk, &z_nk, 0);
+            // directsolve_HAZ returns its error code; this void cycle
+            // cannot pass it on, so it stops, as directsolve_HAZ used to
+            if ((status_nk = directsolve_HAZ(mgl[l].A_nk, &r_nk, &z_nk, 0)) < 0) exit(status_nk);
 	    //#else
             coarse_itsolver(mgl[l].A_nk, &r_nk, &z_nk, 1e-12, 0);
 	    //#endif
@@ -1107,7 +1110,9 @@ ForwardSweep:
 
             // z_nk = A_nk^{-1}*r_nk
 	    //#if WITH_UMFPACK // use UMFPACK directly
-            directsolve_HAZ(mgl[l].A_nk, &r_nk, &z_nk, 0);
+            // directsolve_HAZ returns its error code; this void cycle
+            // cannot pass it on, so it stops, as directsolve_HAZ used to
+            if ((status_nk = directsolve_HAZ(mgl[l].A_nk, &r_nk, &z_nk, 0)) < 0) exit(status_nk);
 	    //#else
 	    //            coarse_itsolver(mgl[l].A_nk, &r_nk, &z_nk, 1e-12, 0);
 	    //#endif

@@ -109,8 +109,9 @@ void amg_data_free(AMG_data *mgl,
         dvec_free(&mgl[i].x);
         dvec_free(&mgl[i].w);
 
-        // free Schwarz data
-        if ( i < param->Schwarz_levels ) {
+        // free Schwarz data (without param: where it was set up)
+        if ( param != NULL ? i < param->Schwarz_levels
+                           : mgl[i].Schwarz.blk_data != NULL ) {
             schwarz_data_free(&mgl[i].Schwarz);
         }
     }
@@ -120,8 +121,11 @@ void amg_data_free(AMG_data *mgl,
         mgl->near_kernel_basis[i] = NULL;
     }
 
-    // Clean direct solver data if necessary
-    switch (param->coarse_solver) {
+    // Clean direct solver data if necessary (without param: if there is any)
+    if (param == NULL) {
+        if (mgl[max_levels-1].Numeric)
+            hazmath_free_numeric(&(mgl[max_levels-1].Numeric));
+    } else switch (param->coarse_solver) {
 
       //#if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
@@ -137,9 +141,12 @@ void amg_data_free(AMG_data *mgl,
     free(mgl->near_kernel_basis);
     mgl->near_kernel_basis = NULL;
 
+    // NULL afterwards: hierarchies that share param free it only once
     if (param != NULL) {
-        if ( param->cycle_type == AMLI_CYCLE )
+        if ( param->cycle_type == AMLI_CYCLE ) {
             free(param->amli_coef);
+            param->amli_coef = NULL;
+        }
     }
 
 
@@ -344,6 +351,85 @@ void amg_data_bdcsr_free (AMG_data_bdcsr *mgl,
 }
 
 
+/* Teardown of the data made by the HX factories in src/haznics/helper.c,
+ * used by HX_curl_data_free and HX_div_data_free with flag == TRUE. The
+ * factories make three kinds of matrices:
+ *   - copies of the input (dcsr_create_p, then dcsr_cp): one block with the
+ *     arrays inside, freed with free();
+ *   - transposes (dcsr_create_p, then dcsr_trans, which allocates new arrays)
+ *     and Galerkin products (calloc of the struct, then dcsr_rap): arrays
+ *     and struct are separate, freed with dcsr_free() and then free().
+ * The AMG hierarchies come from amg_data_create, and the sub-problems share
+ * one copy of the AMG parameters. */
+static void hx_free_matrix(dCSRmat *M)
+{
+    if (M == NULL) return;
+    dcsr_free(M);
+    free(M);
+}
+
+static void hx_free_amg(AMG_data *mgl, AMG_param *param)
+{
+    if (mgl == NULL) return;
+    amg_data_free(mgl, param);
+    free(mgl);
+}
+
+static void hx_curl_data_free_all(HX_curl_data *d)
+{
+    free(d->A);
+    free(d->P_curl);
+    free(d->Grad);
+
+    hx_free_matrix(d->Pt_curl);
+    hx_free_matrix(d->Gradt);
+    hx_free_matrix(d->A_vgrad);
+    hx_free_matrix(d->A_grad);
+
+    hx_free_amg(d->mgl_vgrad, d->amgparam_vgrad);
+    hx_free_amg(d->mgl_grad, d->amgparam_grad);
+    free(d->amgparam_vgrad);
+    if (d->amgparam_grad != d->amgparam_vgrad) free(d->amgparam_grad);
+
+    free(d->backup_r);
+    free(d->w);
+
+    HX_curl_data_null(d);
+}
+
+static void hx_div_data_free_all(HX_div_data *d)
+{
+    free(d->A);
+    free(d->P_curl);
+    free(d->P_div);
+    free(d->Curl);
+
+    hx_free_matrix(d->Pt_curl);
+    hx_free_matrix(d->Pt_div);
+    hx_free_matrix(d->Curlt);
+    hx_free_matrix(d->A_curl);
+    hx_free_matrix(d->A_curlgrad);
+    hx_free_matrix(d->A_divgrad);
+    hx_free_matrix(d->A_grad);  // 2D only
+
+    hx_free_amg(d->mgl_curlgrad, d->amgparam_curlgrad);  // 3D only
+    hx_free_amg(d->mgl_divgrad, d->amgparam_divgrad);
+    hx_free_amg(d->mgl_grad, d->amgparam_grad);  // 2D only
+
+    // free each distinct parameter copy once
+    AMG_param *p[3] = {d->amgparam_curlgrad, d->amgparam_divgrad, d->amgparam_grad};
+    INT i, j;
+    for (i = 0; i < 3; ++i) {
+        for (j = 0; j < i; ++j) if (p[j] == p[i]) break;
+        if (j == i) free(p[i]);
+    }
+
+    free(d->backup_r);
+    free(d->w);
+
+    HX_div_data_null(d);
+}
+
 /***********************************************************************************************/
 /*!
  * \fn void HX_curl_data_null(HX_curl_data *hxcurldata)
@@ -388,27 +474,28 @@ void HX_curl_data_null (HX_curl_data *hxcurldata)
  * \param hxcurldata    Pointer to the HX_curl_data structure (OUTPUT)
  * \param flag          flag of whether the date will be reused:
  *                      flag = False - A, P_curl, and Grad will be reused
- *                      flag = TRUE  - free everything
+ *                      flag = TRUE  - free everything, for data made by
+ *                                     create_precond_hxcurl (the
+ *                                     structure itself is not freed)
  *
  */
 void HX_curl_data_free (HX_curl_data *hxcurldata,
                         SHORT flag)
 {
     if (flag == TRUE) {
-        dcsr_free(hxcurldata->A);
-        dcsr_free(hxcurldata->P_curl);
-        dcsr_free(hxcurldata->Grad);
+        hx_curl_data_free_all(hxcurldata);
+        return;
     }
 
     dcsr_free(hxcurldata->Pt_curl);
     dcsr_free(hxcurldata->A_vgrad);
 
-    amg_data_free(hxcurldata->mgl_vgrad, hxcurldata->amgparam_vgrad);
+    if (hxcurldata->mgl_vgrad) amg_data_free(hxcurldata->mgl_vgrad, hxcurldata->amgparam_vgrad);
 
     dcsr_free(hxcurldata->Gradt);
     dcsr_free(hxcurldata->A_grad);
 
-    amg_data_free(hxcurldata->mgl_grad, hxcurldata->amgparam_grad);
+    if (hxcurldata->mgl_grad) amg_data_free(hxcurldata->mgl_grad, hxcurldata->amgparam_grad);
 
     if (hxcurldata->backup_r) free(hxcurldata->backup_r);
 
@@ -468,17 +555,17 @@ void HX_div_data_null (HX_div_data *hxdivdata)
  * \param hxcurldata    Pointer to the HX_curl_data structure (OUTPUT)
  * \param flag          flag of whether the date will be reused:
  *                      flag = False - A, P_curl, and Grad will be reused
- *                      flag = TRUE  - free everything
+ *                      flag = TRUE  - free everything, for data made by
+ *                                     create_precond_hxdiv_3D or _2D (the
+ *                                     structure itself is not freed)
  *
  */
 void HX_div_data_free (HX_div_data *hxdivdata,
                         SHORT flag)
 {
     if (flag == TRUE) {
-        dcsr_free(hxdivdata->A);
-        dcsr_free(hxdivdata->P_curl);
-        dcsr_free(hxdivdata->P_div);
-        dcsr_free(hxdivdata->Curl);
+        hx_div_data_free_all(hxdivdata);
+        return;
     }
 
     dcsr_free(hxdivdata->Pt_curl);
@@ -740,8 +827,10 @@ void precond_block_data_free(precond_block_data *precdata,
 void amli_coef_free(AMG_param *param)
 {
     if (param != NULL) {
-        if ( param->cycle_type == AMLI_CYCLE )
+        if ( param->cycle_type == AMLI_CYCLE ) {
             free(param->amli_coef);
+            param->amli_coef = NULL;
+        }
     }
 
 }
@@ -750,15 +839,23 @@ void amli_coef_free(AMG_param *param)
 /*!
  * \fn void precond_ra_data_free(precond_ra_data *precdata)
  *
- * \brief Free precond_ra_data structure
+ * \brief Free the contents of a precond_ra_data structure made by
+ *        create_precond_ra (src/haznics/helper.c); the structure itself
+ *        is not freed
  *
  * \param precdata      Pointer to the precond_ra_data structure
+ *
+ * \note poles holds the real parts and then the imaginary parts, so there
+ *       are poles->row/2 poles and AMG hierarchies. scaled_A, scaled_M,
+ *       poles, residues and diag_scaled_M come from dcsr_create_p or
+ *       dvec_create_p: one block each, freed with free(); the values of
+ *       diag_scaled_M were allocated separately by dcsr_getdiag.
  *
  */
 void precond_ra_data_free(precond_ra_data *precdata)
 {
 
-    INT np = precdata->poles->row;
+    INT np = precdata->poles ? precdata->poles->row/2 : 0;
     INT i;
 
     for (i = 0; i < np; i++)
@@ -766,14 +863,19 @@ void precond_ra_data_free(precond_ra_data *precdata)
         if(precdata->mgl) {
             if(precdata->mgl[i])
             {
-              amg_data_free(precdata->mgl[i], NULL);
+              amg_data_free(precdata->mgl[i], precdata->amgparam);
               free(precdata->mgl[i]);
             }
         }
     }
     if(precdata->mgl) free(precdata->mgl);
+    precdata->mgl = NULL;
 
-    if(precdata->amgparam) amli_coef_free(precdata->amgparam);
+    if(precdata->amgparam) {
+        amli_coef_free(precdata->amgparam);
+        free(precdata->amgparam);
+        precdata->amgparam = NULL;
+    }
 
 #if WITH_SUITESPARSE
     for (i = 0; i < np; i++)
@@ -786,12 +888,17 @@ void precond_ra_data_free(precond_ra_data *precdata)
     if(precdata->LU_diag) free(precdata->LU_diag);
 #endif
 
-    if(precdata->scaled_M)  dcsr_free(precdata->scaled_M);
-    if(precdata->scaled_A)  dcsr_free(precdata->scaled_A);
+    // dcsr_create_p and dvec_create_p blocks: the arrays are inside
+    free(precdata->scaled_M);  precdata->scaled_M = NULL;
+    free(precdata->scaled_A);  precdata->scaled_A = NULL;
 
-    if(precdata->diag_scaled_M) dvec_free(precdata->diag_scaled_M);
-    if(precdata->poles) dvec_free(precdata->poles);
-    if(precdata->residues) dvec_free(precdata->residues);
+    if(precdata->diag_scaled_M) {
+        dvec_free(precdata->diag_scaled_M); // values from dcsr_getdiag
+        free(precdata->diag_scaled_M);
+        precdata->diag_scaled_M = NULL;
+    }
+    free(precdata->poles);     precdata->poles = NULL;
+    free(precdata->residues);  precdata->residues = NULL;
     if(precdata->r) dvec_free(precdata->r);
 
     if(precdata->w) free(precdata->w);

@@ -1672,8 +1672,11 @@ void smoother_bdcsr_metric_additive(dvector *u,
 
     //printf("done set e\n");
 
-    // solve for the interface part
-    block_directsolve_HAZ(A_gamma, &r_gamma, &e_gamma, 0);
+    // solve for the interface part (block_directsolve_HAZ returns its
+    // error code; this void smoother cannot pass it on, so it stops, as
+    // directsolve_HAZ itself used to)
+    INT status_gamma = block_directsolve_HAZ(A_gamma, &r_gamma, &e_gamma, 0);
+    if (status_gamma < 0) exit(status_gamma);
     //smoother_bdcsr_fgs_fgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
     //smoother_bdcsr_bgs_bgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
     //smoother_bdcsr_jacobi_jacobi(&e_gamma, A_gamma, &r_gamma, NULL);

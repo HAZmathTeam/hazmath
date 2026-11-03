@@ -5019,7 +5019,7 @@ INT dbsr_pvgmres (dBSRmat      *A,
 
     if ( work == NULL ) {
         printf("### ERROR: No enough memory! [%s:%lld]\n", __FILE__,   (long long )__LINE__ );
-        check_error(ERROR_ALLOC_MEM, __FUNCTION__);
+        return ERROR_ALLOC_MEM;  // was check_error, which ends the program
     }
 
     if ( PrtLvl > PRINT_MIN && Restart < restart ) {
@@ -6350,7 +6350,7 @@ INT dbsr_pvfgmres (dBSRmat      *A,
 
     if ( work == NULL ) {
         printf("### ERROR: No enough memory! [%s:%lld]\n", __FILE__,   (long long )__LINE__ );
-        check_error(ERROR_ALLOC_MEM, __FUNCTION__);
+        return ERROR_ALLOC_MEM;  // was check_error, which ends the program
     }
 
     if ( PrtLvl > PRINT_MIN && Restart < restart ) {

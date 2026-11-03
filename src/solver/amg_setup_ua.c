@@ -36,6 +36,55 @@ static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl, AMG_param *param);
 /*--      Public Functions       --*/
 /*---------------------------------*/
 
+/* Checks the parameters of the CSR setups below before anything is
+ * allocated, so that wrong input gives an error code instead of ending the
+ * program (check_error) during the setup or in a later cycle. fractional:
+ * the hierarchy is for the fractional cycles (fmgcycle, famli), which only
+ * support the fractional smoothers; otherwise for mgcycle, amli and
+ * nl_amli. */
+static SHORT check_setup_param(const AMG_param *param, SHORT fractional,
+                               const char *func_name)
+{
+    if (param->max_levels < 1) {
+        fprintf(stderr, "### HAZMATH ERROR: %s: max_levels = %lld, it must be at least 1\n",
+                func_name, (long long)param->max_levels);
+        return ERROR_INPUT_PAR;
+    }
+    switch (param->aggregation_type) {
+        case VMB: case HEC: case HEM: break;
+        default:
+            fprintf(stderr, "### HAZMATH ERROR: %s: unknown aggregation type %lld\n",
+                    func_name, (long long)param->aggregation_type);
+            return ERROR_AMG_AGG_TYPE;
+    }
+    if (param->cycle_type == AMLI_CYCLE && param->amli_degree < 0) {
+        fprintf(stderr, "### HAZMATH ERROR: %s: AMLI degree %lld, it must be at least 0\n",
+                func_name, (long long)param->amli_degree);
+        return ERROR_INPUT_PAR;
+    }
+    if (fractional) {
+        switch (param->smoother) {
+            case SMOOTHER_FJACOBI: case SMOOTHER_FGS: case SMOOTHER_FSGS: break;
+            default:
+                fprintf(stderr, "### HAZMATH ERROR: %s: smoother %lld is not supported by the fractional cycles (use SMOOTHER_FJACOBI, SMOOTHER_FGS or SMOOTHER_FSGS)\n",
+                        func_name, (long long)param->smoother);
+                return ERROR_INPUT_PAR;
+        }
+    } else {
+        switch (param->smoother) {
+            case SMOOTHER_JACOBI: case SMOOTHER_GS: case SMOOTHER_SGS:
+            case SMOOTHER_L1DIAG: case SMOOTHER_SOR: case SMOOTHER_SSOR:
+            case SMOOTHER_GSOR: case SMOOTHER_SGSOR: case SMOOTHER_CG:
+            case SMOOTHER_USERDEF: break;
+            default:
+                fprintf(stderr, "### HAZMATH ERROR: %s: smoother %lld is not supported by the AMG cycles\n",
+                        func_name, (long long)param->smoother);
+                return ERROR_INPUT_PAR;
+        }
+    }
+    return SUCCESS;
+}
+
 /***********************************************************************************************/
 /**
  * \fn SHORT amg_setup_ua (AMG_data *mgl, AMG_param *param)
@@ -54,7 +103,10 @@ SHORT amg_setup_ua (AMG_data *mgl,
                     AMG_param *param)
 {
 
-    SHORT status = amg_setup_unsmoothP_unsmoothR(mgl, param);
+    SHORT status = check_setup_param(param, FALSE, __FUNCTION__);
+    if (status < 0) return status;
+
+    status = amg_setup_unsmoothP_unsmoothR(mgl, param);
 
     return status;
 }
@@ -77,7 +129,10 @@ SHORT amg_setup_sa (AMG_data *mgl,
                     AMG_param *param)
 {
 
-    SHORT status = amg_setup_smoothP_smoothR(mgl, param);
+    SHORT status = check_setup_param(param, FALSE, __FUNCTION__);
+    if (status < 0) return status;
+
+    status = amg_setup_smoothP_smoothR(mgl, param);
 
     return status;
 }
@@ -100,7 +155,10 @@ SHORT famg_setup_ua (AMG_data *mgl,
                      AMG_param *param)
 {
 
-    SHORT status = famg_setup_unsmoothP_unsmoothR(mgl, param);
+    SHORT status = check_setup_param(param, TRUE, __FUNCTION__);
+    if (status < 0) return status;
+
+    status = famg_setup_unsmoothP_unsmoothR(mgl, param);
 
     return status;
 }
@@ -123,7 +181,10 @@ SHORT famg_setup_sa (AMG_data *mgl,
                      AMG_param *param)
 {
 
-    SHORT status = famg_setup_smoothP_smoothR(mgl, param);
+    SHORT status = check_setup_param(param, TRUE, __FUNCTION__);
+    if (status < 0) return status;
+
+    status = famg_setup_smoothP_smoothR(mgl, param);
 
     return status;
 }
@@ -148,6 +209,21 @@ SHORT amg_setup_ua_bsr(AMG_data_bsr  *mgl,
 #if DEBUG_MODE > 0
     printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
 #endif
+
+    // wrong input gives an error code instead of ending the program
+    // (check_error in the aggregation switch)
+    if (param->max_levels < 1) {
+        fprintf(stderr, "### HAZMATH ERROR: %s: max_levels = %lld, it must be at least 1\n",
+                __FUNCTION__, (long long)param->max_levels);
+        return ERROR_INPUT_PAR;
+    }
+    switch (param->aggregation_type) {
+        case VMB: case HEC: case HEM: break;
+        default:
+            fprintf(stderr, "### HAZMATH ERROR: %s: unknown aggregation type %lld\n",
+                    __FUNCTION__, (long long)param->aggregation_type);
+            return ERROR_AMG_AGG_TYPE;
+    }
 
     SHORT status = amg_setup_unsmoothP_unsmoothR_bsr(mgl, param);
 
@@ -782,9 +858,13 @@ static SHORT aggregation_hec(dCSRmat *A,
     iarray_set(row, vertices->val, -2);
     *num_aggregations = 0;
 
-    // get random permutation
+    // get random permutation, from param->random_seed and the level (not
+    // from rand(): the same matrix and parameters give the same aggregates,
+    // and setups in different threads do not share a generator)
     for(i=0; i<row; i++) perm[i] = i;
-    iarray_shuffle(row, perm);
+    unsigned long long rng_state = 1000003ULL*(unsigned long long)param->random_seed
+                                   + (unsigned long long)lvl;
+    iarray_shuffle_seeded(row, perm, &rng_state);
 
     // main loop
     for ( ii = 0; ii < row; ii++ ) {

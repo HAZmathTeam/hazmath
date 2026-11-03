@@ -62,8 +62,7 @@ int main(int argc, char* argv[]) {
   // We have two options:
   // 1) Use Hazmath's built-in functions to create a uniform mesh from a
   //    simplicial complex
-  // 2) Read in a user-define mesh defined in .haz format  See the example 2D
-  //    mesh that is provided for formatting guidelines
+  // 2) Read in a user-defined mesh in Gmsh (.msh) format
   INT read_mesh_from_file = inparam.read_mesh_from_file;
 
   printf("\nCreating mesh and FEM spaces:\n");
@@ -86,6 +85,7 @@ int main(int argc, char* argv[]) {
     find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
     sc_vols(sc);
     sc_build_fem_data(sc);
+    dim = sc->dim; // the mesh file determines the dimension
   } else {
     // Use HAZMATH built in functions for a uniform mesh in 2D or 3D
     sc = make_uniform_mesh(dim, mesh_ref_levels, mesh_ref_type, set_bndry_codes);

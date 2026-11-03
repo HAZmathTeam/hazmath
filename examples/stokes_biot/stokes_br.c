@@ -255,9 +255,17 @@ int main(int argc, char* argv[]) {
       t0 = clock();
       flag = solve_br_umfpack(As, bs, sc, &xu);  // extends As, bs in place
       tu = (REAL)(clock() - t0) / CLOCKS_PER_SEC;
-      if (flag < 0) printf("### ERROR: UMFPACK failed with error code = %lld!\n", (long long)flag);
+      if (flag < 0) {
+        // the reason is in the message of directsolve_HAZ above
+        printf("### ERROR: level %lld: UMFPACK failed with error code = %lld (see the message above);\n",
+               (long long)lvl, (long long)flag);
+        if (solver == 2 && its >= 0)
+          printf("###        the errors on this line are those of the GMRES solution, |xg-xu| is n/a\n");
+        else
+          printf("###        no solver succeeded, so the errors on this line are not meaningful\n");
+      }
     }
-    if (solver == 2) {
+    if (solver == 2 && flag >= 0) {  // no difference if UMFPACK failed
       REAL nu = 0.0;
       for (k = 0; k < nsys; k++) {
         diff += (xg.val[k] - xu.val[k]) * (xg.val[k] - xu.val[k]);
@@ -282,9 +290,12 @@ int main(int argc, char* argv[]) {
     REAL r[3] = {0.0, 0.0, 0.0};
     if (err_prev[0] > 0.0)
       for (k = 0; k < 3; k++) r[k] = log(err_prev[k] / err[k]) / log(2.0);
-    printf("%3lld %10lld %11.4e %5.2f %11.4e %5.2f %11.4e %5.2f %11.4e %4lld %8.2f %8.2f %8.2f %10.3e\n",
+    printf("%3lld %10lld %11.4e %5.2f %11.4e %5.2f %11.4e %5.2f %11.4e %4lld %8.2f %8.2f %8.2f",
            (long long)lvl, (long long)ndof, err[0], r[0], err[1], r[1], err[2], r[2], err[3],
-           (long long)its, ta, tg, tu, diff);
+           (long long)its, ta, tg, tu);
+    // |xg-xu|: n/a when UMFPACK failed (there is no UMFPACK solution)
+    if (solver == 2 && flag < 0) printf(" %10s\n", "n/a");
+    else printf(" %10.3e\n", diff);
     fflush(stdout);
     for (k = 0; k < 4; k++) err_prev[k] = err[k];
 

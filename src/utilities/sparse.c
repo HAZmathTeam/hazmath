@@ -4203,28 +4203,29 @@ dCSRmat *dcsr_create_p (const INT m,		\
     total+=(m+1)*intby;
   if ( n > 0 )
     total+=nnz*intby;
+  // val starts at a multiple of sizeof(REAL): with a 32-bit INT the
+  // INTs before it may end at an odd multiple of 4 bytes
+  size_t valoff=((total+realby-1)/realby)*realby;
+  total=valoff;
   if ( nnz > 0 )
     total+=nnz*realby;
-  void *w=(void *)calloc(total/sizeof(char),sizeof(char));
+  char *w=(char *)calloc(total,sizeof(char));
   A=(dCSRmat *)w;
-  w+=1*structby;
   A->IA = NULL;
   A->JA = NULL;
   A->val = NULL;
-  INT *mn_nnz=(INT *)w;
+  INT *mn_nnz=(INT *)(w+structby);
   A->row=mn_nnz[0]=m; A->col=mn_nnz[1]=n; A->nnz=mn_nnz[2]=nnz;
-  w+=3*intby;
+  INT *iw=mn_nnz+3;
   if ( m > 0 ) {
-    A->IA = (INT *)w;
-    w+=(m+1)*intby;
+    A->IA = iw;
+    iw+=m+1;
   }
   if ( n > 0 ) {
-    A->JA = (INT *)w;
-    w+=nnz*intby;
+    A->JA = iw;
   }
   if ( nnz > 0 ) {
-    A->val = (REAL *)w;
-    w+=nnz*realby;// end of it.
+    A->val = (REAL *)(w+valoff);
   }
   return A;
 }
@@ -4247,21 +4248,20 @@ dCOOmat *dcoo_create_p(INT m,			\
 		       INT nnz)
 {
   size_t structby=sizeof(dCOOmat),realby=sizeof(REAL),intby=sizeof(INT);
-  size_t total=(1*structby+(3+2*nnz)*intby+nnz*realby)/sizeof(char);
-  void *w=(void *)calloc(total, sizeof(char));
+  // val starts at a multiple of sizeof(REAL): with a 32-bit INT the
+  // 3+2*nnz INTs before it end at an odd multiple of 4 bytes
+  size_t valoff=structby+(3+2*nnz)*intby;
+  valoff=((valoff+realby-1)/realby)*realby;
+  size_t total=valoff+nnz*realby;
+  char *w=(char *)calloc(total, sizeof(char));
   //sturture
   dCOOmat *A=(dCOOmat *)w;
-  w+=1*structby;
-  INT *mn_nnz=(INT *)w;
+  INT *mn_nnz=(INT *)(w+structby);
   A->row=mn_nnz[0]=m; A->col=mn_nnz[1]=n; A->nnz=mn_nnz[2]=nnz;
-  w+=3*intby;
   // arrays;
-  A->rowind = (INT *)w;
-  w+=nnz*intby;
-  A->colind = (INT *)w;
-  w+=nnz*intby;
-  A->val    = (REAL *)w;
-  w+=nnz*realby; // end of it....
+  A->rowind = mn_nnz+3;
+  A->colind = A->rowind+nnz;
+  A->val    = (REAL *)(w+valoff);
   return A;
 }
 
@@ -4283,18 +4283,19 @@ dvector *dvec_create_p(const INT m)
   size_t structby=sizeof(dvector);// size of the struct
   size_t realby=sizeof(REAL),intby=sizeof(INT);// size of ints and reals
   size_t total=1*structby+1*intby; //space for structure and size.
+  // val starts at a multiple of sizeof(REAL): with a 32-bit INT the
+  // size before it ends at an odd multiple of 4 bytes
+  size_t valoff=((total+realby-1)/realby)*realby;
+  total=valoff;
   if (m > 0 )
     total+=m*realby;
-  void *w=(void *)calloc(total/sizeof(char),sizeof(char));
+  char *w=(char *)calloc(total,sizeof(char));
   u=(dvector *)w;
-  w+=1*structby;
-  INT *mm=(INT *)w;
+  INT *mm=(INT *)(w+structby);
   u->row = mm[0]=m;
-  w+=1*intby;
   u->val = NULL;
   if ( m > 0 ) {
-    u->val = (REAL *)w;
-    w+=m*realby;//end
+    u->val = (REAL *)(w+valoff);
   }
   return u;
 }
@@ -4788,8 +4789,12 @@ INT bdcsr_getdiagblk_dcsr(block_dCSRmat *Ab,
 	break;
       }
     }
-    // check error
-    if (status < SUCCESS) check_error(ERROR_BLKMAT_ZERO, __FUNCTION__);
+    // check error (was check_error, which ends the program)
+    if (status < SUCCESS) {
+      printf("### ERROR: %s: block row %lld has no nonzero block!\n", __FUNCTION__, (long long)i);
+      free(row); free(col);
+      return ERROR_BLKMAT_ZERO;
+    }
   }
 
   // count number of columns
@@ -4803,8 +4808,12 @@ INT bdcsr_getdiagblk_dcsr(block_dCSRmat *Ab,
 	break;
       }
     }
-    // check error
-    if (status < SUCCESS) check_error(ERROR_BLKMAT_ZERO, __FUNCTION__);
+    // check error (was check_error, which ends the program)
+    if (status < SUCCESS) {
+      printf("### ERROR: %s: block column %lld has no nonzero block!\n", __FUNCTION__, (long long)i);
+      free(row); free(col);
+      return ERROR_BLKMAT_ZERO;
+    }
   }
   // count number of nonzeros
   for (i=n1;i<n2;++i) {

@@ -28,6 +28,23 @@
 //! Warning for tolerance practically close to zero
 #define ITS_ZEROTOL printf("### HAZMATH WARNING: The tolerence might be too small! %s : %lld\n", __FUNCTION__, (long long )__LINE__)
 
+/* Frees the AMG hierarchies mgl[0..n-1] (NULL entries are skipped) and the
+ * arrays mgl and LU_diag of a block solver whose AMG setup failed, before
+ * it returns the error */
+static void free_failed_block_setup(AMG_data **mgl, void **LU_diag, INT n,
+                                    AMG_param *amgparam)
+{
+    INT j;
+    for (j = 0; j < n; j++) {
+        if (mgl[j]) {
+            amg_data_free(mgl[j], amgparam);
+            free(mgl[j]);
+        }
+    }
+    free(mgl);
+    free(LU_diag);
+}
+
 //! Warning for divided by zero
 #define ITS_DIVZERO printf("### HAZMATH WARNING: Divided by zero! %s : %lld\n", __FUNCTION__, (long long )__LINE__)
 
@@ -542,12 +559,14 @@ INT linear_solver_amg(dCSRmat *A,
     // check matrix data
     if ( m != n ) {
         printf("### ERROR: A is not a square matrix!\n");
-        check_error(ERROR_MAT_SIZE, __FUNCTION__);
+        free(mgl);
+        return ERROR_MAT_SIZE;  // was check_error, which ends the program
     }
 
     if ( nnz <= 0 ) {
         printf("### ERROR: A has no nonzero entries!\n");
-        check_error(ERROR_MAT_SIZE, __FUNCTION__);
+        free(mgl);
+        return ERROR_MAT_SIZE;  // was check_error, which ends the program
     }
 
     // Step 0: initialize mgl[0] with A, b and x
@@ -613,6 +632,7 @@ INT linear_solver_amg(dCSRmat *A,
 
     // clean-up memory
     amg_data_free(mgl, param);
+    free(mgl); // the array from amg_data_create
 
     // print out CPU time if needed
     if ( prtlvl > PRINT_NONE ) {
@@ -887,9 +907,9 @@ INT linear_solver_dcsr_krylov_amg(dCSRmat *A,
     if (status < 0) goto FINISHED;
 
     // setup preconditioner
-    precond_data pcdata;
+    precond_data pcdata = {0};
     precond_data_null(&pcdata);
-    param_amg_to_prec(&pcdata,amgparam);
+    param_amg_to_prec_shared(&pcdata,amgparam);
     pcdata.max_levels = mgl[0].num_levels;
     pcdata.mgl_data = mgl;
 
@@ -1008,9 +1028,9 @@ INT linear_solver_dcsr_krylov_famg(dCSRmat *A_frac,
     if (status < 0) goto FINISHED;
 
     // setup preconditioner
-    precond_data pcdata;
+    precond_data pcdata = {0};
     precond_data_null(&pcdata);
-    param_amg_to_prec(&pcdata, amgparam);
+    param_amg_to_prec_shared(&pcdata, amgparam);
     pcdata.max_levels = mgl[0].num_levels;
     pcdata.mgl_data = mgl;
 
@@ -1040,6 +1060,7 @@ INT linear_solver_dcsr_krylov_famg(dCSRmat *A_frac,
 
 FINISHED:
     amg_data_free(mgl, amgparam);
+    free(mgl); // the array from amg_data_create
     return status;
 }
 
@@ -1129,7 +1150,7 @@ INT linear_solver_dcsr_krylov_famg2(dCSRmat *A_frac,
     //                        2 - Grad^T
     precond_data pcdata0, pcdata1, pcdata2;
     precond_data_null(&pcdata0); precond_data_null(&pcdata1); precond_data_null(&pcdata2);
-    param_amg_to_prec(&pcdata0, amgparam);
+    param_amg_to_prec_shared(&pcdata0, amgparam);
     pcdata0.max_levels = mgl[0].num_levels;
     pcdata0.mgl_data = mgl;
 
@@ -1163,6 +1184,7 @@ INT linear_solver_dcsr_krylov_famg2(dCSRmat *A_frac,
 
 FINISHED:
     amg_data_free(mgl, amgparam);
+    free(mgl); // the array from amg_data_create
     // precond_free(&pc)??
     return status;
 }
@@ -1273,6 +1295,7 @@ INT linear_solver_dcsr_krylov_famg_sum(dCSRmat *A_frac,
         break;
 
     }
+    if (status < 0) goto FINISHED;
 
     // setup FAMG
     switch (famgparam->AMG_type) {
@@ -1303,8 +1326,8 @@ INT linear_solver_dcsr_krylov_famg_sum(dCSRmat *A_frac,
     //                        2 - AMG(alpha * lump(M)^-1 + beta * lump(M)^-1 A lump(M)^-1)
     precond_data pcdata1, pcdata2;
     precond_data_null(&pcdata1); precond_data_null(&pcdata2);
-    param_amg_to_prec(&pcdata1, famgparam);
-    param_amg_to_prec(&pcdata2, amgparam);
+    param_amg_to_prec_shared(&pcdata1, famgparam);
+    param_amg_to_prec_shared(&pcdata2, amgparam);
 
     pcdata1.max_levels = fmgl[0].num_levels;
     pcdata1.mgl_data = fmgl;
@@ -1332,6 +1355,7 @@ INT linear_solver_dcsr_krylov_famg_sum(dCSRmat *A_frac,
 FINISHED:
     amg_data_free(fmgl, famgparam);
     amg_data_free(mgl, amgparam);
+    free(fmgl); free(mgl); // the arrays from amg_data_create
     dcsr_free(&MAM); dcsr_free(&MAM_t); dcsr_free(&M_lump_mat);
     dvec_free(&M_lump); dvec_free(&x1);
     // precond_free(&pc); ??
@@ -1455,6 +1479,7 @@ INT linear_solver_dcsr_krylov_famg_sum2(dCSRmat *A_frac,
         break;
 
     }
+    if (status < 0) goto FINISHED;
 
     // setup FAMG
     switch (famgparam->AMG_type) {
@@ -1485,7 +1510,7 @@ INT linear_solver_dcsr_krylov_famg_sum2(dCSRmat *A_frac,
     //                        3   - AMG(alpha * lump(M)^-1 + beta * lump(M)^-1 A lump(M)^-1)
     precond_data pcdata0, pcdata1, pcdata2, pcdata3;
     precond_data_null(&pcdata0); precond_data_null(&pcdata1); precond_data_null(&pcdata2); precond_data_null(&pcdata3);
-    param_amg_to_prec(&pcdata0, famgparam);
+    param_amg_to_prec_shared(&pcdata0, famgparam);
     pcdata0.max_levels = fmgl[0].num_levels;
     pcdata0.mgl_data = fmgl;
     dcsr_alloc(Adivfrac->row, Adivfrac->col, Adivfrac->nnz, pcdata0.A);
@@ -1497,7 +1522,7 @@ INT linear_solver_dcsr_krylov_famg_sum2(dCSRmat *A_frac,
     pcdata2.A = dcsr_create_p(Grad->col, Grad->row, Grad->nnz);
     dcsr_trans(Grad, pcdata2.A);
 
-    param_amg_to_prec(&pcdata3, amgparam);
+    param_amg_to_prec_shared(&pcdata3, amgparam);
     pcdata3.max_levels = mgl[0].num_levels;
     pcdata3.mgl_data = mgl;
 
@@ -1528,6 +1553,7 @@ INT linear_solver_dcsr_krylov_famg_sum2(dCSRmat *A_frac,
 FINISHED:
     amg_data_free(fmgl, famgparam);
     amg_data_free(mgl, amgparam);
+    free(fmgl); free(mgl); // the arrays from amg_data_create
     dcsr_free(&MAM); dcsr_free(&MAM_t); dcsr_free(&M_lump_mat);
     dvec_free(&M_lump); dvec_free(&x1);
     // precond_free(&pc); ??
@@ -1581,16 +1607,25 @@ INT linear_solver_dcsr_krylov_hx_curl(dCSRmat *A,
     /* setup vector Laplacian */
     /*------------------------*/
 
+    // what is built is recorded in hxcurldata at once, so that FINISHED can
+    // free it also after a failed setup
+    HX_curl_data hxcurldata;
+    HX_curl_data_null(&hxcurldata);
+
     // get transpose of P_curl
     dCSRmat Pt_curl;
     dcsr_trans(P_curl, &Pt_curl);
+    hxcurldata.Pt_curl = &Pt_curl;
 
     // get A_vgrad
     dCSRmat A_vgrad;
     dcsr_rap(&Pt_curl, A, P_curl, &A_vgrad);
+    hxcurldata.A_vgrad = &A_vgrad;
 
     // initialize A, b, x for mgl_vgrad[0]
     AMG_data *mgl_vgrad = amg_data_create(max_levels);
+    hxcurldata.amgparam_vgrad = amgparam;
+    hxcurldata.mgl_vgrad = mgl_vgrad;
     mgl_vgrad[0].A=dcsr_create(A_vgrad.row,A_vgrad.col,A_vgrad.nnz);
     dcsr_cp(&A_vgrad, &mgl_vgrad[0].A);
     mgl_vgrad[0].b=dvec_create(A_vgrad.col);
@@ -1621,13 +1656,17 @@ INT linear_solver_dcsr_krylov_hx_curl(dCSRmat *A,
     // get transpose of Grad
     dCSRmat Gradt;
     dcsr_trans(Grad, &Gradt);
+    hxcurldata.Gradt = &Gradt;
 
     // get A_grad
     dCSRmat A_grad;
     dcsr_rap(&Gradt, A, Grad, &A_grad);
+    hxcurldata.A_grad = &A_grad;
 
     // initialize A, b, x for mgl_grad[0]
     AMG_data *mgl_grad = amg_data_create(max_levels);
+    hxcurldata.amgparam_grad = amgparam;
+    hxcurldata.mgl_grad = mgl_grad;
     mgl_grad[0].A=dcsr_create(A_grad.row,A_grad.col,A_grad.nnz);
     dcsr_cp(&A_grad, &mgl_grad[0].A);
     mgl_grad[0].b=dvec_create(A_grad.col);
@@ -1657,8 +1696,6 @@ INT linear_solver_dcsr_krylov_hx_curl(dCSRmat *A,
 
     /*------------------------*/
     // setup preconditioner
-    HX_curl_data hxcurldata;
-
     hxcurldata.A = A;
 
     hxcurldata.smooth_type = 1;
@@ -1704,6 +1741,9 @@ INT linear_solver_dcsr_krylov_hx_curl(dCSRmat *A,
 
 FINISHED:
     HX_curl_data_free(&hxcurldata, FALSE);
+    // the arrays from amg_data_create
+    free(hxcurldata.mgl_vgrad);
+    free(hxcurldata.mgl_grad);
 
     return status;
 }
@@ -1809,11 +1849,25 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
     dCSRmat A_divgrad;
     dcsr_rap(&Pt_div, A, P_div, &A_divgrad);
 
+    // what is built is recorded in hxdivdata at once, so that FINISHED can
+    // free it also after a failed setup
+    HX_div_data hxdivdata;
+    HX_div_data_null(&hxdivdata);
+    hxdivdata.Pt_curl = &Pt_curl;
+    hxdivdata.Pt_div = &Pt_div;
+    hxdivdata.Curlt = &Curlt;
+    hxdivdata.A_curl = &A_curl;
+    hxdivdata.A_grad = &A_grad;
+    hxdivdata.A_curlgrad = &A_curlgrad;
+    hxdivdata.A_divgrad = &A_divgrad;
+
     /*------------------------*/
     /* setup AMG */
     /*------------------------*/
     AMG_data *mgl_grad = amg_data_create(max_levels);
     AMG_data *mgl_curlgrad = amg_data_create(max_levels);
+    hxdivdata.amgparam_curlgrad = amgparam;
+    hxdivdata.mgl_curlgrad = mgl_curlgrad;
 
     if (P_curl == NULL) // 2D
     {
@@ -1868,6 +1922,8 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
 
     // initialize A, b, x for mgl_divgrad[0]
     AMG_data *mgl_divgrad = amg_data_create(max_levels);
+    hxdivdata.amgparam_divgrad = amgparam;
+    hxdivdata.mgl_divgrad = mgl_divgrad;
     mgl_divgrad[0].A=dcsr_create(A_divgrad.row,A_divgrad.col,A_divgrad.nnz);
     dcsr_cp(&A_divgrad, &mgl_divgrad[0].A);
     mgl_divgrad[0].b=dvec_create(A_divgrad.col);
@@ -1891,8 +1947,6 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
 
     /*------------------------*/
     // setup preconditioner
-    HX_div_data hxdivdata;
-
     hxdivdata.A = A;
 
     hxdivdata.smooth_type = 1;
@@ -1914,7 +1968,9 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
     hxdivdata.amgparam_divgrad = amgparam;
     hxdivdata.mgl_divgrad = mgl_divgrad;
     hxdivdata.amgparam_grad = amgparam;
-    hxdivdata.mgl_grad = mgl_divgrad;
+    // the hierarchy of A_grad (2D); this was mgl_divgrad, so the scalar
+    // Laplacian was solved with the div-grad hierarchy
+    hxdivdata.mgl_grad = mgl_grad;
 
     hxdivdata.backup_r = (REAL*)calloc(A->row, sizeof(REAL));
     hxdivdata.w = (REAL*)calloc(2*(A_curl.row)+A->row, sizeof(REAL));
@@ -1958,6 +2014,14 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
 
 FINISHED:
     HX_div_data_free(&hxdivdata, FALSE);
+    // not freed by HX_div_data_free(..., FALSE): A_grad (2D), the hierarchy
+    // mgl_grad (set up in 2D, created in both), and the arrays from
+    // amg_data_create
+    dcsr_free(&A_grad);
+    amg_data_free(mgl_grad, amgparam);
+    free(mgl_grad);
+    free(hxdivdata.mgl_curlgrad);
+    free(hxdivdata.mgl_divgrad);
 
     return status;
 }
@@ -2492,6 +2556,10 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
                   break;
 
           }
+          if (status < 0) {
+              free_failed_block_setup(mgl, LU_diag, 2, amgparam);
+              return status;
+          }
 
       }
 
@@ -2696,6 +2764,10 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
                     status = amg_setup_ua(mgl[i], amgparam);
                     break;
 
+            }
+            if (status < 0) {
+                free_failed_block_setup(mgl, LU_diag, 3, amgparam);
+                return status;
             }
 
         }
@@ -3097,6 +3169,10 @@ INT linear_solver_bdcsr_krylov_block_5(block_dCSRmat *A,
                     break;
 
             }
+            if (status < 0) {
+                free_failed_block_setup(mgl, LU_diag, 5, amgparam);
+                return status;
+            }
 
         }
 
@@ -3189,8 +3265,17 @@ INT linear_solver_bdcsr_krylov_block_5(block_dCSRmat *A,
         printf("**********************************************************\n");
     }
 
-    // clean
-    precond_block_data_free(&precdata, 3, TRUE);
+    // clean (all 5 blocks; this freed only 3 and leaked blocks 3 and 4).
+    // The hierarchies are freed here with amgparam: precond_block_data_free
+    // would pass &precdata.amgparam[i], past the one amgparam given here.
+    for (i=0; i<5; i++) {
+        if (mgl[i]) {
+            amg_data_free(mgl[i], amgparam);
+            free(mgl[i]);
+            mgl[i] = NULL;
+        }
+    }
+    precond_block_data_free(&precdata, 5, TRUE);
 
     return status;
 }
@@ -3395,6 +3480,15 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   AMG_data *mgl_curlgrad = amg_data_create(max_levels);
   AMG_data *mgl_divgrad = amg_data_create(max_levels);
 
+  // preconditioner data, set here so that FINISHED can free what has been
+  // built also after a failed setup
+  precond_block_data precdata;
+  precond_block_data_null(&precdata);
+  precdata.amgparam = amgparam;
+  precdata.mgl = mgl;
+  precdata.diag = diag;
+  precdata.hxdivdata = hxdivdata;
+
   /* setup preconditioner */
   get_time(&setup_start);
 
@@ -3442,6 +3536,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
           break;
 
       }
+      if (status < 0) goto FINISHED;
 
       dcsr_free(&BTB);
       //dcsr_free(&invMp);
@@ -3684,6 +3779,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
           break;
 
       }
+      if (status < 0) goto FINISHED;
 
       /* set AMG for the pressure block */
       mgl[1] = amg_data_create(max_levels);
@@ -3723,6 +3819,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
           break;
 
       }
+      if (status < 0) goto FINISHED;
 
       dcsr_free(&BTB);
       dcsr_free(&invM);
@@ -3771,6 +3868,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
           break;
 
       }
+      if (status < 0) goto FINISHED;
 
       dcsr_free(&BTB);
       dcsr_free(&invM);
@@ -3778,16 +3876,16 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   }
   else
   {
-      check_error(ERROR_SOLVER_PRECTYPE, __FUNCTION__);
+      // was check_error, which ends the program
+      printf("### ERROR: %s: unknown preconditioner type %lld!\n", __FUNCTION__, (long long)precond_type);
+      status = ERROR_SOLVER_PRECTYPE;
+      goto FINISHED;
   }
 
   /*----------------------------*/
   /* Setup  preconditioner data */
   /*----------------------------*/
-  // overall
-  precond_block_data precdata;
-  precond_block_data_null(&precdata);
-
+  // overall (precdata is declared at the top)
   precdata.Abcsr = A;
   precdata.r = dvec_create(b->row);
   precdata.amgparam = amgparam;
@@ -3911,7 +4009,24 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
 
 FINISHED:
   // clean
-  precond_block_data_free(&precdata, 2, FALSE);
+  {
+    // the HX hierarchies: once handed to hxdivdata[0], HX_div_data_free
+    // (..., FALSE) in precond_block_data_free frees the levels of
+    // mgl_curlgrad and mgl_divgrad, but not those of mgl_grad nor the
+    // arrays; otherwise (another preconditioner, or a failed setup) none
+    INT hx_handed = (hxdivdata[0] != NULL && hxdivdata[0]->mgl_divgrad != NULL);
+    precond_block_data_free(&precdata, 2, FALSE);
+    if (hx_handed) {
+      free(mgl_curlgrad);
+      free(mgl_divgrad);
+      if (mgl_grad) { amg_data_free(mgl_grad, amgparam); free(mgl_grad); }
+    } else {
+      // not or partly set up: no param, so unset Schwarz data is skipped
+      if (mgl_grad) { amg_data_free(mgl_grad, NULL); free(mgl_grad); }
+      if (mgl_curlgrad) { amg_data_free(mgl_curlgrad, NULL); free(mgl_curlgrad); }
+      if (mgl_divgrad) { amg_data_free(mgl_divgrad, NULL); free(mgl_divgrad); }
+    }
+  }
   if (precond_type > 29 && precond_type < 50)
   {
     dcsr_free(&A_div);
@@ -4033,6 +4148,10 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
     free(zf[0]);
     free(zf[1]);
     free(zf);
+    if (rpnwf[0] == NULL) { // AAA failed (e.g. no LAPACK)
+        free(rpnwf);
+        return ERROR_SOLVER_TYPE;
+    }
     // assign poles and residules
     dvec_alloc(k,  &residues_r);
     dvec_alloc(k-1, &poles_r);
@@ -4076,6 +4195,14 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
           break;
 
     }
+    if (status < 0) {
+        // free what has been built (the failed hierarchy without param)
+        amg_data_free(mgl[0], NULL); free(mgl[0]); free(mgl);
+        free(rpnwf[0]); free(rpnwf);
+        dvec_free(&poles_r); dvec_free(&poles_i);
+        dvec_free(&residues_r); dvec_free(&residues_i);
+        return status;
+    }
 
     /* get the scaled mass matrix  */
     // scaling mass matrix
@@ -4117,6 +4244,22 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
               status = amg_setup_ua(mgl[i], amgparam2);
               break;
 
+        }
+        if (status < 0) {
+            // free what has been built (the failed hierarchy, mgl[i],
+            // without param)
+            INT j;
+            amg_data_free(mgl[0], amgparam1); free(mgl[0]);
+            for (j = 1; j <= i; ++j) {
+                amg_data_free(mgl[j], j < i ? amgparam2 : NULL);
+                free(mgl[j]);
+            }
+            free(mgl);
+            dcsr_free(&scaled_M); dvec_free(&diag_scaled_M);
+            free(rpnwf[0]); free(rpnwf);
+            dvec_free(&poles_r); dvec_free(&poles_i);
+            dvec_free(&residues_r); dvec_free(&residues_i);
+            return status;
         }
 
     }
@@ -4225,6 +4368,24 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
     // free block data
     precond_block_data_free(&precdata, 2, FALSE);
     */
+
+    // The commented-out cleanup above cannot be used as it is:
+    // precond_block_data_free would free() scaled_M, diag_scaled_M, poles
+    // and residues, which are local variables here. So everything is freed
+    // here one by one (before, all of it leaked).
+    dcsr_free(&scaled_M);
+    dvec_free(&diag_scaled_M);
+    bdcsr_free(precdata.Abcsr);
+    free(precdata.Abcsr);
+    dvec_free(&precdata.r);
+    for (i = 0; i < npoles+1; ++i) {
+        if (mgl[i]) {
+            amg_data_free(mgl[i], precdata.amgparam ? &(precdata.amgparam[i == 0 ? 0 : 1]) : NULL);
+            free(mgl[i]);
+        }
+    }
+    free(mgl);
+    free(precdata.amgparam);
 
     return status;
 }
@@ -5161,9 +5322,9 @@ INT linear_solver_dcsr_krylov_metric_amg(dCSRmat *A,
     }
 
     // setup preconditioner
-    precond_data pcdata;
+    precond_data pcdata = {0};
     precond_data_null(&pcdata);
-    param_amg_to_prec(&pcdata, amgparam);
+    param_amg_to_prec_shared(&pcdata, amgparam);
     pcdata.max_levels = mgl[0].num_levels;
     pcdata.mgl_data = mgl;
 

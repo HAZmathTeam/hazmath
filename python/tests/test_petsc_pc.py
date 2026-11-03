@@ -171,7 +171,8 @@ def test_famg_pc_needs_mass_matrix(poisson_2d):
     pc = ksp.getPC()
     pc.setType("python")
     pc.setPythonContext(haznicsx.HazmathFAMG())
-    with pytest.raises(PETSc.Error):
+    # older petsc4py (e.g. 3.19) passes the ValueError on unwrapped
+    with pytest.raises((PETSc.Error, ValueError)):
         ksp.setUp()
     ksp.destroy()
 
