@@ -12,17 +12,77 @@
  */
 #include "hazmath.h"
 /**********************************************************************/
+/* Array capacities during one refinement pass.
+ *
+ * Outside refine() the hierarchy arrays of an scomplex have exactly
+ * ns (resp. nv, nnz of parent_v) entries, and other code relies on
+ * this (it reallocates them to exact sizes). During a refinement pass
+ * refine() calls amr_cap_begin(); haz_add_simplex then grows the arrays
+ * geometrically (amortized O(1) per new simplex instead of a copy of
+ * every array per bisection), and amr_cap_end() trims them back to the
+ * exact sizes. For any other sc (amr_cap.sc != sc) the growth is exact,
+ * as before. Refinement is not reentrant, so one static record suffices.
+ */
+static struct {
+  scomplex* sc;
+  INT ns_cap, nv_cap, pv_cap;
+} amr_cap = {NULL, 0, 0, 0};
+/* realloc the arrays sized by ns to hold cap simplices */
+static void amr_resize_ns(scomplex* sc, INT cap) {
+  INT n1 = sc->dim + 1;
+  sc->nbr = realloc(sc->nbr, (cap * n1) * sizeof(INT));
+  sc->nodes = realloc(sc->nodes, (cap * n1) * sizeof(INT));
+  sc->gen = realloc(sc->gen, cap * sizeof(INT));
+  sc->marked = realloc(sc->marked, cap * sizeof(INT));
+  sc->flags = realloc(sc->flags, cap * sizeof(INT));
+  sc->parent = realloc(sc->parent, cap * sizeof(INT));
+  sc->child0 = realloc(sc->child0, cap * sizeof(INT));
+  sc->childn = realloc(sc->childn, cap * sizeof(INT));
+  sc->vols = realloc(sc->vols, cap * sizeof(REAL));
+}
+/* realloc the arrays sized by nv to hold cap vertices */
+static void amr_resize_nv(scomplex* sc, INT cap) {
+  sc->x = realloc(sc->x, (cap * sc->nbig) * sizeof(REAL));
+  sc->bndry = realloc(sc->bndry, cap * sizeof(INT));
+  sc->csys = realloc(sc->csys, cap * sizeof(INT));
+  sc->parent_v->IA = realloc(sc->parent_v->IA, (cap + 1) * sizeof(INT));
+  if (sc->gen_N) sc->gen_N = realloc(sc->gen_N, cap * sizeof(INT));
+}
+/* realloc parent_v->JA, parent_v->val to hold cap entries */
+static void amr_resize_pv(scomplex* sc, INT cap) {
+  sc->parent_v->JA = realloc(sc->parent_v->JA, cap * sizeof(INT));
+  sc->parent_v->val = realloc(sc->parent_v->val, cap * sizeof(INT));
+}
+static void amr_cap_begin(scomplex* sc) {
+  amr_cap.sc = sc;
+  amr_cap.ns_cap = sc->ns;
+  amr_cap.nv_cap = sc->nv;
+  amr_cap.pv_cap = sc->parent_v->nnz;
+}
+static void amr_cap_end(scomplex* sc) {
+  if (amr_cap.sc != sc) return;
+  if (amr_cap.ns_cap != sc->ns) amr_resize_ns(sc, sc->ns);
+  if (amr_cap.nv_cap != sc->nv) amr_resize_nv(sc, sc->nv);
+  if (amr_cap.pv_cap != sc->parent_v->nnz) amr_resize_pv(sc, sc->parent_v->nnz);
+  amr_cap.sc = NULL;
+  amr_cap.ns_cap = amr_cap.nv_cap = amr_cap.pv_cap = 0;
+}
+/* new capacity: doubling inside a pass on amr_cap.sc, exact otherwise */
+static INT amr_new_cap(scomplex* sc, INT cap, INT need) {
+  if (amr_cap.sc != sc) return need;
+  INT c = 2 * cap;
+  return (c < need) ? need : c;
+}
+/**********************************************************************/
 /*!
  * \fn INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew, INT *pv,
  *                         INT ibnew,INT csysnew,INT nsnew, INT nvnew)
  *
- * \brief
+ * \brief Appends the two children of simplex is (and the new vertex,
+ *        if nvnew > sc->nv) to the hierarchy arrays.
  *
- * \param
- *
- * \return
- *
- * \note
+ * \note During a refinement pass (amr_cap_begin) the arrays grow
+ *       geometrically; otherwise they are reallocated to the exact size.
  *
  */
 INT haz_add_simplex(INT is, scomplex* sc, REAL* xnew, INT* pv, INT ibnew,
@@ -34,9 +94,17 @@ INT haz_add_simplex(INT is, scomplex* sc, REAL* xnew, INT* pv, INT ibnew,
   //  INT *dsti,*srci;
   INT j, j0, jn, nnz_pv;
   REAL* dstr;
+  INT tracked = (amr_cap.sc == sc);
+  /* grow the arrays sized by ns (all of them, before any is written) */
+  {
+    INT cap = tracked ? amr_cap.ns_cap : sc->ns;
+    if (nsnew > cap || !tracked) {
+      INT c = amr_new_cap(sc, cap, nsnew);
+      amr_resize_ns(sc, c);
+      if (tracked) amr_cap.ns_cap = c;
+    }
+  }
   /* nodes  AND neighbors */
-  sc->nbr = realloc(sc->nbr, (nsnew * n1) * sizeof(INT));
-  sc->nodes = realloc(sc->nodes, (nsnew * n1) * sizeof(INT));
   for (j = 0; j < n1; j++) {
     j0 = isc0 + j;
     jn = iscn + j;
@@ -48,58 +116,55 @@ INT haz_add_simplex(INT is, scomplex* sc, REAL* xnew, INT* pv, INT ibnew,
   }
   // new vertex (if any!!!)
   if (nvnew != nv) {
-    sc->x = realloc(sc->x, (nvnew * nbig) * sizeof(REAL));
+    INT cap = tracked ? amr_cap.nv_cap : nv;
+    if (nvnew > cap || !tracked) {
+      INT c = amr_new_cap(sc, cap, nvnew);
+      amr_resize_nv(sc, c);
+      if (tracked) amr_cap.nv_cap = c;
+    }
     dstr = (sc->x + nv * nbig);
     memcpy(dstr, xnew, dim * sizeof(REAL));
     if (xnew) free(xnew);
-    sc->bndry = realloc(sc->bndry, (nvnew) * sizeof(INT));
     sc->bndry[nv] = ibnew;
-    sc->csys = realloc(sc->csys, (nvnew) * sizeof(INT));
     sc->csys[nv] = csysnew;
     nnz_pv = sc->parent_v->nnz;
     sc->parent_v->row = nvnew;
     sc->parent_v->col = nv;
-    sc->parent_v->JA = realloc(sc->parent_v->JA, (nnz_pv + 2) * sizeof(REAL));
+    cap = tracked ? amr_cap.pv_cap : nnz_pv;
+    if (nnz_pv + 2 > cap || !tracked) {
+      INT c = amr_new_cap(sc, cap, nnz_pv + 2);
+      amr_resize_pv(sc, c);
+      if (tracked) amr_cap.pv_cap = c;
+    }
     sc->parent_v->JA[nnz_pv] = pv[0];
     sc->parent_v->JA[nnz_pv + 1] = pv[1];
-    sc->parent_v->val = realloc(sc->parent_v->val, (nnz_pv + 2) * sizeof(REAL));
     sc->parent_v->val[nnz_pv] = sc->level + 1;
     sc->parent_v->val[nnz_pv + 1] = sc->level + 1;
     sc->parent_v->nnz += 2;
-    sc->parent_v->IA = realloc(sc->parent_v->IA, (nvnew + 1) * sizeof(REAL));
     sc->parent_v->IA[nvnew] = sc->parent_v->nnz;
     /* fprintf(stdout,"\nnv=%d;
      * nvnew=%d;nnz_pv=%d(pv[0]=%d,pv[1]=%d)",nv,nvnew,sc->parent_v->nnz,pv[0],pv[1]);
      */
   }
   // generation
-  sc->gen = realloc(sc->gen, (nsnew) * sizeof(INT));
   sc->gen[ks0] = sc->gen[is] + 1;
   sc->gen[ksn] = sc->gen[is] + 1;
   // marked
-  sc->marked = realloc(sc->marked, (nsnew) * sizeof(INT));
   sc->marked[ks0] = sc->marked[is];
   sc->marked[ksn] = sc->marked[is];
   // flags
-  sc->flags = realloc(sc->flags, (nsnew) * sizeof(INT));
   sc->flags[ks0] = sc->flags[is];
   sc->flags[ksn] = sc->flags[is];
   // parents
-  sc->parent = realloc(sc->parent, (nsnew) * sizeof(INT));
   sc->parent[ks0] = is;
   sc->parent[ksn] = is;
   // child0
-  sc->child0 = realloc(sc->child0, (nsnew) * sizeof(INT));
   sc->child0[ks0] = -1;
   sc->child0[ksn] = -1;
   // childn
-  sc->childn = realloc(sc->childn, (nsnew) * sizeof(INT));
   sc->childn[ks0] = -1;
   sc->childn[ksn] = -1;
-  // volumes
-  sc->vols = realloc(
-      sc->vols, (nsnew) * sizeof(REAL));  // we can calculate all volumes at the
-                                          // end, so just allocate here.
+  // volumes: allocated above, computed at the end of refine()
   // scalars
   sc->ns = nsnew;
   sc->nv = nvnew;
@@ -230,9 +295,9 @@ static void dgs_initialize(scomplex* sc, INT* color, INT N) {
 }
 /**********************************************************************/
 /*!
- * \brief Build v2s index for current LEAF simplices only.
- *        Children created during refinement are NOT added.
- *        This prevents infinite recursion in the DGS closure.
+ * \brief Build v2s index for current LEAF simplices. Children created
+ *        during the refinement pass are added by v2s_add_children, so
+ *        the chains always contain every simplex with a given vertex.
  */
 static void v2s_build(scomplex* sc) {
   INT ns = sc->ns, nv = sc->nv, n1 = sc->dim + 1;
@@ -266,6 +331,36 @@ static void v2s_free_data(scomplex* sc) {
   if (sc->v2s_next) { free(sc->v2s_next); sc->v2s_next = NULL; }
   if (sc->v2s_simp) { free(sc->v2s_simp); sc->v2s_simp = NULL; }
   sc->v2s_count = 0; sc->v2s_alloc = 0; sc->v2s_nv = 0;
+}
+/**********************************************************************/
+/* Append simplex s to the chain of vertex v; v2s_nv is the allocated
+   length of v2s_head and grows by doubling when new vertices appear. */
+static void v2s_add(scomplex* sc, INT v, INT s) {
+  if (v >= sc->v2s_nv) {
+    INT nvcap = 2 * sc->v2s_nv;
+    if (nvcap <= v) nvcap = v + 1;
+    sc->v2s_head = realloc(sc->v2s_head, nvcap * sizeof(INT));
+    for (INT i = sc->v2s_nv; i < nvcap; i++) sc->v2s_head[i] = -1;
+    sc->v2s_nv = nvcap;
+  }
+  if (sc->v2s_count >= sc->v2s_alloc) {
+    sc->v2s_alloc = sc->v2s_alloc > 0 ? sc->v2s_alloc * 2 : 256;
+    sc->v2s_next = realloc(sc->v2s_next, sc->v2s_alloc * sizeof(INT));
+    sc->v2s_simp = realloc(sc->v2s_simp, sc->v2s_alloc * sizeof(INT));
+  }
+  INT k = sc->v2s_count++;
+  sc->v2s_simp[k] = s;
+  sc->v2s_next[k] = sc->v2s_head[v];
+  sc->v2s_head[v] = k;
+}
+/* Register the two children ks0, ksn (just created) in the v2s index */
+static void v2s_add_children(scomplex* sc, INT ks0, INT ksn) {
+  if (!sc->v2s_head) return;
+  INT n1 = sc->dim + 1;
+  for (INT j = 0; j < n1; j++) {
+    v2s_add(sc, sc->nodes[ks0 * n1 + j], ks0);
+    v2s_add(sc, sc->nodes[ksn * n1 + j], ksn);
+  }
 }
 /**********************************************************************/
 /* Algorithm 4 helpers: lvl_N and type_N from gen_N (eq 8 in paper)  */
@@ -363,9 +458,7 @@ static INT haz_bisect_new(scomplex* sc, INT is) {
   sc->child0[is] = ks0;
   sc->childn[is] = ksn;
   haz_add_simplex(is, sc, xnew, pv, 0, csysnew, nsnew, nvnew);
-  /* Set gen_N for the new vertex (gen_N array was grown by haz_add_simplex
-     via realloc of bndry/csys but gen_N needs separate growth) */
-  sc->gen_N = realloc(sc->gen_N, nvnew * sizeof(INT));
+  /* Set gen_N for the new vertex (gen_N is grown by haz_add_simplex) */
   sc->gen_N[nodnew] = gen_new;
   /* Build children: replace va with v', replace vb with v' */
   el = sc->nodes + is * n1;
@@ -385,6 +478,7 @@ static INT haz_bisect_new(scomplex* sc, INT is) {
     sc->nbr[ks0 * n1 + j] = -1;
     sc->nbr[ksn * n1 + j] = -1;
   }
+  v2s_add_children(sc, ks0, ksn);
   return nodnew;
 }
 /**********************************************************************/
@@ -427,6 +521,7 @@ static void haz_bisect_reuse(scomplex* sc, INT is, INT nodnew,
     sc->nbr[ks0 * n1 + j] = -1;
     sc->nbr[ksn * n1 + j] = -1;
   }
+  v2s_add_children(sc, ks0, ksn);
 }
 /**********************************************************************/
 /*!
@@ -434,7 +529,8 @@ static void haz_bisect_reuse(scomplex* sc, INT is, INT nodnew,
  *
  * \brief Bisects simplex is with DGS conforming closure (Algorithm 3)
  *        using Algorithm 4 bisection (handles N+1 > n+1 colors).
- *        Scans ALL simplices for the conforming closure (brute force).
+ *        The closure walks the vertex->simplex chain of one endpoint of
+ *        the bisection edge (v2s index, kept up to date for children).
  *
  * \param sc  I/O: simplicial complex with gen_N set
  * \param is  I: index of the simplex to bisect
@@ -443,47 +539,39 @@ static void haz_bisect_reuse(scomplex* sc, INT is, INT nodnew,
  * \return 0 on success
  */
 /**********************************************************************/
-/* v2s helpers: build once per refinement pass, children NOT added.  */
-/* The v2s index only tracks pre-existing leaves.                    */
-/* For Algorithm 4, this is correct because children of a bisected   */
-/* simplex do NOT share the parent's bisection edge (the midpoint    */
-/* replaces one endpoint), so they don't need closure treatment.     */
+/* The v2s index (vertex -> simplices) is built from the leaves at the */
+/* start of a refinement pass, and every child created by             */
+/* haz_bisect_new/haz_bisect_reuse is added to it (v2s_add_children). */
+/* Hence the chain of a vertex v contains every simplex with vertex v */
+/* (refined ones are skipped by testing child0), and the conforming   */
+/* closure only visits simplices around v0 instead of all sc->ns.     */
 /**********************************************************************/
-static inline void v2s_add(scomplex* sc, INT v, INT s) {
-  if (sc->v2s_count >= sc->v2s_alloc) {
-    sc->v2s_alloc = sc->v2s_alloc > 0 ? sc->v2s_alloc * 2 : 256;
-    sc->v2s_next = realloc(sc->v2s_next, sc->v2s_alloc * sizeof(INT));
-    sc->v2s_simp = realloc(sc->v2s_simp, sc->v2s_alloc * sizeof(INT));
-  }
-  INT k = sc->v2s_count++;
-  sc->v2s_simp[k] = s;
-  sc->v2s_next[k] = sc->v2s_head[v];
-  sc->v2s_head[v] = k;
+static INT simplex_has_vertex(const INT* el, INT n1, INT v) {
+  for (INT a = 0; a < n1; a++)
+    if (el[a] == v) return 1;
+  return 0;
 }
 /**********************************************************************/
 INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
   if (is < 0 || sc->child0[is] >= 0) return 0;
   INT dim = sc->dim, n1 = dim + 1;
-  INT v0, vg;
+  INT v0, vg, k, s;
+  /* callers other than refine() may not have built the index */
+  INT own_v2s = (sc->v2s_head == NULL);
+  if (own_v2s) v2s_build(sc);
   dgs_get_bse(sc, is, &v0, &vg);
-  /* Conforming closure (Algorithm 3): scan ALL simplices (including
-     children created during closure) for leaves sharing edge {v0,vg}
-     whose bse differs — these must be refined before we bisect {v0,vg}.
-     The static v2s index misses children created during closure, so we
-     use a full scan to ensure correctness. */
+  /* Conforming closure (Algorithm 3): every leaf sharing edge {v0,vg}
+     whose bse differs must be refined before we bisect {v0,vg}. All such
+     leaves contain v0, so it suffices to walk the chain of v0. After a
+     recursive refinement the chain has changed, so we restart it. */
   {
     INT restart = 1;
     while (restart) {
       restart = 0;
-      for (INT s = 0; s < sc->ns; s++) {
+      for (k = sc->v2s_head[v0]; k >= 0; k = sc->v2s_next[k]) {
+        s = sc->v2s_simp[k];
         if (s == is || sc->child0[s] >= 0) continue;
-        INT *el = sc->nodes + s * n1;
-        INT h0 = 0, hg = 0;
-        for (INT a = 0; a < n1; a++) {
-          if (el[a] == v0) h0 = 1;
-          if (el[a] == vg) hg = 1;
-        }
-        if (!h0 || !hg) continue;
+        if (!simplex_has_vertex(sc->nodes + s * n1, n1, vg)) continue;
         INT bv0, bvg;
         dgs_get_bse(sc, s, &bv0, &bvg);
         if ((bv0 == v0 && bvg == vg) || (bv0 == vg && bvg == v0)) continue;
@@ -493,27 +581,27 @@ INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
       }
     }
   }
-  if (sc->child0[is] >= 0) return 0;
-  /* Bisect is, creating new midpoint */
-  INT vnew = haz_bisect_new(sc, is);
-  /* Bisect ALL remaining leaf simplices sharing edge {v0,vg}.
-     This includes children created during the closure phase above,
-     which are not in the static v2s index. */
-  {
-    INT nscan = sc->ns;
-    for (INT s = 0; s < nscan; s++) {
-      if (s == is || sc->child0[s] >= 0) continue;
-      INT *el = sc->nodes + s * n1;
-      INT h0 = 0, hg = 0;
-      for (INT a = 0; a < n1; a++) {
-        if (el[a] == v0) h0 = 1;
-        if (el[a] == vg) hg = 1;
-      }
-      if (h0 && hg) {
-        haz_bisect_reuse(sc, s, vnew, v0, vg);
-      }
-    }
+  if (sc->child0[is] >= 0) {
+    if (own_v2s) v2s_free_data(sc);
+    return 0;
   }
+  /* collect the remaining leaves sharing edge {v0,vg} before any
+     bisection modifies the chains */
+  INT nshare = 0, cap = 16;
+  INT* share = (INT*)malloc(cap * sizeof(INT));
+  for (k = sc->v2s_head[v0]; k >= 0; k = sc->v2s_next[k]) {
+    s = sc->v2s_simp[k];
+    if (s == is || sc->child0[s] >= 0) continue;
+    if (!simplex_has_vertex(sc->nodes + s * n1, n1, vg)) continue;
+    if (nshare >= cap) { cap *= 2; share = (INT*)realloc(share, cap * sizeof(INT)); }
+    share[nshare++] = s;
+  }
+  /* Bisect is, creating new midpoint, then bisect the others reusing it */
+  INT vnew = haz_bisect_new(sc, is);
+  for (k = 0; k < nshare; k++)
+    if (sc->child0[share[k]] < 0) haz_bisect_reuse(sc, share[k], vnew, v0, vg);
+  free(share);
+  if (own_v2s) v2s_free_data(sc);
   return 0;
 }
 /******************************************************************/
@@ -581,10 +669,12 @@ void refine(const INT ref_levels, scomplex* sc, ivector* marked) {
     // just refine everything that was not refined:
     for (i = 0; i < ref_levels; i++) {
       v2s_build(sc);
+      amr_cap_begin(sc);
       nsold = sc->ns;
       for (j = 0; j < nsold; j++)
         if (sc->child0[j] < 0 && sc->childn[j] < 0)
           haz_refine_simplex(sc, j, -1);
+      amr_cap_end(sc);
       v2s_free_data(sc);
       sc->level++;
     }
@@ -617,10 +707,12 @@ void refine(const INT ref_levels, scomplex* sc, ivector* marked) {
    * not yet refined: (marked>0 and child<0)
    */
   v2s_build(sc);
+  amr_cap_begin(sc);
   nsold = sc->ns;
   for (j = 0; j < nsold; j++)
     if (sc->marked[j] && (sc->child0[j] < 0 && sc->childn[j] < 0))
       haz_refine_simplex(sc, j, -1);
+  amr_cap_end(sc);
   v2s_free_data(sc);
   /*
    *  compute volumes (the volumes on the coarsest grid should be set in

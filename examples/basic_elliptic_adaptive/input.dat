@@ -1,0 +1,28 @@
+%----------------------------------------------%
+% input parameters for basic_elliptic_adaptive %
+% (grid and adaptivity: see input/2d_L.input)  %
+% lines starting with % are comments           %
+% must have spaces around the equal sign "="   %
+%----------------------------------------------%
+
+print_level	= 1	% 0 Nothing | >0 Something | >1 CPU time per phase
+output_dir  = ./output/ % directory for all output (must be created)
+
+%---------------%
+% finite element
+%---------------%
+
+nquad		= 4	% quadrature nodes each direction (problem 3: moments of f; problems 1, 3: the error)
+FE_type = 1	% 1 P1 (grad) | 20 Nedelec (curl) | 30 Raviart-Thomas (div)
+
+%---------------%
+% linear solver
+%---------------%
+
+linear_itsolver_type		= 1    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES | 4 FGMRES
+linear_itsolver_maxit		= 500  	% maximal iterations of linear iterative solver
+linear_itsolver_tol		  = 1e-11  % tolerance for linear iterative solver
+linear_stop_type		    = 1     % 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
+linear_restart 			    = 100		% restart for GMRes
+linear_precond_type		  = 2		%  0 Null | 1 Diag | 2 AMG
+AMG_coarse_solver	  = 32		% coarsest-level solver of AMG: 0 default (PCG) | 32 UMFPACK (direct)

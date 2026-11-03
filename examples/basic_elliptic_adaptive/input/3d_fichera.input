@@ -1,0 +1,126 @@
+%----------------------------------------------%
+% Fichera corner (-1,1)^3 minus (0,1)x(-1,0)x(0,1) for basic_elliptic_adaptive.
+% Geometry copied from examples/amr_grids/input/3d_fichera.input;
+% here every boundary face has code 1 (Dirichlet) and every listed edge
+% has 2 divisions.
+%----------------------------------------------%
+title{Fichera corner (adaptive P1 Laplace)}
+dimension{3}
+print_level{0}
+refinement_type{20}
+
+%%% adaptivity (num_refinements = max number of stages of the adaptive loop SOLVE-ESTIMATE-MARK-REFINE)
+num_refinements{40}
+err_stop_refinement{-1.e-10}
+
+%%% example-specific parameters (problem 1 is 2D only)
+ae_problem{2}          % 2: constant f, u=0 (P1) / u x n=0 (curl) / u.n=0 (div) | 3: smooth exact u
+ae_theta{0.5}          % Doerfler parameter (on squared indicators)
+ae_estimator{0}        % P1 marking: 0 eta (local bubble problems) | 1 zeta (explicit residual)
+ae_reference_energy{-1.} % problem 2 only: (f,u) (= ||u||^2 in the energy norm); <=0 means not known
+ae_max_dofs{200000}    % stop when the number of dofs exceeds this
+ae_eps{1.0}            % FE_type 20/30: coefficient of the curl-curl / div-div term
+ae_kappa{1.0}          % FE_type 20/30: coefficient of the mass term
+ae_dump_meshes{0}      % 1: write output/mesh_stage_XXX.vtu at every stage of the adaptive loop
+
+num_coordsystems{1}
+data_coordsystems{0 0. 0.  0. 0}
+
+num_vertices{26}
+data_vertices{
+    0    0   -1.   -1.   -1.
+    1    0   -1.   -1.    0.
+    2    0   -1.    0.   -1.
+    3    0   -1.    0.    0.
+    4    0    0.   -1.   -1.
+    5    0    0.   -1.    0.
+    6    0    0.    0.   -1.
+    7    0    0.    0.    0.
+
+    8    0    0.    1.   -1.
+    9    0    0.    1.    0.
+   10    0    1.    0.   -1.
+   11    0    1.    0.    0.
+   12    0    1.    1.   -1.
+   13    0    1.    1.    0.
+   14	 0   -1.    1.   -1.
+   15	 0   -1.    1.    0.
+
+   16	 0   1.    -1.    -1.
+   17	 0   1.    -1.    0.
+%% top-top;
+   18    0   -1.   -1.    1. % above 1 
+   19    0   -1.    0.    1. %3
+   20    0    0.   -1.    1. %5
+   21   0    0.    0.    1.  %7
+   22   0    0.    1.    1.  %9
+   23    0    1.    0.    1. %11
+   24    0    1.    1.    1. %13
+   25	 0   -1.    1.    1. %15
+}
+
+num_edges{16}
+data_edges{
+  0 1  2
+  4 0  2
+  0 2  2
+  1 3  2
+  1 5  2
+  3 7  2
+  7 5  2
+  2 6  2
+  4 6  2
+  3 2  2
+  7 6  2
+  11 13  2
+  9 13  2
+  13 12  2
+  15 25  2
+  3 19  2
+}
+
+num_macroelements{7}
+data_macroelements{
+	0 1  2  3  4  5  6  7  1
+	6 7  8  9 10 11 12 13  2
+	2 3 14 15  6  7  8  9  3
+	4 5 6  7  16 17  10 11 4
+	1 18 3 19  5 20   7 21 -1
+	7 21 9  22  11 23 13  24 -2
+	3 19 15 25 7 21 9 22 -2
+	       }
+
+num_macrofaces{24}
+data_macrofaces{
+%%% x = -1 full square
+  0 1 2 3   1   %% ME0 x_low
+  2 3 14 15   1   %% ME2 x_low
+  1 18 3 19   1   %% ME4 x_low
+  3 19 15 25   1   %% ME6 x_low
+%%% y = +1 full square
+  14 15 8 9   1   %% ME2 y_high
+  8 9 12 13   1   %% ME1 y_high
+  15 25 9 22   1   %% ME6 y_high
+  9 22 13 24   1   %% ME5 y_high
+%%% z = -1 full square
+  0 2 4 6   1   %% ME0 z_low
+  2 14 6 8   1   %% ME2 z_low
+  6 8 10 12   1   %% ME1 z_low
+  4 6 16 10   1   %% ME3 z_low
+%%% x = +1 L-shaped
+  16 17 10 11   1   %% ME3 x_high
+  10 11 12 13   1   %% ME1 x_high
+  11 23 13 24   1   %% ME5 x_high
+%%% y = -1 L-shaped
+  0 1 4 5   1   %% ME0 y_low
+  4 5 16 17   1   %% ME3 y_low
+  1 18 5 20   1   %% ME4 y_low
+%%% z = +1 L-shaped
+  18 19 20 21   1   %% ME4 z_high
+  19 25 21 22   1   %% ME6 z_high
+  21 22 23 24   1   %% ME5 z_high
+%%% re-entrant cavity faces
+  5 20 7 21   1   %% x=0 face (ME4 x_high)
+  7 21 11 23   1   %% y=0 face (ME5 y_low)
+  5 7 17 11   1   %% z=0 face (ME3 z_high)
+}

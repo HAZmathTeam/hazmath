@@ -1196,6 +1196,78 @@ void get_grad_H1toNed(dCSRmat* Grad, scomplex* sc) {
 
 /***********************************************************************************************/
 /*!
+ * \fn static void rt0_face_signs(scomplex* sc, REAL* sF)
+ *
+ * \brief For every face F (3D), sF[F] = sign(phi_F . n_F), where phi_F is the
+ *        RT0 basis function of rt0_basis() and n_F = fem->f_norm[F]. The
+ *        basis is oriented by sign(det[grad lambda at the vertices of F, in
+ *        the order of f_v]), the operators below by f_norm; sF converts the
+ *        second orientation to the first. phi_F . n_F has the same sign from
+ *        both elements of F, so one element per face suffices.
+ *
+ * \note Ludmil Zikatanov 20261103 (with the help of Claude (Anthropic)).
+ */
+static void rt0_face_signs(scomplex* sc, REAL* sF) {
+  sc_fem* fem = sc->fem;
+  INT i, j, k, c, T, F;
+  INT nface = fem->nface, ns = fem->ns_leaf;
+  for (F = 0; F < nface; F++) sF[F] = 0.0;
+  for (T = 0; T < ns; T++) {
+    INT v[4];
+    REAL xv[12], g[12], col[3][3], r[3], det;
+    INT p = fem->el_v->IA[T];
+    for (i = 0; i < 4; i++) {
+      v[i] = fem->el_v->JA[p + i];
+      for (j = 0; j < 3; j++) xv[i * 3 + j] = sc->x[v[i] * 3 + j];
+    }
+    /* barycentric gradients: rows of the inverse of [x1-x0, x2-x0, x3-x0] */
+    for (i = 1; i < 4; i++)
+      for (j = 0; j < 3; j++) col[i - 1][j] = xv[i * 3 + j] - xv[j];
+    r[0] = col[1][1] * col[2][2] - col[1][2] * col[2][1];
+    r[1] = col[1][2] * col[2][0] - col[1][0] * col[2][2];
+    r[2] = col[1][0] * col[2][1] - col[1][1] * col[2][0];
+    det = col[0][0] * r[0] + col[0][1] * r[1] + col[0][2] * r[2];
+    for (j = 0; j < 3; j++) g[3 + j] = r[j] / det;
+    r[0] = col[2][1] * col[0][2] - col[2][2] * col[0][1];
+    r[1] = col[2][2] * col[0][0] - col[2][0] * col[0][2];
+    r[2] = col[2][0] * col[0][1] - col[2][1] * col[0][0];
+    for (j = 0; j < 3; j++) g[6 + j] = r[j] / det;
+    r[0] = col[0][1] * col[1][2] - col[0][2] * col[1][1];
+    r[1] = col[0][2] * col[1][0] - col[0][0] * col[1][2];
+    r[2] = col[0][0] * col[1][1] - col[0][1] * col[1][0];
+    for (j = 0; j < 3; j++) g[9 + j] = r[j] / det;
+    for (j = 0; j < 3; j++) g[j] = -(g[3 + j] + g[6 + j] + g[9 + j]);
+    for (k = fem->el_f->IA[T]; k < fem->el_f->IA[T + 1]; k++) {
+      F = fem->el_f->JA[k];
+      if (sF[F] != 0.0) continue;
+      INT q = fem->f_v->IA[F], ef[3], on[4] = {0, 0, 0, 0}, opp = -1;
+      for (i = 0; i < 3; i++) {
+        INT vf = fem->f_v->JA[q + i];
+        for (j = 0; j < 4; j++)
+          if (v[j] == vf) { ef[i] = j; on[j] = 1; }
+      }
+      for (j = 0; j < 4; j++) if (!on[j]) opp = j;
+      /* det M, M[c][i] = d lambda_{ef[i]} / d x_c, as in rt0_basis() */
+      REAL M[9];
+      for (c = 0; c < 3; c++)
+        for (i = 0; i < 3; i++) M[c * 3 + i] = g[ef[i] * 3 + c];
+      REAL detM = M[0] * (M[4] * M[8] - M[5] * M[7]) - M[1] * (M[3] * M[8] - M[5] * M[6])
+                + M[2] * (M[3] * M[7] - M[4] * M[6]);
+      /* (x_F - x_opp) . n_F with x_F the centroid of F */
+      REAL d = 0.0;
+      for (c = 0; c < 3; c++) {
+        REAL xF = (xv[ef[0] * 3 + c] + xv[ef[1] * 3 + c] + xv[ef[2] * 3 + c]) / 3.0;
+        d += (xF - xv[opp * 3 + c]) * fem->f_norm[F * 3 + c];
+      }
+      sF[F] = (detM * d > 0.0) ? 1.0 : -1.0;
+    }
+  }
+  return;
+}
+/***********************************************************************************************/
+
+/***********************************************************************************************/
+/*!
  * \fn void get_curl_NedtoRT(dCSRmat* Curl,scomplex* sc)
  *
  * \brief Computes Curl operator in 3D ONLY.
@@ -1284,16 +1356,20 @@ void get_curl_NedtoRT(dCSRmat* Curl, scomplex* sc) {
     }
   }
 
-  // K -> Df^(-1) K De
+  // K -> Df^(-1) K De; the rows (faces) are oriented as the RT0 basis of
+  // rt0_basis() (sign sF), not by f_norm (ltz 20261103)
+  REAL* sF = (REAL*)calloc(nface, sizeof(REAL));
+  rt0_face_signs(sc, sF);
   for (i = 0; i < nface; i++) {
     rowa = fem->f_ed->IA[i];
     rowb = fem->f_ed->IA[i + 1];
     for (j = rowa; j < rowb; j++) {
       k = fem->f_ed->JA[j];
       Ktmp.val[j] =
-          (1.0 / (fem->f_area[i])) * ((REAL)Ktmp.val[j]) * (fem->ed_len[k]);
+          sF[i] * (1.0 / (fem->f_area[i])) * ((REAL)Ktmp.val[j]) * (fem->ed_len[k]);
     }
   }
+  free(sF);
 
   *Curl = Ktmp;
 
@@ -1532,6 +1608,8 @@ void get_Pigrad_H1toRT(dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl,
     //    (sc->x[v2*dim])*(Pcurl->val[k]);
   }
 
+  REAL* sF = (REAL*)calloc(nface, sizeof(REAL));
+  rt0_face_signs(sc, sF);
   for (i = 0; i < nface; i++) {
     temp1 = 0.0;
     temp2 = 0.0;
@@ -1557,9 +1635,11 @@ void get_Pigrad_H1toRT(dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl,
     // temp1 = fem->f_area[i]*fem->f_norm[i*dim+0]/3;
     // temp2 = fem->f_area[i]*fem->f_norm[i*dim+1]/3;
     // temp3 = fem->f_area[i]*fem->f_norm[i*dim+2]/3;
-    temp1 = fem->f_norm[i * dim + 0] / 3;
-    temp2 = fem->f_norm[i * dim + 1] / 3;
-    temp3 = fem->f_norm[i * dim + 2] / 3;
+    // mean normal component on the face, oriented as the RT0 basis of
+    // rt0_basis() (sign sF), not by f_norm (ltz 20261103)
+    temp1 = sF[i] * fem->f_norm[i * dim + 0] / 3;
+    temp2 = sF[i] * fem->f_norm[i * dim + 1] / 3;
+    temp3 = sF[i] * fem->f_norm[i * dim + 2] / 3;
 
     // Build Pdiv
     rowa = fem->f_v->IA[i];
@@ -1595,6 +1675,7 @@ void get_Pigrad_H1toRT(dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl,
 
   *Pdiv = Ptmp;
 
+  free(sF);
   free(PcurlY);
   free(PcurlZ);
   free(PcurlX);
