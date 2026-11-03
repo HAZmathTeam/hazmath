@@ -13,6 +13,7 @@
 #include <nanobind/stl/pair.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -48,8 +49,8 @@ namespace
 template <typename T>
 using array1d = nb::ndarray<T, nb::ndim<1>, nb::c_contig, nb::device::cpu>;
 
-/// HAZmath is not thread safe (HEC aggregation uses rand(), for example), so
-/// all HAZmath calls are serialised. The GIL is released during them.
+/// HAZmath is not known to be thread safe, so all HAZmath calls are
+/// serialised. The GIL is released during them.
 std::mutex hazmath_mutex;
 
 /// @brief A HAZmath CSR matrix over shared (not copied) CSR arrays.
@@ -297,6 +298,11 @@ void free_hx_curl(precond* pc, AMG_param*) { free_precond_hxcurl(pc); }
 /// @param[in] pc Preconditioner.
 void free_hx_div(precond* pc, AMG_param*) { free_precond_hxdiv(pc); }
 
+/// @brief Free a preconditioner from `create_precond_ra`, with
+/// `free_precond_ra` (src/haznics/helper.c).
+/// @param[in] pc Preconditioner.
+void free_ra(precond* pc, AMG_param*) { free_precond_ra(pc); }
+
 /// @brief Throw unless a matrix has the given number of rows.
 /// @param[in] A Matrix.
 /// @param[in] rows Expected number of rows.
@@ -321,8 +327,8 @@ void check_square(const CSRMatrix& A, std::string_view name)
     throw std::invalid_argument(std::format("{} must be square", name));
 }
 
-/// @brief Check AMG parameters that HAZmath would answer with `exit()` or
-/// memory corruption.
+/// @brief Check AMG parameters before the setup, so that invalid ones raise
+/// an error that says why (HAZmath only prints the reason).
 /// @param[in] param Parameters.
 /// @param[in] smoothers Smoothers the method supports.
 /// @param[in] method Name of the method in the error message.
@@ -351,13 +357,14 @@ void check_param(const AMG_param& param, std::initializer_list<SHORT> smoothers,
                   param.smoother, method, names));
 }
 
-/// @brief Check AMG parameters for an HX preconditioner.
+/// @brief Check AMG parameters for the sub-problems of an HX or RA
+/// preconditioner.
 ///
-/// Its sub-problems use `mgcycle`, so the cycle must be V or W; with the AMLI
-/// cycle, both setups would allocate coefficients into shared parameters.
+/// The sub-problems use `mgcycle`, so the cycle must be V or W; with the AMLI
+/// cycle, the setups would allocate coefficients into shared parameters.
 /// @param[in] param Parameters.
 /// @param[in] method Name of the method in the error message.
-void check_hx_param(const AMG_param& param, std::string_view method)
+void check_mgcycle_param(const AMG_param& param, std::string_view method)
 {
   check_param(param,
               {SMOOTHER_JACOBI, SMOOTHER_GS, SMOOTHER_SGS, SMOOTHER_CG,
@@ -371,6 +378,51 @@ void check_hx_param(const AMG_param& param, std::string_view method)
                     "W_CYCLE",
                     param.cycle_type, method));
   }
+}
+
+/// @brief Check the arguments of `create_precond_ra`, except `scaling_a`.
+///
+/// Cheap, so `haznicsx.ra` calls it before computing the default `scaling_a`.
+/// @param[in] A Matrix.
+/// @param[in] M Mass matrix.
+/// @param[in] s First fractional power.
+/// @param[in] t Second fractional power.
+/// @param[in] alpha Coefficient of `A^s`.
+/// @param[in] beta Coefficient of `A^t`.
+/// @param[in] scaling_m Scaling of `M`.
+/// @param[in] ra_tol Tolerance of the AAA algorithm.
+/// @param[in] param AMG parameters of the shifted problems.
+void check_ra(const CSRMatrix& A, const CSRMatrix& M, double s, double t,
+              double alpha, double beta, double scaling_m, double ra_tol,
+              const AMG_param& param)
+{
+  check_square(A, "A");
+  check_square(M, "M");
+  check_rows(M, A.get()->row, "M", "the size of A");
+  // NaN fails every comparison, so test for the valid ranges
+  for (double v : {s, t, alpha, beta, scaling_m, ra_tol})
+  {
+    if (!std::isfinite(v))
+      throw std::invalid_argument("The parameters of ra must be finite");
+  }
+  if (!(s >= -1 and s <= 1 and t >= -1 and t <= 1))
+    throw std::invalid_argument("s and t must be in [-1, 1]");
+  if (!(alpha >= 0 and beta >= 0 and alpha + beta > 0))
+  {
+    throw std::invalid_argument(
+        "alpha and beta must be non-negative, and not both zero");
+  }
+  if (!(scaling_m > 0))
+    throw std::invalid_argument("scaling_m must be positive");
+  if (!(ra_tol > 0))
+    throw std::invalid_argument("ra_tol must be positive");
+  // without LAPACK the AAA fit fails; say why, before any setup
+  if (!HAZNICSX_WITH_LAPACK)
+  {
+    throw std::runtime_error(
+        "ra needs libhazmath built with LAPACK (USE_LAPACK=ON)");
+  }
+  check_mgcycle_param(param, "ra");
 }
 
 /// @brief Bind a field of `AMG_param` and record its name.
@@ -487,6 +539,7 @@ NB_MODULE(_haznicsx, m)
             &AMG_param::Schwarz_blksolver);
   def_field(amg_param, fields, "damping_param", &AMG_param::damping_param);
   def_field(amg_param, fields, "fpwr", &AMG_param::fpwr);
+  def_field(amg_param, fields, "random_seed", &AMG_param::random_seed);
   amg_param.attr("fields") = nb::tuple(fields);
 
   nb::class_<Precond>(m, "Precond", "A HAZmath preconditioner")
@@ -558,7 +611,7 @@ NB_MODULE(_haznicsx, m)
         const INT n = A.get()->row;
         check_rows(Pcurl, n, "Pcurl", "the size of A");
         check_rows(Grad, n, "Grad", "the size of A");
-        check_hx_param(param, "hx_curl");
+        check_mgcycle_param(param, "hx_curl");
         A.check();
         Pcurl.check();
         Grad.check();
@@ -573,8 +626,8 @@ NB_MODULE(_haznicsx, m)
         }
         if (!pc)
           throw std::runtime_error("HAZmath HX-curl setup failed");
-        // the multiplicative variant updates r in place
-        return new Precond(pc, p, n, free_hx_curl, multiplicative);
+        // the HX apply functions work on a copy of r
+        return new Precond(pc, p, n, free_hx_curl, false);
       },
       "A"_a, "Pcurl"_a, "Grad"_a, "param"_a, "multiplicative"_a,
       nb::rv_policy::take_ownership,
@@ -593,7 +646,7 @@ NB_MODULE(_haznicsx, m)
         check_rows(Curl, n, "Curl", "the size of A");
         if (Pcurl)
           check_rows(*Pcurl, Curl.get()->col, "Pcurl", "the columns of Curl");
-        check_hx_param(param, "hx_div");
+        check_mgcycle_param(param, "hx_div");
         A.check();
         Pdiv.check();
         Curl.check();
@@ -618,8 +671,8 @@ NB_MODULE(_haznicsx, m)
         }
         if (!pc)
           throw std::runtime_error("HAZmath HX-div setup failed");
-        // the multiplicative variants update r in place
-        return new Precond(pc, p, n, free_hx_div, multiplicative);
+        // the HX apply functions work on a copy of r
+        return new Precond(pc, p, n, free_hx_div, false);
       },
       "A"_a, "Pdiv"_a, "Curl"_a, "Pcurl"_a.none(), "param"_a,
       "multiplicative"_a, nb::rv_policy::take_ownership,
@@ -629,6 +682,46 @@ NB_MODULE(_haznicsx, m)
       "Nedelec and Pcurl interpolates vector P1 into Nedelec; in 2D, Curl is "
       "the discrete rot from P1.");
 
+  m.def("check_ra", &check_ra, "A"_a, "M"_a, "s"_a, "t"_a, "alpha"_a, "beta"_a,
+        "scaling_m"_a, "ra_tol"_a, "param"_a,
+        "Check the arguments of ra, except scaling_a, without a setup.");
+
+  m.def(
+      "ra",
+      [](CSRMatrix& A, CSRMatrix& M, double s, double t, double alpha,
+         double beta, double scaling_a, double scaling_m, double ra_tol,
+         const AMG_param& param)
+      {
+        check_ra(A, M, s, t, alpha, beta, scaling_m, ra_tol, param);
+        // NaN fails the comparison
+        if (!(std::isfinite(scaling_a) and scaling_a > 0))
+          throw std::invalid_argument("scaling_a must be positive");
+        const INT n = A.get()->row;
+        A.check();
+        M.check();
+        AMG_param p = param;
+        precond* pc;
+        {
+          nb::gil_scoped_release release;
+          std::lock_guard lock(hazmath_mutex);
+          pc = create_precond_ra(A.get(), M.get(), s, t, alpha, beta, scaling_a,
+                                 scaling_m, ra_tol, &p);
+        }
+        if (!pc)
+          throw std::runtime_error("HAZmath RA setup failed");
+        // the apply scales r in place and back, which need not be exact,
+        // and zeroes z before it reads r
+        return new Precond(pc, p, n, free_ra, true);
+      },
+      "A"_a, "M"_a, "s"_a, "t"_a, "alpha"_a, "beta"_a, "scaling_a"_a,
+      "scaling_m"_a, "ra_tol"_a, "param"_a, nb::rv_policy::take_ownership,
+      "Rational approximation preconditioner for the fractional operator "
+      "alpha A^s + beta A^t with mass matrix M (create_precond_ra). The AAA "
+      "fit is on [0, 1]: scaling_a / scaling_m times the largest eigenvalue "
+      "of M^-1 A should not exceed 1.");
+
+  // Whether libhazmath has LAPACK, which ra needs
+  m.attr("HAS_LAPACK") = static_cast<bool>(HAZNICSX_WITH_LAPACK);
   // Size in bytes of HAZmath's index type INT (4 or 8)
   m.attr("INT_SIZE") = sizeof(INT);
   // Values for the AMGParam fields (include/macro.h)

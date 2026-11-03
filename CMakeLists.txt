@@ -282,12 +282,18 @@ endif(USE_BLAS)
 ##################################################################
 # For LAPACK: 
 ##################################################################
+# HAZMATH_WITH_LAPACK and HAZMATH_WITH_SUITESPARSE record what the library is
+# compiled with (for hazmathConfig.cmake and python/); LAPACK_FOUND alone is
+# not enough, since the SuiteSparse find modules also look for LAPACK
+set(HAZMATH_WITH_LAPACK FALSE)
+set(HAZMATH_WITH_SUITESPARSE FALSE)
 if (USE_LAPACK)
   # set the path to find specific modules
   set(CMAKE_MODULE_PATH "${HAZMATH_SOURCE_DIR}/cmake.modules")
   find_package(LAPACK)
   if (LAPACK_FOUND)
     add_definitions("-DWITH_LAPACK=1")
+    set(HAZMATH_WITH_LAPACK TRUE)
     if (SHARED)
       set(CMAKE_SHARED_LINKER_FLAGS ${LAPACK_LIBRARIES})
     endif(SHARED)
@@ -312,6 +318,7 @@ if (USE_SUITESPARSE)
 
   if (SUITESPARSE_FOUND)
     add_definitions("-DWITH_SUITESPARSE=1")
+    set(HAZMATH_WITH_SUITESPARSE TRUE)
     include_directories(${SUITESPARSE_INCLUDE_DIRS})
     if (SHARED)
       #      	 set(CMAKE_SHARED_LINKER_FLAGS ${SUITESPARSE_DIR}/libumfpack.dylib)

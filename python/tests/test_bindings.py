@@ -387,11 +387,22 @@ def test_create_and_free_repeatedly(poisson_2d):
     gc.collect()
 
 
+def test_random_seed(poisson_2d):
+    """HEC aggregation with the same seed gives the same preconditioner."""
+    A = poisson_2d(16)
+    r = np.random.default_rng(5).random(A.shape[0])
+    param = haznicsx.AMGParam.from_dict({"aggregation_type": haznicsx.HEC, "random_seed": 7})
+    assert param.random_seed == 7
+    z = [np.zeros_like(r), np.zeros_like(r)]
+    for zi in z:
+        haznicsx.amg(haznicsx.csr_from_scipy(A), param).apply(r, zi)
+    np.testing.assert_array_equal(z[0], z[1])
+
+
 def test_threads(poisson_2d):
     """Applies from several threads, while other setups run, give the serial results."""
     A = poisson_2d(16)
     r = np.random.default_rng(3).random(A.shape[0])
-    # HEC aggregation (the default) is randomized, so each setup is different
     preconds = [haznicsx.amg(haznicsx.csr_from_scipy(A), haznicsx.AMGParam()) for _ in range(3)]
     expected = []
     for B in preconds:
@@ -446,3 +457,118 @@ def test_hx_div_arguments(poisson_2d):
     param = haznicsx.AMGParam.from_dict({"cycle_type": haznicsx.NL_AMLI_CYCLE})
     with pytest.raises(ValueError, match="cycle_type"):
         haznicsx.hx_div(A, random_csr(n, 8), random_csr(n, 6), param=param)
+
+
+needs_lapack = pytest.mark.skipif(
+    not haznicsx.HAS_LAPACK, reason="the RA preconditioner needs libhazmath with LAPACK"
+)
+
+
+@pytest.mark.skipif(haznicsx.HAS_LAPACK, reason="libhazmath has LAPACK")
+def test_ra_without_lapack(p1_1d):
+    A, M = p1_1d(7)
+    with pytest.raises(RuntimeError, match="LAPACK"):
+        haznicsx.ra(haznicsx.csr_from_scipy(A), haznicsx.csr_from_scipy(M), 0.5, scaling_a=1.0)
+
+
+@needs_lapack
+@pytest.mark.parametrize(
+    "s, t, alpha, beta, rtol",
+    [
+        (0.5, 0.0, 1.0, 0.0, 1e-6),
+        # s < 0: the inner PCG solves to 1e-6 limit the accuracy
+        (-0.5, 0.0, 1.0, 0.0, 1e-4),
+        (0.5, 1.0, 1.0, 0.1, 1e-6),
+    ],
+)
+def test_ra_inverse_of_fractional_operator(s, t, alpha, beta, rtol, p1_1d, preconditioner_matrix):
+    """B is the inverse of alpha A^s + beta A^t in the M inner product."""
+    import scipy.linalg
+
+    A, M = p1_1d(31)
+    lam, V = scipy.linalg.eigh(A.toarray(), M.toarray())
+    exact = V @ np.diag(1 / (alpha * lam**s + beta * lam**t)) @ V.T
+    B = haznicsx.ra(
+        haznicsx.csr_from_scipy(A),
+        haznicsx.csr_from_scipy(M),
+        s,
+        t,
+        alpha,
+        beta,
+        scaling_a=1 / (1.1 * lam[-1]),
+    )
+    Z = preconditioner_matrix(B)
+    assert np.linalg.norm(Z - exact) / np.linalg.norm(exact) < rtol
+
+
+@needs_lapack
+def test_ra_apply(p1_1d):
+    A, M = p1_1d(15)
+    B = haznicsx.ra(haznicsx.csr_from_scipy(A), haznicsx.csr_from_scipy(M), -0.5, scaling_a=1e-3)
+    r = np.random.default_rng(4).random(B.size)
+    r0 = r.copy()
+    z = np.zeros_like(r)
+    # HAZmath scales r in place; haznicsx passes a copy
+    B.apply(r, z)
+    np.testing.assert_array_equal(r, r0)
+    # r and z may be the same array
+    B.apply(r, r)
+    np.testing.assert_allclose(r, z)
+
+
+@needs_lapack
+@pytest.mark.parametrize(
+    "kwargs, message",
+    [
+        ({"alpha": -1.0}, "alpha and beta"),
+        ({"alpha": 0.0, "beta": 0.0}, "alpha and beta"),
+        ({"scaling_a": 0.0}, "scaling_a"),
+        ({"scaling_m": -1.0}, "scaling_m"),
+        ({"ra_tol": 0.0}, "ra_tol"),
+        ({"s": 1.5}, "s and t"),
+        ({"t": -2.0}, "s and t"),
+        ({"alpha": float("nan")}, "finite"),
+        ({"s": float("nan")}, "finite"),
+        ({"scaling_a": float("inf")}, "scaling_a"),
+        ({"scaling_m": float("nan")}, "finite"),
+        ({"param": haznicsx.AMGParam.from_dict({"cycle_type": haznicsx.AMLI_CYCLE})}, "cycle_type"),
+    ],
+)
+def test_ra_arguments(kwargs, message, p1_1d):
+    A, M = p1_1d(7)
+    kwargs = {"s": 0.5, "scaling_a": 1.0, **kwargs}
+    with pytest.raises(ValueError, match=message):
+        haznicsx.ra(haznicsx.csr_from_scipy(A), haznicsx.csr_from_scipy(M), **kwargs)
+
+
+@needs_lapack
+def test_ra_sizes(p1_1d):
+    A, _ = p1_1d(7)
+    with pytest.raises(ValueError, match="M must have 7 rows"):
+        haznicsx.ra(
+            haznicsx.csr_from_scipy(A), haznicsx.csr_from_scipy(p1_1d(6)[1]), 0.5, scaling_a=1.0
+        )
+
+
+@needs_lapack
+def test_ra_checked_before_scaling(p1_1d, monkeypatch: pytest.MonkeyPatch):
+    """Invalid arguments are rejected before the eigenvalue solve for scaling_a."""
+    A, M = p1_1d(7)
+    # computing the scaling would raise ImportError
+    monkeypatch.setitem(sys.modules, "slepc4py", None)
+    with pytest.raises(ValueError, match="M must have 7 rows"):
+        haznicsx.ra(haznicsx.csr_from_scipy(A), haznicsx.csr_from_scipy(p1_1d(6)[1]), 0.5)
+    with pytest.raises(ValueError, match="s and t"):
+        haznicsx.ra(haznicsx.csr_from_scipy(A), haznicsx.csr_from_scipy(M), 1.5)
+
+
+@needs_lapack
+@pytest.mark.parametrize("missing", ["petsc4py", "slepc4py"])
+def test_ra_default_scaling_needs_slepc(missing, monkeypatch: pytest.MonkeyPatch, p1_1d):
+    A, M = p1_1d(7)
+    monkeypatch.setitem(sys.modules, missing, None)
+    with pytest.raises(ImportError, match="pass scaling_a"):
+        haznicsx.ra(haznicsx.csr_from_scipy(A), haznicsx.csr_from_scipy(M), 0.5)
+    # the PC context checks when it is created
+    with pytest.raises(ImportError, match="pass scaling_a"):
+        haznicsx.HazmathRA(M, 0.5)

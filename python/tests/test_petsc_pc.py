@@ -21,22 +21,6 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def petsc_matrix(A: sp.csr_matrix, comm=None):
-    """AIJ matrix with the rows of A split evenly over the processes of comm."""
-    comm = PETSc.COMM_SELF if comm is None else comm
-    rank, size = comm.getRank(), comm.getSize()
-    n = A.shape[0]
-    start, end = rank * n // size, (rank + 1) * n // size
-    local = A[start:end]
-    M = PETSc.Mat().createAIJ(
-        size=((end - start, n), (end - start, n)),
-        csr=(local.indptr, local.indices, local.data),
-        comm=comm,
-    )
-    M.assemble()
-    return M
-
-
 def cg(A, configure: collections.abc.Callable, prefix: str = ""):
     """CG solve of A x = 1 with the PC set up by configure(ksp).
 
@@ -76,7 +60,7 @@ def options():
         opts.delValue(name)
 
 
-def test_amg_pc(tmp_path, poisson_2d):
+def test_amg_pc(tmp_path, poisson_2d, petsc_matrix):
     S = poisson_2d(32)
     A = petsc_matrix(S)
     ksp, x, _ = cg(A, use_context(haznicsx.HazmathAMG()))
@@ -90,7 +74,7 @@ def test_amg_pc(tmp_path, poisson_2d):
     ksp.destroy()
 
 
-def test_amg_pc_from_options(options, poisson_2d):
+def test_amg_pc_from_options(options, poisson_2d, petsc_matrix):
     options["hz_pc_type"] = "python"
     options["hz_pc_python_type"] = "haznicsx.HazmathAMG"
     options["hz_pc_hazmath_cycle_type"] = "v"
@@ -127,7 +111,7 @@ def test_amg_param_from_options(options):
         haznicsx.amg_param_from_options(param, PETSc.Options("x_"))
 
 
-def test_amg_pc_view_non_ascii(tmp_path, poisson_2d):
+def test_amg_pc_view_non_ascii(tmp_path, poisson_2d, petsc_matrix):
     ksp, _, _ = cg(petsc_matrix(poisson_2d(8)), use_context(haznicsx.HazmathAMG()))
     viewer = PETSc.Viewer().createBinary(str(tmp_path / "ksp.dat"), "w", comm=PETSc.COMM_SELF)
     ksp.view(viewer)
@@ -135,7 +119,7 @@ def test_amg_pc_view_non_ascii(tmp_path, poisson_2d):
     ksp.destroy()
 
 
-def test_amg_pc_rebuilt_for_new_operator(poisson_2d):
+def test_amg_pc_rebuilt_for_new_operator(poisson_2d, petsc_matrix):
     S = poisson_2d(16)
     ctx = haznicsx.HazmathAMG()
     ksp, x, b = cg(petsc_matrix(S), use_context(ctx))
@@ -148,7 +132,7 @@ def test_amg_pc_rebuilt_for_new_operator(poisson_2d):
     ksp.destroy()
 
 
-def test_famg_pc(poisson_2d):
+def test_famg_pc(poisson_2d, petsc_matrix):
     n = 32
     S = poisson_2d(n)
     M = petsc_matrix(sp.identity(S.shape[0], format="csr") / (n + 1) ** 2)
@@ -158,14 +142,14 @@ def test_famg_pc(poisson_2d):
     assert ksp.getConvergedReason() > 0
     assert ksp.getIterationNumber() < 30
     # M is converted once, not at every setup
-    first = ctx._M
+    first = ctx._M.get(M)
     ksp.setOperators(petsc_matrix(2.0 * S))
     ksp.solve(b, x)
-    assert ctx._M is first
+    assert ctx._M.get(M) is first
     ksp.destroy()
 
 
-def test_famg_pc_needs_mass_matrix(poisson_2d):
+def test_famg_pc_needs_mass_matrix(poisson_2d, petsc_matrix):
     ksp = PETSc.KSP().create(PETSc.COMM_SELF)
     ksp.setOperators(petsc_matrix(poisson_2d(4)))
     pc = ksp.getPC()
@@ -178,7 +162,7 @@ def test_famg_pc_needs_mass_matrix(poisson_2d):
 
 
 @pytest.mark.skipif(PETSc.COMM_WORLD.getSize() == 1, reason="needs more than one process")
-def test_pc_parallel_rejected(poisson_2d):
+def test_pc_parallel_rejected(poisson_2d, petsc_matrix):
     ksp = PETSc.KSP().create(PETSc.COMM_WORLD)
     ksp.setOperators(petsc_matrix(poisson_2d(8), PETSc.COMM_WORLD))
     pc = ksp.getPC()
@@ -189,7 +173,7 @@ def test_pc_parallel_rejected(poisson_2d):
     ksp.destroy()
 
 
-def test_block_jacobi(options, poisson_2d):
+def test_block_jacobi(options, poisson_2d, petsc_matrix):
     """HAZmath AMG on each process's diagonal block, as the module docstring suggests."""
     options["bj_pc_type"] = "bjacobi"
     options["bj_sub_pc_type"] = "python"

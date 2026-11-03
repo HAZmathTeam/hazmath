@@ -110,6 +110,7 @@ jobs:
           prefix: ${{ env.PREFIX }}
           build-type: Debug
           c-flags: ${{ env.SAN_FLAGS }}
+          lapack: "ON"  # so that the RA preconditioner is tested too
 
       - name: Install haznicsx with sanitizers
         run: |
@@ -122,14 +123,15 @@ jobs:
       - name: Run tests
         env:
           UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
-          # Python itself, and HAZmath's fractional smoothers and AMLI cycle,
-          # leak on every apply; check memory errors only
+          # Python itself leaks; check memory errors only
           ASAN_OPTIONS: detect_leaks=0
         run: |
           # Python is not instrumented, so the ASan runtime is preloaded;
           # libstdc++ too, or ASan cannot intercept C++ exceptions
           export LD_PRELOAD="$(gcc -print-file-name=libasan.so) $(gcc -print-file-name=libstdc++.so)"
-          python3 -m pytest -v python/tests
+          # --capture=sys: a sanitizer report goes to file descriptor 2,
+          # which pytest's default capture would lose when the process aborts
+          python3 -m pytest -v --capture=sys python/tests
 
   petsc-variants:
     name: PETSc ${{ matrix.petsc_arch }}
@@ -151,6 +153,7 @@ jobs:
       - uses: ./.github/actions/install-hazmath
         with:
           prefix: ${{ env.PREFIX }}
+          lapack: "ON"  # the RA preconditioner needs LAPACK
 
       - name: Install haznicsx
         run: |
@@ -176,6 +179,7 @@ jobs:
       - uses: ./.github/actions/install-hazmath
         with:
           prefix: ${{ env.PREFIX }}
+          lapack: "ON"  # the RA preconditioner needs LAPACK
 
       - name: Install haznicsx
         run: |
@@ -190,4 +194,4 @@ jobs:
           mpirun -n 2 python3 -m pytest -v python/tests/test_dolfinx.py \
             python/tests/test_hx.py python/tests/test_petsc_csr.py \
             python/tests/test_petsc_pc.py python/tests/test_petsc_dolfinx.py \
-            python/tests/test_petsc_hx.py
+            python/tests/test_petsc_hx.py python/tests/test_petsc_ra.py
