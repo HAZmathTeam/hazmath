@@ -564,7 +564,7 @@ void config2vars_amr(config_z* config, input_grid* gz)
  * input_grid_set_output - Set output filenames from the input filename.
  *
  * Given input_file = "path/to/blahblah.input", sets:
- *   g->fgrid = "output/blahblah_rlX_rtY"  (base for .haz and .msh)
+ *   g->fgrid = "output/blahblah_rlX_rtY"  (base for .msh)
  *   g->fvtu  = "output/blahblah_rlX_rtY.vtu"
  *
  * where X = g->nref (refinement levels) and Y = g->ref_type.
@@ -590,7 +590,7 @@ void input_grid_set_output(input_grid *g, const char *input_file)
   char buf[MAXFILENAMESIZE];
   snprintf(buf, sizeof(buf), "output/%.*s_rl%lld_rt%lld",
 	   (int)baselen, base, (long long)g->nref, (long long)g->ref_type);
-  /* set fgrid to base (caller appends .haz or .msh) */
+  /* set fgrid to base (caller appends .msh) */
   if(g->fgrid) free(g->fgrid);
   g->fgrid = strdup(buf);
   /* set fvtu */

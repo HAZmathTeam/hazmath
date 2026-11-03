@@ -264,12 +264,11 @@ INT main(INT argc, char* argv[]) {
     else
       fprintf(stdout, "\n%% conformity check PASSED (ns=%lld, nv=%lld)\n", (long long)sc->ns, (long long)sc->nv);
   }
-  /* WRITE OUTPUT FILES: .haz, .msh, .vtu
+  /* WRITE OUTPUT FILES: .msh, .vtu
    * g->fgrid is the base (e.g. "output/3d_fichera_rl3_rt20")
    * g->fvtu already has .vtu appended */
   {
     char fname[MAXFILENAMESIZE];
-    /* hazw(fname, sc, 0); -- commented out, use sc_write_gmsh */
     snprintf(fname, sizeof(fname), "%s.msh", g->fgrid);
     sc_write_gmsh(fname, sc, 0);
     if (dim < 4) {

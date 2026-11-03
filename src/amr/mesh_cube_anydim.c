@@ -34,7 +34,7 @@ scomplex** mesh_cube_init(const INT dim, const INT ndiv, const INT ref_type) {
   input_grid* g = malloc(sizeof(input_grid));
   // set up initial grid;
   g->title = strdup("Cube in n-d");
-  g->fgrid = strdup("mesh.haz");
+  g->fgrid = strdup("mesh.msh");
   g->fvtu = strdup("mesh.vtu");
   //
   g->ncsys = 1;

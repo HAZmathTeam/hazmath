@@ -18,10 +18,10 @@ output_dir  = ./output/ % directory for all output (must be created)
 % mesh
 %---------------%
 
-read_mesh_from_file = 0 % [0/1]; 1=Either read from file in .haz format or 0=build uniform mesh directly
+read_mesh_from_file = 0 % [0/1]; 1=Either read from file in Gmsh (.msh) format or 0=build uniform mesh directly
 
 % For reading in a pre-made mesh file (any dimension works)
-gridfile          = unitSQ_n9.haz
+% gridfile          = mesh.msh
 
 % For using HAZmath's built-in uniform mesh functions
 spatial_dim       = 3   % For now only 2D or 3D

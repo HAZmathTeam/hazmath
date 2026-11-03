@@ -898,7 +898,7 @@ static INT check_input(char* file2str, input_grid* g,
   /* initialize */
   /* ... PARSE ... strings */
   g->title = safe_parse(clndata[0], "Title", "Untitled", 256);
-  g->fgrid = safe_parse(clndata[1], "Filename for the grid file", "mesh.haz", 256);
+  g->fgrid = safe_parse(clndata[1], "Filename for the grid file", "mesh.msh", 256);
   g->fvtu = safe_parse(clndata[2], "Filename for the VTU file", "mesh.vtu", 256);
   /*INTEGERS*/
   iread[8] = sscanf(clndata[8], "%lld", &int_read); g->dim = (INT )int_read; // the dimension of the problem.
