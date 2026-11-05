@@ -102,6 +102,11 @@ first mesh with more than `N` dofs.
 Problem 2 has no closed-form solution; its error is computed from
 `||u - u_h||^2 = (f,u) - (f,u_h)` when `ae_reference_energy` gives `(f,u)`.
 
+In problem 1 the boundary data are not zero: `u_h` takes the nodal values of
+the exact `u` on the boundary. This is outside the setting `V = H^1_0` of the
+Li-Zikatanov (2021) estimates; on the L-shape `eta/err` still stays in
+[0.99, 1.25] and settles at about 1.24.
+
 For P1 with constant `f` (problems 1 and 2) everything is integrated exactly.
 Quadrature (`nquad` in `input.dat`) is used for the right-hand side and the
 error with a non-constant `f`, and for the Nedelec and Raviart-Thomas
@@ -119,6 +124,7 @@ right-hand sides. The Nedelec and Raviart-Thomas matrices are computed exactly.
 | `ae_max_dofs{N}` | stop after the first mesh with more than `N` dofs |
 | `ae_eps{e}`, `ae_kappa{k}` | `FE_type` 20, 30: the coefficients |
 | `ae_dump_meshes{0/1}` | 1: write `output/mesh_stage_XXX.vtu` at every stage |
+| `ae_dgs_coloring{0/1}` | 1: geometry-aware vertex coloring of the initial mesh for the DGS bisection (`src/amr/dgs_geometric_coloring.tex`) |
 
 ## Output
 

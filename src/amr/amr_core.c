@@ -294,6 +294,302 @@ static void dgs_initialize(scomplex* sc, INT* color, INT N) {
      and rebuilt by find_nbr in scfinalize */
 }
 /**********************************************************************/
+/* Geometry-aware DGS coloring (see src/amr/dgs_geometric_coloring.tex)*/
+/* All steps are linear in ns and nv: local work per simplex, CSR     */
+/* adjacency, breadth first search, flag arrays.                      */
+/**********************************************************************/
+/* Longest edge {a,b} of simplex el: strict order by length, ties
+   (relative 1e-10) broken by the smaller sorted pair of vertex indices. */
+static void dgs_longest_edge(const scomplex* sc, const INT* el, INT* a_out, INT* b_out) {
+  INT n1 = sc->dim + 1, nbig = sc->nbig, i, j, k;
+  REAL best = -1.0;
+  INT ba = -1, bb = -1;
+  for (i = 0; i < n1; i++)
+    for (j = i + 1; j < n1; j++) {
+      INT lo = el[i] < el[j] ? el[i] : el[j];
+      INT hi = el[i] < el[j] ? el[j] : el[i];
+      REAL d2 = 0.0;
+      for (k = 0; k < nbig; k++) {
+        REAL t = sc->x[lo * nbig + k] - sc->x[hi * nbig + k];
+        d2 += t * t;
+      }
+      INT take = 0;
+      if (ba < 0 || d2 > best * (1.0 + 1e-10)) take = 1;
+      else if (d2 >= best * (1.0 - 1e-10) && (lo < ba || (lo == ba && hi < bb))) take = 1;
+      if (take) { best = d2; ba = lo; bb = hi; }
+    }
+  *a_out = ba; *b_out = bb;
+}
+/* First bisection edge of an initial simplex for coloring (color, N):
+   the two largest colors if color N is present, else the smallest and
+   the largest color (Lemma 1 of the note). Returned as a sorted pair. */
+static void dgs_first_edge(const INT* el, INT n1, const INT* color, INT N, INT* a_out, INT* b_out) {
+  INT imin = 0, imax = 0, i2 = -1, i;
+  for (i = 1; i < n1; i++) {
+    if (color[el[i]] < color[el[imin]]) imin = i;
+    if (color[el[i]] > color[el[imax]]) imax = i;
+  }
+  for (i = 0; i < n1; i++)
+    if (i != imax && (i2 < 0 || color[el[i]] > color[el[i2]])) i2 = i;
+  INT a = (color[el[imax]] == N) ? el[i2] : el[imin], b = el[imax];
+  *a_out = a < b ? a : b;
+  *b_out = a < b ? b : a;
+}
+/* number of simplices whose first bisection edge is their longest edge */
+static INT dgs_score(const scomplex* sc, const INT* color, INT N, const INT* la, const INT* lb) {
+  INT n1 = sc->dim + 1, i, a, b, cnt = 0;
+  for (i = 0; i < sc->ns; i++) {
+    dgs_first_edge(sc->nodes + i * n1, n1, color, N, &a, &b);
+    if (a == la[i] && b == lb[i]) cnt++;
+  }
+  return cnt;
+}
+/* Coloring with exactly dim+1 colors by breadth first search over facet
+   neighbors (Lemma 2 of the note). Returns 1 on success, 0 if no such
+   coloring exists. Requires sc->nbr. */
+static INT dgs_color_minimal(const scomplex* sc, INT* color) {
+  INT ns = sc->ns, nv = sc->nv, n1 = sc->dim + 1, i, j, k, s;
+  INT* queue = (INT*)malloc(ns * sizeof(INT));
+  INT* seen = (INT*)calloc(ns, sizeof(INT));
+  INT have[64];
+  INT ok = (n1 <= 64);
+  for (i = 0; i < nv; i++) color[i] = -1;
+  for (s = 0; s < ns && ok; s++) {
+    if (seen[s]) continue;
+    INT qh = 0, qt = 0;
+    queue[qt++] = s; seen[s] = 1;
+    while (qh < qt && ok) {
+      INT t = queue[qh++];
+      const INT* el = sc->nodes + t * n1;
+      for (k = 0; k < n1; k++) have[k] = 0;
+      for (j = 0; j < n1; j++) {
+        INT c = color[el[j]];
+        if (c >= 0) {
+          if (have[c]) { ok = 0; break; }
+          have[c] = 1;
+        }
+      }
+      if (!ok) break;
+      k = 0;
+      for (j = 0; j < n1; j++)
+        if (color[el[j]] < 0) {
+          while (have[k]) k++;
+          color[el[j]] = k; have[k] = 1;
+        }
+      for (j = 0; j < n1; j++) {
+        INT t2 = sc->nbr[t * n1 + j];
+        if (t2 >= 0 && !seen[t2]) { seen[t2] = 1; queue[qt++] = t2; }
+      }
+    }
+  }
+  /* a vertex colored after a simplex was processed may still conflict */
+  for (i = 0; i < ns && ok; i++) {
+    const INT* el = sc->nodes + i * n1;
+    for (k = 0; k < n1; k++) have[k] = 0;
+    for (j = 0; j < n1; j++) {
+      INT c = color[el[j]];
+      if (c < 0 || have[c]) { ok = 0; break; }
+      have[c] = 1;
+    }
+  }
+  free(queue);
+  free(seen);
+  return ok;
+}
+/* Vertex-vertex adjacency in CSR (duplicates allowed) from the elements */
+static void dgs_vv_adjacency(const scomplex* sc, INT** ia_out, INT** ja_out) {
+  INT nv = sc->nv, ns = sc->ns, dim = sc->dim, n1 = dim + 1, i, j, k;
+  INT* ia = (INT*)calloc(nv + 1, sizeof(INT));
+  for (i = 0; i < ns; i++)
+    for (j = 0; j < n1; j++) ia[sc->nodes[i * n1 + j] + 1] += dim;
+  for (i = 0; i < nv; i++) ia[i + 1] += ia[i];
+  INT* ja = (INT*)malloc((ia[nv] > 0 ? ia[nv] : 1) * sizeof(INT));
+  INT* pos = (INT*)calloc(nv, sizeof(INT));
+  for (i = 0; i < ns; i++) {
+    const INT* el = sc->nodes + i * n1;
+    for (j = 0; j < n1; j++)
+      for (k = 0; k < n1; k++)
+        if (k != j) ja[ia[el[j]] + pos[el[j]]++] = el[k];
+  }
+  free(pos);
+  *ia_out = ia; *ja_out = ja;
+}
+/* Band coloring heuristic (Section 4 of the note). Returns N. */
+static INT dgs_color_bands(const scomplex* sc, const INT* la, const INT* lb, INT* color) {
+  INT nv = sc->nv, ns = sc->ns, i, j, b;
+  /* graph G_L of the longest edges, CSR with both directions */
+  INT* ia = (INT*)calloc(nv + 1, sizeof(INT));
+  for (i = 0; i < ns; i++) { ia[la[i] + 1]++; ia[lb[i] + 1]++; }
+  for (i = 0; i < nv; i++) ia[i + 1] += ia[i];
+  INT* ja = (INT*)malloc((ia[nv] > 0 ? ia[nv] : 1) * sizeof(INT));
+  INT* pos = (INT*)calloc(nv, sizeof(INT));
+  for (i = 0; i < ns; i++) {
+    ja[ia[la[i]] + pos[la[i]]++] = lb[i];
+    ja[ia[lb[i]] + pos[lb[i]]++] = la[i];
+  }
+  free(pos);
+  /* bands: 0 low, 1 middle, 2 high; alternate low/high by BFS on G_L */
+  INT* band = (INT*)malloc(nv * sizeof(INT));
+  INT* queue = (INT*)malloc(nv * sizeof(INT));
+  for (i = 0; i < nv; i++) band[i] = (ia[i + 1] > ia[i]) ? -1 : 1;
+  for (i = 0; i < nv; i++) {
+    if (band[i] != -1) continue;
+    INT qh = 0, qt = 0;
+    band[i] = 0; queue[qt++] = i;
+    while (qh < qt) {
+      INT u = queue[qh++];
+      for (j = ia[u]; j < ia[u + 1]; j++)
+        if (band[ja[j]] == -1) { band[ja[j]] = 2 - band[u]; queue[qt++] = ja[j]; }
+    }
+  }
+  free(queue); free(ia); free(ja);
+  /* greedy coloring band by band; colors of a band are consecutive,
+     starting after the largest color of the previous bands */
+  INT *adjptr, *adjind;
+  dgs_vv_adjacency(sc, &adjptr, &adjind);
+  INT* used = (INT*)calloc(nv + 1, sizeof(INT));
+  for (i = 0; i < nv; i++) color[i] = -1;
+  INT offset = 0, maxc = -1;
+  for (b = 0; b < 3; b++) {
+    for (i = 0; i < nv; i++) {
+      if (band[i] != b) continue;
+      for (j = adjptr[i]; j < adjptr[i + 1]; j++) {
+        INT c = color[adjind[j]];
+        if (c >= offset) used[c] = i + 1;
+      }
+      INT c = offset;
+      while (used[c] == i + 1) c++;
+      color[i] = c;
+      if (c > maxc) maxc = c;
+    }
+    offset = maxc + 1;
+  }
+  free(used); free(band); free(adjptr); free(adjind);
+  return maxc;
+}
+/* lexicographic next permutation of a[0..m-1]; returns 0 after the last */
+static INT dgs_next_perm(INT* a, INT m) {
+  INT i = m - 2, j, t;
+  while (i >= 0 && a[i] >= a[i + 1]) i--;
+  if (i < 0) return 0;
+  j = m - 1;
+  while (a[j] <= a[i]) j--;
+  t = a[i]; a[i] = a[j]; a[j] = t;
+  for (i = i + 1, j = m - 1; i < j; i++, j--) { t = a[i]; a[i] = a[j]; a[j] = t; }
+  return 1;
+}
+/* squared distance between vertices u and w */
+static REAL dgs_d2(const scomplex* sc, INT u, INT w) {
+  REAL d2 = 0.0;
+  for (INT k = 0; k < sc->nbig; k++) {
+    REAL t = sc->x[u * sc->nbig + k] - sc->x[w * sc->nbig + k];
+    d2 += t * t;
+  }
+  return d2;
+}
+/* For a coloring with dim+1 colors, choose the permutation perm of the
+   color classes (new color = perm[old color]) maximizing the number of
+   simplices whose DGS vertex order w = [u_n, u_0, ..., u_{n-1}] (u sorted
+   by increasing new color) is a shortest path through the vertices of the
+   simplex among the paths with end points w_0, w_n, and whose first
+   bisection edge {u_{n-1}, u_n} is the longest edge; ties are broken by
+   the number of simplices with the longest edge alone. All (n+1)!
+   permutations are tried; the cost is linear in ns. */
+static void dgs_best_permutation(const scomplex* sc, const INT* color, const INT* la, const INT* lb, INT* best) {
+  INT ns = sc->ns, n1 = sc->dim + 1, n = sc->dim, i, j, k;
+  INT perm[8], u[8], w[8], mid[8];
+  INT bestA = -1, bestAB = -1;
+  for (k = 0; k < n1; k++) { perm[k] = k; best[k] = k; }
+  do {
+    INT cA = 0, cAB = 0;
+    for (i = 0; i < ns; i++) {
+      const INT* el = sc->nodes + i * n1;
+      for (j = 0; j < n1; j++) u[perm[color[el[j]]]] = el[j];
+      INT a = u[n - 1] < u[n] ? u[n - 1] : u[n], b = u[n - 1] < u[n] ? u[n] : u[n - 1];
+      if (a != la[i] || b != lb[i]) continue;
+      cA++;
+      w[0] = u[n];
+      for (j = 0; j < n; j++) w[j + 1] = u[j];
+      REAL len = 0.0;
+      for (j = 0; j < n; j++) len += dgs_d2(sc, w[j], w[j + 1]);
+      /* shortest path from w[0] to w[n] through the interior vertices */
+      INT m = n - 1;
+      for (j = 0; j < m; j++) mid[j] = w[j + 1];
+      for (j = 0; j < m; j++)
+        for (k = j + 1; k < m; k++)
+          if (mid[k] < mid[j]) { INT t = mid[j]; mid[j] = mid[k]; mid[k] = t; }
+      REAL lmin = -1.0;
+      do {
+        REAL l = dgs_d2(sc, w[0], m > 0 ? mid[0] : w[n]);
+        for (j = 0; j + 1 < m; j++) l += dgs_d2(sc, mid[j], mid[j + 1]);
+        if (m > 0) l += dgs_d2(sc, mid[m - 1], w[n]);
+        if (lmin < 0.0 || l < lmin) lmin = l;
+      } while (m > 1 && dgs_next_perm(mid, m));
+      if (len <= lmin * (1.0 + 1e-10)) cAB++;
+    }
+    if (cAB > bestAB || (cAB == bestAB && cA > bestA)) {
+      bestAB = cAB; bestA = cA;
+      for (k = 0; k < n1; k++) best[k] = perm[k];
+    }
+  } while (dgs_next_perm(perm, n1));
+}
+/**********************************************************************/
+/*!
+ * \fn INT dgs_init_geometric(scomplex *sc, INT *nlong, INT *nlong_default)
+ *
+ * \brief DGS initialization with a geometry-aware vertex coloring
+ *        (src/amr/dgs_geometric_coloring.tex). If the mesh has a
+ *        coloring with dim+1 colors, it is used, with the two top colors
+ *        given to the pair of color classes joined by the most longest
+ *        edges. Otherwise the band heuristic is compared with the default
+ *        greedy coloring and the one with more simplices bisected first at
+ *        their longest edge is kept. Call before the first refine(); refine
+ *        then skips its own coloring. Not calling it leaves the default.
+ *
+ * \param sc            I/O: initial simplicial complex (level 0)
+ * \param nlong         O: number of simplices whose first bisection edge
+ *                         is their longest edge (may be NULL)
+ * \param nlong_default O: the same number for the default coloring (may be NULL)
+ *
+ * \return 1: dim+1 colors; 2: band heuristic; 3: default greedy kept;
+ *         -1: not applied (sc already refined or initialized)
+ */
+INT dgs_init_geometric(scomplex* sc, INT* nlong, INT* nlong_default) {
+  if (sc->level || sc->gen_N) return -1;
+  INT ns = sc->ns, nv = sc->nv, dim = sc->dim, n1 = dim + 1, i;
+  find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
+  INT* la = (INT*)malloc(ns * sizeof(INT));
+  INT* lb = (INT*)malloc(ns * sizeof(INT));
+  for (i = 0; i < ns; i++) dgs_longest_edge(sc, sc->nodes + i * n1, la + i, lb + i);
+  INT* color = (INT*)calloc(nv, sizeof(INT));
+  INT* color0 = (INT*)calloc(nv, sizeof(INT));
+  INT N0 = set_color(sc, color0);
+  INT s0 = dgs_score(sc, color0, N0, la, lb);
+  INT N, s, method;
+  if (n1 <= 8 && dgs_color_minimal(sc, color)) {
+    /* choose the permutation of the color classes (Section 3 of the note) */
+    INT perm[8];
+    dgs_best_permutation(sc, color, la, lb, perm);
+    for (i = 0; i < nv; i++) color[i] = perm[color[i]];
+    N = dim;
+    s = dgs_score(sc, color, N, la, lb);
+    method = 1;
+  } else {
+    N = dgs_color_bands(sc, la, lb, color);
+    s = dgs_score(sc, color, N, la, lb);
+    method = 2;
+    if (s < s0) {
+      for (i = 0; i < nv; i++) color[i] = color0[i];
+      N = N0; s = s0; method = 3;
+    }
+  }
+  dgs_initialize(sc, color, N);
+  if (nlong) *nlong = s;
+  if (nlong_default) *nlong_default = s0;
+  free(color); free(color0); free(la); free(lb);
+  return method;
+}
+/**********************************************************************/
 /*!
  * \brief Build v2s index for current LEAF simplices. Children created
  *        during the refinement pass are added by v2s_add_children, so
@@ -644,8 +940,9 @@ void refine(const INT ref_levels, scomplex* sc, ivector* marked) {
      * Color the vertices and reorder each simplex accordingly.
      * This works for ANY conforming initial triangulation and
      * does not require the reflected-neighbor (Traxler) ordering.
+     * Skipped if the caller already initialized (dgs_init_geometric).
      */
-    {
+    if (!sc->gen_N) {
       INT* color = (INT*)calloc(sc->nv, sizeof(INT));
       INT N = set_color(sc, color);
       /* dgs_initialize permutes both nodes and nbr arrays consistently,

@@ -29,6 +29,13 @@ test_msh_roundtrip.$(EXTENSION): test_msh_roundtrip.o
 
 all: test_msh_roundtrip.$(EXTENSION)
 
+# Additional target: test_dgs_geometric
+test_dgs_geometric.$(EXTENSION): test_dgs_geometric.o
+	+$(LINKER) $(CFLAGS) $(ExtraFLAGS) test_dgs_geometric.o $(RPATH) -o $@ $(LIBS)
+
+all: test_dgs_geometric.$(EXTENSION)
+
 clean: clean_roundtrip
 clean_roundtrip:
 	rm -f test_msh_roundtrip.$(EXTENSION) test_msh_roundtrip.o
+	rm -f test_dgs_geometric.$(EXTENSION) test_dgs_geometric.o

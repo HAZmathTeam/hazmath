@@ -526,6 +526,18 @@ static REAL cfg_real(config_z* c, const char* name, REAL dflt) {
 /*********************************************************************/
 /* FE_type 20 (Ned0, curl) and 30 (RT0, div): uses dorfler_mark above */
 #include "basic_elliptic_adaptive_hcurl_hdiv.h"
+/*********************************************************************/
+/* ae_dgs_coloring{1}: geometry-aware vertex coloring for the DGS     */
+/* initialization of the initial mesh (src/amr/amr_core.c)           */
+static void init_geometric_coloring(scomplex* sc) {
+  INT nlong = 0, nlong0 = 0;
+  INT method = dgs_init_geometric(sc, &nlong, &nlong0);
+  const char* name[] = {"", "dim+1 colors", "band heuristic", "default greedy kept"};
+  if (method > 0)
+    printf(" DGS coloring: %s (N = %lld); first bisection at the longest edge in %lld of %lld simplices"
+           " (default coloring: %lld)\n",
+           name[method], (long long)sc->dgs_N, (long long)nlong, (long long)sc->ns, (long long)nlong0);
+}
 /****** MAIN DRIVER **************************************************/
 int main(int argc, char* argv[]) {
   const char* grid_file = "input/2d_L.input";
@@ -561,6 +573,7 @@ int main(int argc, char* argv[]) {
   INT dump_meshes = (INT)cfg_real(&config, "ae_dump_meshes", 0.0); /* 1: mesh_stage_XXX.vtu at every stage */
   REAL eps = cfg_real(&config, "ae_eps", 1.0);   /* FE_type 20/30 only */
   REAL kap = cfg_real(&config, "ae_kappa", 1.0); /* FE_type 20/30 only */
+  INT geo_coloring = (INT)cfg_real(&config, "ae_dgs_coloring", 0.0); /* 1: geometry-aware DGS coloring */
   free_config(&config);
   input_grid_set_output(g, grid_file);
   INT nstages = g->nref;
@@ -577,6 +590,7 @@ int main(int argc, char* argv[]) {
     printf(" grid file: %s\n problem = %lld, eps = %g, kappa = %g, Doerfler theta = %g, nq1d = %lld\n",
            grid_file, (long long)problem, eps, kap, theta, (long long)inparam.nquad);
     scomplex** sc_all = generate_initial_grid(g);
+    if (geo_coloring) init_geometric_coloring(sc_all[0]);
     run_hcurl_hdiv(sc_all[0], &inparam, fet, problem, eps, kap, theta, Eref, max_dofs, nstages, dump_meshes);
     input_grid_free(g);
     haz_scomplex_free(sc_all[0]);
@@ -597,6 +611,7 @@ int main(int argc, char* argv[]) {
 
   scomplex** sc_all = generate_initial_grid(g);
   scomplex* sc = sc_all[0];
+  if (geo_coloring) init_geometric_coloring(sc);
   INT dim = sc->dim;
   if (problem == 1 && dim != 2) {
     fprintf(stderr, "ERROR: ae_problem{1} (exact L-shape solution) is 2D only; use ae_problem{2} or {3}\n");

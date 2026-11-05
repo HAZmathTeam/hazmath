@@ -20,6 +20,7 @@ ae_max_dofs{200000}    % stop when the number of dofs exceeds this
 ae_eps{1.0}            % FE_type 20/30: coefficient of the curl-curl / div-div term
 ae_kappa{1.0}          % FE_type 20/30: coefficient of the mass term
 ae_dump_meshes{0}      % 1: write output/mesh_stage_XXX.vtu at every stage of the adaptive loop
+ae_dgs_coloring{0}     % 1: geometry-aware vertex coloring for the DGS bisection (src/amr/dgs_geometric_coloring.tex)
 
 num_coordsystems{1}
 data_coordsystems{0 0. 0.  0}
